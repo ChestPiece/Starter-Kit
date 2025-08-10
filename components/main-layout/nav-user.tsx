@@ -20,6 +20,7 @@ import {
 import { useRouter } from "next/navigation";
 import { User } from "@/types/types";
 import { generateNameAvatar } from "@/utils/generateRandomAvatar";
+import { LogoutButton } from "@/components/auth/logout-button";
 
 export function NavUser({ user }: { user: User | null }) {
   const { isMobile } = useSidebar();
@@ -88,14 +89,11 @@ export function NavUser({ user }: { user: User | null }) {
               </DropdownMenuLabel>
 
               <DropdownMenuSeparator />
-              <DropdownMenuItem
-                className="cursor-pointer"
-                onClick={() => {
-                  alert("Authentication has been removed. No sign out needed!");
-                }}
-              >
-                <LogOut />
-                Log out (Disabled)
+              <DropdownMenuItem className="p-0">
+                <LogoutButton className="w-full justify-start h-auto p-2 bg-transparent hover:bg-accent text-foreground font-normal">
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Log out
+                </LogoutButton>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

@@ -1,3 +1,12 @@
+// Re-export auth module
+export { 
+  authService,
+  // Auth GraphQL queries
+  GET_USER_BY_ID,
+  UPDATE_USER_PROFILE
+} from './auth';
+export type { AuthSignupData } from './auth';
+
 // Re-export users module
 export { usersService } from './users';
 export type { User } from './users';

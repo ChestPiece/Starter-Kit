@@ -3,6 +3,7 @@ import "./globals.css";
 import { Toaster } from "sonner";
 import settingsService from "@/modules/settings/services/setting-service";
 import { ThemeProviderWrapper } from "@/context/theme-provider-wrapper";
+import { UserProvider } from "@/components/auth/user-context";
 import PointerEventsFix from "@/utils/pointer-events";
 
 const fontSans = Inter({
@@ -19,9 +20,11 @@ export default async function RootLayout({
     <html lang="en" className={`${fontSans.variable} font-sans antialiased`}>
       <body>
         <ThemeProviderWrapper>
-          {children}
-          <Toaster position="top-center" duration={3000} richColors />
-          <PointerEventsFix />
+          <UserProvider>
+            {children}
+            <Toaster position="top-center" duration={3000} richColors />
+            <PointerEventsFix />
+          </UserProvider>
         </ThemeProviderWrapper>
       </body>
     </html>
