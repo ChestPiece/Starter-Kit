@@ -5,6 +5,7 @@ import settingsService from "@/modules/settings/services/setting-service";
 import { ThemeProviderWrapper } from "@/context/theme-provider-wrapper";
 import { UserProvider } from "@/components/auth/user-context";
 import PointerEventsFix from "@/utils/pointer-events";
+import SessionTimeoutWarning from "@/components/auth/session-timeout-warning";
 
 const fontSans = Inter({
   subsets: ["latin"],
@@ -23,6 +24,7 @@ export default async function RootLayout({
           <UserProvider>
             {children}
             <Toaster position="top-center" duration={3000} richColors />
+            <SessionTimeoutWarning />
             <PointerEventsFix />
           </UserProvider>
         </ThemeProviderWrapper>

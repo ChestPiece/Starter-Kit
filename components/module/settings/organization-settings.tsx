@@ -42,10 +42,7 @@ export function OrganizationSettings({ settings }: { settings?: Settings }) {
       logo_setting: settings?.logo_setting || "square",
     });
 
-  // If settings is undefined, return null after hook initialization
-  if (!settings) {
-    return null;
-  }
+  // Remove early return to ensure component always renders with default settings
 
   const submitSettings = async (data: any) => {
     setLoading(true);
@@ -57,8 +54,11 @@ export function OrganizationSettings({ settings }: { settings?: Settings }) {
       logo_setting: data.logo_setting,
       favicon_url: data.logo,
     };
-    const settings = await settingsService.updateSettingsById(payload);
-    setSettingOrganization(settings);
+    await settingsService.updateSettingsById(payload);
+    // Update the state with the new values since the update was successful
+    setSettingOrganization((prev) =>
+      prev ? { ...prev, ...payload } : undefined
+    );
     toast.success("Settings updated successfully");
     window.dispatchEvent(new CustomEvent("settings-update"));
     setLoading(false);

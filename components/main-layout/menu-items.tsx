@@ -1,4 +1,4 @@
-import { UserRoles } from "@/types/types";
+// Role restrictions removed - all users get full access
 import {
   RiScanLine,
   RiMessage2Line,
@@ -6,8 +6,9 @@ import {
   RiTeamLine,
 } from "@remixicon/react";
 
-export const getNavData = (user: { roles?: string }) => {
-  const navMain = [
+export const getNavData = (user: { roles?: { name: string } }) => {
+  // Give ALL users full access to the application
+  const fullAccessNav = [
     {
       title: "Sections",
       url: "#",
@@ -20,25 +21,16 @@ export const getNavData = (user: { roles?: string }) => {
         },
       ],
     },
-  ];
-
-  const adminNavMain = [
-    ...navMain,
     {
-      title: "Other",
+      title: "Application",
       url: "#",
       items: [
         {
           title: "Settings",
           url: "/settings",
           icon: RiSettings3Line,
+          isActive: false,
         },
-      ],
-    },
-    {
-      title: "Admin Area",
-      url: "#",
-      items: [
         {
           title: "Users",
           url: "/users",
@@ -50,12 +42,6 @@ export const getNavData = (user: { roles?: string }) => {
     },
   ];
 
-  const isAdmin =
-    user.roles === UserRoles.ADMIN || user.roles?.includes(UserRoles.ADMIN);
-  const isManager =
-    user.roles === UserRoles.MANAGER || user.roles?.includes(UserRoles.MANAGER);
-
-  return {
-    navMain: isAdmin ? adminNavMain : navMain,
-  };
+  // Return the same navigation for all users
+  return { navMain: fullAccessNav };
 };

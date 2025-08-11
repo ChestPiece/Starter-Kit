@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import Image from "next/image";
 import {
   ArrowLeftIcon,
   CircleUserRoundIcon,
@@ -201,7 +202,7 @@ export function AvatarCropper({
         type="button"
       >
         {finalImageUrl ? (
-          <img
+          <Image
             className={`size-full ${shape === "horizontal" ? "object-contain" : "object-cover"}`}
             src={finalImageUrl}
             alt="Avatar"

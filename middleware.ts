@@ -1,6 +1,11 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
+// Session timeout configuration for server-side validation
+const SESSION_TIMEOUT = 30 * 60 * 1000; // 30 minutes
+const MAX_SESSION_DURATION = 24 * 60 * 60 * 1000; // 24 hours
+const FORCE_LOGOUT_ON_START = false; // Set to false to prevent redirect loops
+
 export async function middleware(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
     request,
@@ -35,14 +40,137 @@ export async function middleware(request: NextRequest) {
 
   const {
     data: { user },
+    error: authError
   } = await supabase.auth.getUser()
 
+  // Additional session validation
+  const {
+    data: { session },
+    error: sessionError
+  } = await supabase.auth.getSession()
+
+  // Enhanced session validation with timeout checks
+  // Use only authenticated user from getUser(), not session.user (security best practice)
+  let isAuthenticated = !!(user && !authError && session && !sessionError);
+  let logoutReason = '';
+
+  // Skip force logout on start if already on auth pages to prevent loops
+  if (FORCE_LOGOUT_ON_START && isAuthenticated && !request.nextUrl.pathname.startsWith('/auth')) {
+    console.log('Force logout on start enabled, invalidating session');
+    isAuthenticated = false;
+    logoutReason = 'force_logout_on_start';
+  }
+
+  // Check session expiry based on Supabase session timestamp
+  if (isAuthenticated && session?.expires_at) {
+    const sessionExpiry = new Date(session.expires_at * 1000);
+    const now = new Date();
+    
+    if (sessionExpiry <= now) {
+      console.log('Supabase session expired');
+      isAuthenticated = false;
+      logoutReason = 'supabase_session_expired';
+    }
+  }
+
+  // Check session duration and inactivity from cookies if available
+  if (isAuthenticated) {
+    const lastActivityCookie = request.cookies.get('lastActivity');
+    const sessionStartCookie = request.cookies.get('sessionStart');
+    
+    if (sessionStartCookie) {
+      const sessionStart = new Date(sessionStartCookie.value).getTime();
+      const sessionDuration = Date.now() - sessionStart;
+      
+      if (sessionDuration > MAX_SESSION_DURATION) {
+        console.log('Session exceeded maximum duration');
+        isAuthenticated = false;
+        logoutReason = 'max_duration_exceeded';
+      }
+    }
+    
+    if (lastActivityCookie && !logoutReason) {
+      const lastActivity = new Date(lastActivityCookie.value).getTime();
+      const inactiveTime = Date.now() - lastActivity;
+      
+      if (inactiveTime > SESSION_TIMEOUT) {
+        console.log('Session expired due to inactivity');
+        isAuthenticated = false;
+        logoutReason = 'inactivity_timeout';
+      }
+    }
+  }
+
+  console.log('Enhanced auth check:', {
+    hasUser: !!user,
+    hasAuthError: !!authError,
+    hasSession: !!session,
+    hasSessionError: !!sessionError,
+    isAuthenticated,
+    logoutReason,
+    path: request.nextUrl.pathname,
+    forceLogoutEnabled: FORCE_LOGOUT_ON_START
+  })
+
+  // Redirect authenticated users away from auth pages to dashboard
+  if (isAuthenticated && (request.nextUrl.pathname.startsWith('/auth') || request.nextUrl.pathname.startsWith('/login'))) {
+    const url = request.nextUrl.clone()
+    url.pathname = '/'
+    console.log('Redirecting authenticated user to dashboard:', user?.email)
+    
+    // Clear any error parameters when redirecting authenticated users
+    const response = NextResponse.redirect(url)
+    return response
+  }
+
+  // Force redirect unauthenticated users to login form
   if (
-    !user &&
+    !isAuthenticated &&
     !request.nextUrl.pathname.startsWith('/auth') &&
     !request.nextUrl.pathname.startsWith('/login')
   ) {
-    // no user, potentially respond by redirecting the user to the login page
+    const url = request.nextUrl.clone()
+    url.pathname = '/auth/login'
+    
+    // Only add error parameters when there's actually an error or logout reason
+    // For normal access (no session), redirect to clean login page
+    if (logoutReason) {
+      url.searchParams.set('reason', logoutReason)
+      console.log('Redirecting with logout reason:', logoutReason)
+    } else if (authError && authError.message !== 'Auth session missing!') {
+      // Only add session_expired for real authentication errors, not missing session
+      url.searchParams.set('session_expired', 'true')
+      console.log('Redirecting due to auth error:', authError.message)
+    } else if (sessionError) {
+      url.searchParams.set('session_error', 'true')
+      console.log('Redirecting due to session error:', sessionError.message)
+    } else {
+      // Normal redirect for unauthenticated user - no parameters needed
+      console.log('Normal redirect to login - no error parameters')
+    }
+    
+    // Clear session tracking cookies only if there was an actual session
+    const response = NextResponse.redirect(url)
+    if (logoutReason || authError || sessionError) {
+      response.cookies.delete('lastActivity')
+      response.cookies.delete('sessionStart')
+      response.cookies.delete('sessionWarningShown')
+    }
+    
+    return response
+  }
+
+  // Handle invalid or expired sessions
+  if (user && !session) {
+    const url = request.nextUrl.clone()
+    url.pathname = '/auth/login'
+    url.searchParams.set('session_invalid', 'true')
+    console.log('Session invalid, redirecting to login')
+    return NextResponse.redirect(url)
+  }
+
+  // Ensure root auth path redirects to login
+  if (!isAuthenticated && request.nextUrl.pathname === '/auth') {
     const url = request.nextUrl.clone()
     url.pathname = '/auth/login'
     return NextResponse.redirect(url)

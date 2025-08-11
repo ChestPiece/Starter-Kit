@@ -105,10 +105,7 @@ export function AppearanceSettings({ settings }: { settings?: Settings }) {
     }
   );
 
-  // Early return check after all hooks are called
-  if (!settings) {
-    return null;
-  }
+  // Remove early return to ensure component always renders with default settings
 
   const items = [
     { value: "light", label: "Light", image: "/themes/ui-light.png" },
@@ -123,8 +120,12 @@ export function AppearanceSettings({ settings }: { settings?: Settings }) {
       primary_color: settingAppearance.primary_color,
       secondary_color: settingAppearance.secondary_color,
     };
-    const settings = await settingsService.updateSettingsById(payload);
-    setSettingAppearance(settings);
+    await settingsService.updateSettingsById(payload);
+    // Update the state with the new values since the update was successful
+    setSettingAppearance((prev) => ({
+      ...prev,
+      ...payload,
+    }));
     toast.success("Settings updated successfully");
     setLoading(false);
   };

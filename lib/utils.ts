@@ -67,8 +67,8 @@ export function getUserProfile() {
     last_name: "User",
     email: "demo@example.com",
     roles: { name: "admin" },
-    avatar_url: null,
-    profile: null
+    avatar_url: undefined,
+    profile: undefined
   };
 }
 

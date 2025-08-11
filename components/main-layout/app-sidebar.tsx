@@ -19,6 +19,7 @@ import Header from "./header";
 import { SearchForm } from "../search-form";
 import { TeamSwitcher } from "../ui/settings/app-side-bar-logo";
 import { Settings } from "@/modules/settings";
+import { useUser } from "@/components/auth/user-context";
 import { RemixiconComponentType } from "@remixicon/react";
 import { LucideIcon } from "lucide-react";
 
@@ -65,15 +66,7 @@ export default function SideBarLayout({
   const [navItems, setNavItems] = useState<NavSection[]>([]);
   const pathname = usePathname();
   const title = formatPathname(pathname);
-
-  // Mock user for navigation (no authentication required)
-  const mockUser = {
-    id: "mock-user-id",
-    name: "Demo User",
-    email: "demo@example.com",
-    roles: { name: "admin" },
-    avatar_url: null,
-  };
+  const { user, loading } = useUser();
 
   const data: {
     teams: Array<{
@@ -102,11 +95,18 @@ export default function SideBarLayout({
     ],
   };
 
-  // Get navigation data with admin access (no authentication required)
+  // Get navigation data based on user role - updates dynamically when role changes
   useEffect(() => {
-    const navData = getNavData({ roles: "admin" });
-    setNavItems(navData.navMain as NavSection[]);
-  }, []);
+    if (user) {
+      const navData = getNavData({ roles: user.roles || { name: "user" } });
+      setNavItems(navData.navMain as NavSection[]);
+
+      // Log role changes for debugging
+      console.log("Navigation updated for role:", user.roles?.name || "user");
+    } else {
+      setNavItems([]);
+    }
+  }, [user, user?.roles?.name]); // Watch both user and role changes
 
   return (
     <SidebarProvider>
@@ -118,13 +118,10 @@ export default function SideBarLayout({
             <SearchForm className="mt-3" />
           </SidebarHeader>
           <SidebarContent>
-            <NavMain
-              items={navItems}
-              user={mockUser}
-            />
+            <NavMain items={navItems} user={user || undefined} />
           </SidebarContent>
           <SidebarFooter>
-            <NavUser user={mockUser} />
+            <NavUser user={user} />
           </SidebarFooter>
         </Sidebar>
         <SidebarInset className="overflow-hidden ">

@@ -19,6 +19,9 @@ interface DataTableToolbarProps<TData> {
   fetchRecords: () => void;
   type?: string;
   listRoles?: Role[];
+  isAdmin?: boolean;
+  isManager?: boolean;
+  currentUser?: any;
 }
 
 export function UserDataTableToolbar<TData>({
@@ -30,6 +33,9 @@ export function UserDataTableToolbar<TData>({
   fetchRecords,
   type,
   listRoles,
+  isAdmin,
+  isManager,
+  currentUser,
 }: DataTableToolbarProps<TData>) {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [globalFilter, setGlobalFilter] = useState<string>("");

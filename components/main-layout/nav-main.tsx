@@ -46,7 +46,7 @@ interface NavSection {
   items: NavItem[];
 }
 
-export function NavMain({ items, user }: { items: NavSection[]; user: User }) {
+export function NavMain({ items, user }: { items: NavSection[]; user?: User }) {
   const router = useRouter();
   const pathname = usePathname();
   const { isMobile, setOpenMobile, setOpen } = useSidebar();

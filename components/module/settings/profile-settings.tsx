@@ -1,5 +1,12 @@
 "use client";
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  useMemo,
+} from "react";
+import Image from "next/image";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -11,6 +18,7 @@ import {
 } from "@/components/ui/card";
 import { getUserId, getUserProfile, useUserData } from "@/lib/utils";
 import { usersService } from "@/modules/users/services/users-service";
+import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { saveFile } from "@/supabase/actions/save-file";
 import { toast } from "sonner";
@@ -41,30 +49,79 @@ import {
 import { Area, getCroppedImg } from "@/utils/image-crop";
 
 export type UserProfile = {
+  id: string;
   first_name: string;
   last_name: string;
   email: string;
+  roles: { name: string };
+  avatar_url?: string;
   profile?: string;
 };
 
 export function ProfileSettings() {
   const userId = getUserId();
-  // Mock user profile data (authentication removed)
-  const mockUserProfile = {
-    id: "mock-user-id",
-    first_name: "Demo",
-    last_name: "User",
-    email: "demo@example.com",
-    profile: null,
-    avatar_url: null,
-  };
-  const [userProfile, setUserProfile] = useState<UserProfile>(getUserProfile());
+  // State for user profile data
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [profileLoading, setProfileLoading] = useState(true);
 
   useEffect(() => {
     const fetchUserData = async () => {
-      // Use mock data since authentication is removed
-      setUserProfile(mockUserProfile as UserProfile);
+      setProfileLoading(true);
+      try {
+        if (userId) {
+          // Get Supabase client
+          const supabase = createClient();
+
+          // Fetch real user data from database
+          const { data, error } = await supabase
+            .from("user_profiles")
+            .select(
+              `
+              id,
+              first_name,
+              last_name,
+              email,
+              profile,
+              roles:role_id (name)
+            `
+            )
+            .eq("id", userId)
+            .single();
+
+          if (error) {
+            console.error("Error fetching user profile:", error);
+            throw error;
+          }
+
+          if (data) {
+            setUserProfile({
+              id: data.id,
+              first_name: data.first_name || "",
+              last_name: data.last_name || "",
+              email: data.email,
+              roles: data.roles || { name: "user" },
+              avatar_url: data.profile || undefined,
+              profile: data.profile || undefined,
+            });
+          }
+        }
+      } catch (error) {
+        console.error("Error loading user profile:", error);
+        // Fallback to basic profile structure
+        setUserProfile({
+          id: userId || "fallback-id",
+          first_name: "User",
+          last_name: "",
+          email: "user@example.com",
+          roles: { name: "user" },
+          avatar_url: undefined,
+          profile: undefined,
+        });
+      } finally {
+        setProfileLoading(false);
+      }
     };
+
     fetchUserData();
   }, [userId]);
 
@@ -179,6 +236,26 @@ export function ProfileSettings() {
     }));
   };
 
+  // Show loading state while profile is being loaded
+  if (profileLoading || !userProfile) {
+    return (
+      <Card className="w-full flex-1">
+        <CardHeader>
+          <CardTitle className="text-2xl">Personal Information</CardTitle>
+          <CardDescription>
+            Update your personal details and profile picture
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto"></div>
+            <p className="mt-2 text-sm text-gray-600">Loading profile...</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <Card className="w-full flex-1">
       <CardHeader>
@@ -205,7 +282,7 @@ export function ProfileSettings() {
                 }
               >
                 {userProfile.profile ? (
-                  <img
+                  <Image
                     className="h-full w-full object-cover"
                     src={userProfile.profile}
                     alt="User avatar"

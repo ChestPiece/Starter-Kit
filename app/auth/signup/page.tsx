@@ -1,29 +1,53 @@
-import { Metadata } from "next";
-import { SignupForm } from "@/components/auth/signup-form";
+"use client";
 
-export const metadata: Metadata = {
-  title: "Sign Up",
-  description: "Create a new account",
-};
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { SupabaseAuthForm } from "@/components/auth/supabase-auth-form";
+import { SupabaseEmailConfirmation } from "@/components/auth/supabase-email-confirmation";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { UserPlus } from "lucide-react";
 
 export default function SignupPage() {
+  const [currentView, setCurrentView] = useState<"signup" | "email-sent">(
+    "signup"
+  );
+  const [userEmail, setUserEmail] = useState("");
+  const router = useRouter();
+
+  // Set page title dynamically
+  useEffect(() => {
+    document.title = "Sign Up - Your App";
+  }, []);
+
   return (
-    <div>
-      <div className="text-center">
-        <h2 className="mt-6 text-3xl font-extrabold text-gray-900">
-          Create your account
-        </h2>
-        <p className="mt-2 text-sm text-gray-600">
-          Already have an account?{" "}
-          <a
-            href="/auth/login"
-            className="font-medium text-indigo-600 hover:text-indigo-500"
-          >
-            Sign in here
-          </a>
-        </p>
-      </div>
-      <SignupForm />
+    <div className="space-y-8">
+      {/* Welcome Message for New Users */}
+      <Alert className="mb-4 border-green-200 bg-green-50">
+        <UserPlus className="h-4 w-4 text-green-600" />
+        <AlertDescription className="text-green-800">
+          Create your account to get started. Already have an account? You can
+          sign in below.
+        </AlertDescription>
+      </Alert>
+
+      {currentView === "signup" ? (
+        <SupabaseAuthForm
+          view="signup"
+          onViewChange={(view) => {
+            if (view === "login") {
+              router.push("/auth/login");
+            } else if (view === "email-sent") {
+              setCurrentView("email-sent");
+            }
+          }}
+          onEmailSet={setUserEmail}
+        />
+      ) : (
+        <SupabaseEmailConfirmation
+          email={userEmail}
+          onBack={() => router.push("/auth/login")}
+        />
+      )}
     </div>
   );
 }

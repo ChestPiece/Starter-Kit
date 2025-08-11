@@ -1,4 +1,5 @@
 import { createClient } from './server'
+import { mapSupabaseUserToCustomUser } from '@/types/auth'
 
 export async function getUser() {
   const supabase = await createClient()
@@ -11,9 +12,28 @@ export async function getUser() {
       return null
     }
     
-    return user
+    // Return the mapped custom user format
+    return mapSupabaseUserToCustomUser(user)
   } catch (error) {
     console.error('Error in getUser:', error)
+    return null
+  }
+}
+
+export async function getSupabaseUser() {
+  const supabase = await createClient()
+  
+  try {
+    const { data: { user }, error } = await supabase.auth.getUser()
+    
+    if (error) {
+      console.error('Error fetching user:', error)
+      return null
+    }
+    
+    return user
+  } catch (error) {
+    console.error('Error in getSupabaseUser:', error)
     return null
   }
 }
