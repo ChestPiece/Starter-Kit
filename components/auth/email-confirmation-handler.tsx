@@ -21,7 +21,7 @@ export function EmailConfirmationHandler() {
       const token_hash = searchParams.get("token_hash");
       const type = searchParams.get("type");
 
-      if (!token_hash || type !== "email") {
+      if (!token_hash || !type) {
         setStatus("error");
         setMessage(
           "Invalid confirmation link. Please check your email for the correct link."
@@ -30,9 +30,12 @@ export function EmailConfirmationHandler() {
       }
 
       try {
+        // Handle both signup and email change confirmations
+        const verifyType = type === "signup" ? "signup" : "email";
+        
         const { data, error } = await supabase.auth.verifyOtp({
           token_hash,
-          type: "email",
+          type: verifyType as any,
         });
 
         if (error) {
@@ -43,16 +46,43 @@ export function EmailConfirmationHandler() {
           );
         } else if (data.user) {
           setStatus("success");
-          setMessage(
-            "Email confirmed successfully! You can now sign in to your account."
-          );
-
-          // Redirect to login after a short delay
-          setTimeout(() => {
-            router.push("/auth/login");
-          }, 3000);
+          
+          // Check if user is now authenticated
+          const { data: { session } } = await supabase.auth.getSession();
+          
+          if (session && session.user) {
+            // User is authenticated after confirmation - redirect to dashboard
+            setMessage(
+              "Email confirmed successfully! Redirecting to your dashboard..."
+            );
+            
+            // Initialize session tracking
+            try {
+              const { initializeSessionTracking, updateLastActivity } = await import("@/lib/session-config");
+              initializeSessionTracking();
+              updateLastActivity();
+            } catch (e) {
+              console.warn("Could not initialize session tracking:", e);
+            }
+            
+            // Redirect to dashboard after a short delay
+            setTimeout(() => {
+              window.location.href = "/"; // Use window.location for hard refresh
+            }, 2000);
+          } else {
+            // User needs to login manually
+            setMessage(
+              "Email confirmed successfully! Please sign in to your account."
+            );
+            
+            // Redirect to login after a short delay
+            setTimeout(() => {
+              router.push("/auth/login");
+            }, 3000);
+          }
         }
       } catch (err) {
+        console.error("Email confirmation error:", err);
         setStatus("error");
         setMessage("An unexpected error occurred during email confirmation.");
       }
@@ -63,7 +93,11 @@ export function EmailConfirmationHandler() {
 
   const handleContinue = () => {
     if (status === "success") {
-      router.push("/auth/login");
+      if (message.includes("dashboard")) {
+        window.location.href = "/";
+      } else {
+        router.push("/auth/login");
+      }
     } else {
       router.push("/auth/signup");
     }
@@ -104,15 +138,14 @@ export function EmailConfirmationHandler() {
           <div className="space-y-4">
             <div className="p-4 rounded-lg bg-green-50 border border-green-200">
               <p className="text-green-800 text-sm">
-                Your account is now active. You will be redirected to the login
-                page automatically.
+                Your account is now active. {message.includes("dashboard") ? "You will be redirected to your dashboard automatically." : "You will be redirected to the login page automatically."}
               </p>
             </div>
             <Button
               onClick={handleContinue}
               className="w-full bg-green-600 hover:bg-green-700"
             >
-              Continue to Login
+              {message.includes("dashboard") ? "Continue to Dashboard" : "Continue to Login"}
             </Button>
           </div>
         )}

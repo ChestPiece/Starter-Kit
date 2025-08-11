@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -24,8 +24,30 @@ export function LoginForm() {
   const [error, setError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [checkingSession, setCheckingSession] = useState(true);
   const router = useRouter();
   const supabase = createClient();
+
+  // Check if user is already authenticated on component mount
+  useEffect(() => {
+    const checkExistingSession = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session && session.user) {
+          // User is already logged in, redirect to dashboard
+          console.log("User already authenticated, redirecting to dashboard");
+          router.push("/");
+          return;
+        }
+      } catch (error) {
+        console.error("Error checking session:", error);
+      } finally {
+        setCheckingSession(false);
+      }
+    };
+
+    checkExistingSession();
+  }, [supabase.auth, router]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,14 +62,28 @@ export function LoginForm() {
 
       if (error) {
         setError(error.message);
+        setLoading(false);
         return;
       }
 
-      if (data.user) {
-        router.push("/");
-        router.refresh();
+      if (data.user && data.session) {
+        console.log("Login successful, initializing session");
+        
+        // Initialize session tracking
+        try {
+          const { initializeSessionTracking, updateLastActivity } = await import("@/lib/session-config");
+          initializeSessionTracking();
+          updateLastActivity();
+        } catch (e) {
+          console.warn("Could not initialize session tracking:", e);
+        }
+
+        // Use window.location for hard refresh to ensure proper state reset
+        window.location.href = "/";
+        return;
       }
     } catch (err) {
+      console.error("Login error:", err);
       setError("An unexpected error occurred");
     } finally {
       setLoading(false);
@@ -58,6 +94,18 @@ export function LoginForm() {
   if (showForgotPassword) {
     return (
       <ForgotPassword onBackToLogin={() => setShowForgotPassword(false)} />
+    );
+  }
+
+  // Show loading while checking existing session
+  if (checkingSession) {
+    return (
+      <Card className="w-full max-w-md mx-auto shadow-2xl border-0 bg-white/95 backdrop-blur-sm">
+        <CardContent className="p-8 text-center">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-blue-600" />
+          <p className="text-gray-600">Checking authentication status...</p>
+        </CardContent>
+      </Card>
     );
   }
 
