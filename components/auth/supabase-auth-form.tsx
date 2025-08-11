@@ -72,7 +72,6 @@ export function SupabaseAuthForm({
   const [errors, setErrors] = useState<FormErrors>({});
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [checkingSession, setCheckingSession] = useState(true);
   const [passwordStrength, setPasswordStrength] = useState<PasswordStrength>({
     score: 0,
     feedback: [],
@@ -80,31 +79,6 @@ export function SupabaseAuthForm({
 
   const router = useRouter();
   const supabase = createClient();
-
-  // Check for existing session on mount (only for login view)
-  useEffect(() => {
-    const checkExistingSession = async () => {
-      if (view !== "login") {
-        setCheckingSession(false);
-        return;
-      }
-
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session && session.user) {
-          console.log("User already authenticated, redirecting to dashboard");
-          window.location.href = "/";
-          return;
-        }
-      } catch (error) {
-        console.error("Error checking session:", error);
-      } finally {
-        setCheckingSession(false);
-      }
-    };
-
-    checkExistingSession();
-  }, [view, supabase.auth]);
 
   // Validation functions
   const validateEmail = (email: string): string | undefined => {
@@ -363,17 +337,7 @@ export function SupabaseAuthForm({
     return "Strong";
   };
 
-  // Show loading while checking existing session for login
-  if (checkingSession && view === "login") {
-    return (
-      <Card className="w-full shadow-xl border-0 bg-white/80 backdrop-blur-sm">
-        <CardContent className="p-8 text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Checking authentication status...</p>
-        </CardContent>
-      </Card>
-    );
-  }
+
 
   return (
     <Card className="w-full shadow-xl border-0 bg-white/80 backdrop-blur-sm">

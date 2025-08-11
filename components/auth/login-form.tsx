@@ -24,30 +24,23 @@ export function LoginForm() {
   const [error, setError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
-  const [checkingSession, setCheckingSession] = useState(true);
   const router = useRouter();
   const supabase = createClient();
 
-  // Check if user is already authenticated on component mount
+  // Handle URL parameters for session messages
   useEffect(() => {
-    const checkExistingSession = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session && session.user) {
-          // User is already logged in, redirect to dashboard
-          console.log("User already authenticated, redirecting to dashboard");
-          router.push("/");
-          return;
-        }
-      } catch (error) {
-        console.error("Error checking session:", error);
-      } finally {
-        setCheckingSession(false);
-      }
-    };
-
-    checkExistingSession();
-  }, [supabase.auth, router]);
+    const urlParams = new URLSearchParams(window.location.search);
+    const reason = urlParams.get('reason');
+    const sessionExpired = urlParams.get('session_expired');
+    const sessionError = urlParams.get('session_error');
+    
+    if (reason === 'session_expired_on_start' || sessionExpired || sessionError) {
+      setError("Your previous session has expired. Please log in again.");
+      // Clean up URL without refreshing the page
+      const cleanUrl = window.location.pathname;
+      window.history.replaceState({}, document.title, cleanUrl);
+    }
+  }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -97,17 +90,7 @@ export function LoginForm() {
     );
   }
 
-  // Show loading while checking existing session
-  if (checkingSession) {
-    return (
-      <Card className="w-full max-w-md mx-auto shadow-2xl border-0 bg-white/95 backdrop-blur-sm">
-        <CardContent className="p-8 text-center">
-          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-blue-600" />
-          <p className="text-gray-600">Checking authentication status...</p>
-        </CardContent>
-      </Card>
-    );
-  }
+
 
   return (
     <Card className="w-full max-w-md mx-auto shadow-2xl border-0 bg-white/95 backdrop-blur-sm">
