@@ -174,3 +174,5 @@ The settings page is now **fully functional** with all three tabs working correc
 🎯 **Profile Settings** - Update personal info, upload avatar, manage profile
 
 Users can now access all settings features without any blocking issues or workarounds.
+
+

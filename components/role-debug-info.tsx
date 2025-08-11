@@ -115,7 +115,34 @@ export function RoleDebugInfo() {
         )}
 
         <div className="pt-2 border-t">
-          <div className="text-xs text-muted-foreground">
+          <div className="text-xs text-muted-foreground space-y-1">
+            <div className="font-medium">Current Access Level:</div>
+            {user.roles?.name === "admin" && (
+              <div className="space-y-1">
+                <div>✅ Dashboard - Full access</div>
+                <div>✅ Settings - Full access</div>
+                <div>✅ Users - Full access</div>
+                <div className="text-green-600 font-medium">🔑 Administrator privileges</div>
+              </div>
+            )}
+            {user.roles?.name === "manager" && (
+              <div className="space-y-1">
+                <div>✅ Dashboard - Full access</div>
+                <div>✅ Settings - Full access</div>
+                <div>❌ Users - No access</div>
+                <div className="text-blue-600 font-medium">👔 Manager privileges</div>
+              </div>
+            )}
+            {(!user.roles?.name || user.roles?.name === "user") && (
+              <div className="space-y-1">
+                <div>✅ Dashboard - Full access</div>
+                <div>❌ Settings - No access</div>
+                <div>❌ Users - No access</div>
+                <div className="text-gray-600 font-medium">👤 Standard user</div>
+              </div>
+            )}
+          </div>
+          <div className="pt-2 border-t text-xs text-muted-foreground">
             <div>✅ Real-time subscription: Active</div>
             <div>🎯 Auto-refresh on role change: Enabled</div>
             <div>🧭 Navigation updates: Automatic</div>

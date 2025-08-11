@@ -105,18 +105,28 @@ export default function SideBarLayout({
       // Enhanced logging for role changes and navigation updates
       console.log("🧭 Navigation updated for role:", userRole);
       console.log("📱 Navigation items count:", navData.navMain.length);
-      console.log("🎯 Navigation items:", navData.navMain.map(section => ({
-        title: section.title,
-        items: section.items?.map(item => item.title)
-      })));
-      
-      // Special logging for admin role changes
+      console.log(
+        "🎯 Navigation items:",
+        navData.navMain.map((section) => ({
+          title: section.title,
+          items: section.items?.map((item) => item.title),
+        }))
+      );
+
+      // Special logging for role-specific access
       if (userRole === "admin") {
-        console.log("🔑 ADMIN ACCESS GRANTED - Settings and Users should be visible");
+        console.log(
+          "🔑 ADMIN ACCESS GRANTED - Settings and Users should be visible in 'Administration' section"
+        );
+        console.log("   ✅ Can access: Dashboard, Settings (/settings), Users (/users)");
       } else if (userRole === "manager") {
-        console.log("👔 MANAGER ACCESS - Settings should be visible");
+        console.log("👔 MANAGER ACCESS GRANTED - Settings should be visible in 'Management' section");
+        console.log("   ✅ Can access: Dashboard, Settings (/settings)");
+        console.log("   ❌ Cannot access: Users (/users)");
       } else {
         console.log("👤 USER ACCESS - Only Dashboard visible");
+        console.log("   ✅ Can access: Dashboard only");
+        console.log("   ❌ Cannot access: Settings, Users");
       }
     } else {
       setNavItems([]);

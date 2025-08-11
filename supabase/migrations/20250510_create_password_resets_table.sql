@@ -59,3 +59,5 @@ BEGIN
         VALUES ('20250510_create_password_resets_table.sql', 'success', 'Password resets table created successfully.');
     END IF;
 END $$;
+
+
