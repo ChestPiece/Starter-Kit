@@ -98,13 +98,29 @@ export default function SideBarLayout({
   // Get navigation data based on user role - updates dynamically when role changes
   useEffect(() => {
     if (user) {
+      const userRole = user.roles?.name || "user";
       const navData = getNavData({ roles: user.roles || { name: "user" } });
       setNavItems(navData.navMain as NavSection[]);
 
-      // Log role changes for debugging
-      console.log("Navigation updated for role:", user.roles?.name || "user");
+      // Enhanced logging for role changes and navigation updates
+      console.log("🧭 Navigation updated for role:", userRole);
+      console.log("📱 Navigation items count:", navData.navMain.length);
+      console.log("🎯 Navigation items:", navData.navMain.map(section => ({
+        title: section.title,
+        items: section.items?.map(item => item.title)
+      })));
+      
+      // Special logging for admin role changes
+      if (userRole === "admin") {
+        console.log("🔑 ADMIN ACCESS GRANTED - Settings and Users should be visible");
+      } else if (userRole === "manager") {
+        console.log("👔 MANAGER ACCESS - Settings should be visible");
+      } else {
+        console.log("👤 USER ACCESS - Only Dashboard visible");
+      }
     } else {
       setNavItems([]);
+      console.log("❌ No user - navigation cleared");
     }
   }, [user, user?.roles?.name]); // Watch both user and role changes
 

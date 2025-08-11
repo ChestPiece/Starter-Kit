@@ -23,6 +23,7 @@ import {
   Cog,
 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { RoleDebugInfo } from "@/components/role-debug-info";
 
 export default function DashboardPage() {
   const { user, loading } = useUser();
@@ -36,9 +37,10 @@ export default function DashboardPage() {
   });
   const [statsLoading, setStatsLoading] = useState(true);
 
-  // Give all users full access - no role checking needed
-  const isAdmin = true; // All users have admin access
-  const isManager = true; // All users have manager access
+  // Role-based access control based on actual user roles
+  const userRole = user?.roles?.name || "user";
+  const isAdmin = userRole === "admin";
+  const isManager = userRole === "manager" || userRole === "admin";
 
   // Load real dashboard stats from database
   useEffect(() => {
@@ -341,6 +343,11 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
         )}
+      </div>
+
+      {/* Role Debug Info for testing */}
+      <div className="flex justify-center">
+        <RoleDebugInfo />
       </div>
     </div>
   );

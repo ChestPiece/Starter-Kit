@@ -86,6 +86,17 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
           return mappedUser;
         }
 
+        // Handle role data properly - check different possible structures
+        let roleData = { name: "user" }; // Default role
+        
+        if (userProfile.roles) {
+          if (Array.isArray(userProfile.roles) && userProfile.roles.length > 0) {
+            roleData = { name: userProfile.roles[0].name };
+          } else if (userProfile.roles.name) {
+            roleData = { name: userProfile.roles.name };
+          }
+        }
+
         // Create enhanced user object with profile data
         const enhancedUser: CustomUser = {
           id: userProfile.id,
@@ -100,14 +111,12 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
           created_at: userProfile.created_at,
           updated_at: userProfile.updated_at,
           role_id: userProfile.role_id,
-          roles:
-            userProfile.roles && userProfile.roles.length > 0
-              ? { name: userProfile.roles[0].name }
-              : { name: "user" },
+          roles: roleData,
         };
 
         console.log("Enhanced user created:", enhancedUser);
         console.log("User role:", enhancedUser.roles?.name);
+        console.log("Role data from database:", userProfile.roles);
         setUser(enhancedUser);
         return enhancedUser;
       } catch (error) {
@@ -304,7 +313,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     return () => authSubscription.unsubscribe();
   }, [supabase.auth, fetchUserWithProfile]);
 
-  // Real-time subscription for user profile changes
+  // Real-time subscription for user profile changes (especially role changes)
   useEffect(() => {
     if (!supabaseUser) return;
 
@@ -322,21 +331,39 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
           filter: `id=eq.${supabaseUser.id}`,
         },
         async (payload) => {
-          console.log("User profile changed:", payload);
-
-          // Refresh user data when profile changes
-          await fetchUserWithProfile(supabaseUser);
+          console.log("🔄 User profile changed via real-time subscription:", payload);
+          console.log("📊 Change type:", payload.eventType);
+          
+          if (payload.eventType === "UPDATE") {
+            const oldRole = user?.roles?.name;
+            console.log("🎭 Current role before update:", oldRole);
+            
+            // Refresh user data when profile changes
+            const updatedUser = await fetchUserWithProfile(supabaseUser);
+            const newRole = updatedUser?.roles?.name;
+            
+            if (oldRole !== newRole) {
+              console.log("🎯 ROLE CHANGED! From:", oldRole, "to:", newRole);
+              console.log("🔄 Navigation should update automatically now");
+            }
+          } else {
+            // For other events, just refresh the data
+            await fetchUserWithProfile(supabaseUser);
+          }
         }
       )
       .subscribe((status) => {
-        console.log("Real-time subscription status:", status);
+        console.log("📡 Real-time subscription status:", status);
+        if (status === "SUBSCRIBED") {
+          console.log("✅ Successfully subscribed to role changes for user:", supabaseUser.id);
+        }
       });
 
     return () => {
-      console.log("Unsubscribing from user profile changes");
+      console.log("🔌 Unsubscribing from user profile changes");
       subscription.unsubscribe();
     };
-  }, [supabaseUser, fetchUserWithProfile, supabase]);
+  }, [supabaseUser, fetchUserWithProfile, supabase, user?.roles?.name]);
 
   return (
     <UserContext.Provider value={{ user, supabaseUser, loading, refreshUser }}>
