@@ -102,37 +102,34 @@ export default function SideBarLayout({
       const navData = getNavData({ roles: user.roles || { name: "user" } });
       setNavItems(navData.navMain as NavSection[]);
 
-      // Enhanced logging for role changes and navigation updates
-      console.log("🧭 Navigation updated for role:", userRole);
-      console.log("📱 Navigation items count:", navData.navMain.length);
-      console.log(
-        "🎯 Navigation items:",
-        navData.navMain.map((section) => ({
-          title: section.title,
-          items: section.items?.map((item) => item.title),
-        }))
-      );
-
-      // Special logging for role-specific access
-      if (userRole === "admin") {
-        console.log(
-          "🔑 ADMIN ACCESS GRANTED - Settings and Users should be visible in 'Administration' section"
-        );
-        console.log("   ✅ Can access: Dashboard, Settings (/settings), Users (/users)");
-      } else if (userRole === "manager") {
-        console.log("👔 MANAGER ACCESS GRANTED - Settings should be visible in 'Management' section");
-        console.log("   ✅ Can access: Dashboard, Settings (/settings)");
-        console.log("   ❌ Cannot access: Users (/users)");
-      } else {
-        console.log("👤 USER ACCESS - Only Dashboard visible");
-        console.log("   ✅ Can access: Dashboard only");
-        console.log("   ❌ Cannot access: Settings, Users");
+      // Only log navigation updates when they actually change
+      const currentNavTitles = navItems.map(section => section.title).join(', ');
+      const newNavTitles = navData.navMain.map(section => section.title).join(', ');
+      
+      if (currentNavTitles !== newNavTitles || !navItems.length) {
+        console.log(`🧭 Navigation updated for ${userRole.toUpperCase()} role`);
+        
+        // Show available sections in a clean format
+        const sections = navData.navMain.map(section => 
+          `${section.title}: ${section.items?.map(item => item.title).join(', ')}`
+        ).join(' | ');
+        
+        console.log(`   📱 Available: ${sections}`);
+        
+        // Show role-specific permissions
+        if (userRole === "admin") {
+          console.log("   🔑 Full admin access - all features available");
+        } else if (userRole === "manager") {
+          console.log("   👔 Manager access - settings available, no user management");
+        } else {
+          console.log("   👤 Basic access - dashboard only");
+        }
       }
     } else {
       setNavItems([]);
       console.log("❌ No user - navigation cleared");
     }
-  }, [user, user?.roles?.name]); // Watch both user and role changes
+  }, [user, user?.roles?.name, navItems]); // Watch both user and role changes
 
   return (
     <SidebarProvider>

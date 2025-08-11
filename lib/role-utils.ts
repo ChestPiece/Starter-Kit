@@ -67,8 +67,8 @@ export const getUserRole = async (): Promise<UserRole | null> => {
       return 'user'; // Default role
     }
 
-    // Handle the response structure
-    const roleName = data?.roles?.name || 'user';
+    // Handle the response structure - roles is returned as an object, not an array
+    const roleName = (data?.roles as { name: string })?.name || 'user';
     return roleName as UserRole;
   } catch (error) {
     console.error('Error in getUserRole:', error);

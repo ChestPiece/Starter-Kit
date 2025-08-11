@@ -88,12 +88,22 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
         // Handle role data properly - check different possible structures
         let roleData = { name: "user" }; // Default role
-        
+
         if (userProfile.roles) {
-          if (Array.isArray(userProfile.roles) && userProfile.roles.length > 0) {
+          if (
+            Array.isArray(userProfile.roles) &&
+            userProfile.roles.length > 0
+          ) {
             roleData = { name: userProfile.roles[0].name };
-          } else if (userProfile.roles.name) {
-            roleData = { name: userProfile.roles.name };
+          } else if (
+            typeof userProfile.roles === "object" &&
+            userProfile.roles !== null &&
+            "name" in userProfile.roles
+          ) {
+            const roleName = userProfile.roles.name;
+            roleData = {
+              name: typeof roleName === "string" ? roleName : "user",
+            };
           }
         }
 
@@ -114,9 +124,19 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
           roles: roleData,
         };
 
-        console.log("Enhanced user created:", enhancedUser);
-        console.log("User role:", enhancedUser.roles?.name);
-        console.log("Role data from database:", userProfile.roles);
+        // Only log when role data is actually meaningful
+        const roleChanged =
+          user && user.roles?.name !== enhancedUser.roles?.name;
+        if (roleChanged || !user) {
+          console.log(
+            `👤 User profile loaded: ${enhancedUser.first_name} ${enhancedUser.last_name} (${enhancedUser.roles?.name})`
+          );
+          if (roleChanged) {
+            console.log(
+              `🎭 ROLE CHANGED: ${user?.roles?.name} → ${enhancedUser.roles?.name}`
+            );
+          }
+        }
         setUser(enhancedUser);
         return enhancedUser;
       } catch (error) {
@@ -127,7 +147,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         return mappedUser;
       }
     },
-    [supabase]
+    [supabase, user]
   );
 
   // Manual refresh function
@@ -255,7 +275,17 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         data: { user: authUser },
       } = await supabase.auth.getUser();
 
-      console.log("Auth state changed in UserContext:", event, authUser?.email);
+      // Only log significant auth state changes
+      if (
+        event === "SIGNED_IN" ||
+        event === "SIGNED_OUT" ||
+        event === "TOKEN_REFRESHED"
+      ) {
+        console.log(
+          `🔐 Auth event: ${event}`,
+          authUser?.email ? `(${authUser.email})` : ""
+        );
+      }
 
       // Use authenticated user instead of session.user for security
       const supaUser = authUser ?? null;
@@ -265,20 +295,14 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
       // Handle specific auth events with session tracking
       if (event === "SIGNED_OUT") {
-        console.log("User signed out, clearing user data and session tracking");
         clearSessionTracking();
         setUser(null);
         setSupabaseUser(null);
       }
 
       if (event === "SIGNED_IN" && session && authUser) {
-        console.log(
-          "User signed in successfully, initializing session tracking"
-        );
         initializeSessionTracking();
         updateLastActivity();
-
-        // Ensure the user is properly set and loading is complete
         setLoading(false);
 
         // Redirect to main app after successful login if on auth page
@@ -288,21 +312,20 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             currentPath.startsWith("/auth") ||
             currentPath.startsWith("/login")
           ) {
-            console.log("Redirecting to main app after successful login");
+            console.log("🏠 Redirecting to dashboard after login");
             window.location.href = "/";
           }
         }
       }
 
       if (event === "TOKEN_REFRESHED" && !session) {
-        console.log("Token refresh failed, user needs to re-authenticate");
+        console.log("❌ Token refresh failed - re-authentication required");
         clearSessionTracking();
         setUser(null);
         setSupabaseUser(null);
       }
 
       if (event === "TOKEN_REFRESHED" && session) {
-        console.log("Token refreshed successfully, updating activity");
         updateLastActivity();
       }
     });
@@ -317,7 +340,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!supabaseUser) return;
 
-    console.log("Setting up real-time subscription for user:", supabaseUser.id);
+    // Set up real-time monitoring for role changes
 
     // Subscribe to changes in user_profiles table for current user
     const subscription = supabase
@@ -331,36 +354,43 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
           filter: `id=eq.${supabaseUser.id}`,
         },
         async (payload) => {
-          console.log("🔄 User profile changed via real-time subscription:", payload);
-          console.log("📊 Change type:", payload.eventType);
-          
           if (payload.eventType === "UPDATE") {
             const oldRole = user?.roles?.name;
-            console.log("🎭 Current role before update:", oldRole);
-            
+
             // Refresh user data when profile changes
             const updatedUser = await fetchUserWithProfile(supabaseUser);
             const newRole = updatedUser?.roles?.name;
-            
+
             if (oldRole !== newRole) {
-              console.log("🎯 ROLE CHANGED! From:", oldRole, "to:", newRole);
-              console.log("🔄 Navigation should update automatically now");
+              console.log("🚀 REAL-TIME ROLE CHANGE DETECTED!");
+              console.log(
+                `   From: ${oldRole || "unknown"} → To: ${newRole || "unknown"}`
+              );
+              console.log("   🧭 Sidebar navigation will update automatically");
+              console.log("   ✅ New permissions now active");
             }
+          } else if (payload.eventType === "INSERT") {
+            console.log("📡 New profile created via Supabase");
+            await fetchUserWithProfile(supabaseUser);
           } else {
-            // For other events, just refresh the data
+            // For other events, just refresh silently
             await fetchUserWithProfile(supabaseUser);
           }
         }
       )
       .subscribe((status) => {
-        console.log("📡 Real-time subscription status:", status);
         if (status === "SUBSCRIBED") {
-          console.log("✅ Successfully subscribed to role changes for user:", supabaseUser.id);
+          console.log("✅ Real-time role monitoring active");
+        } else if (
+          status === "CLOSED" ||
+          status === "CHANNEL_ERROR" ||
+          status === "TIMED_OUT"
+        ) {
+          console.error("❌ Real-time subscription failed:", status);
         }
       });
 
     return () => {
-      console.log("🔌 Unsubscribing from user profile changes");
       subscription.unsubscribe();
     };
   }, [supabaseUser, fetchUserWithProfile, supabase, user?.roles?.name]);

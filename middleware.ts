@@ -120,17 +120,23 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  console.log('Enhanced auth check:', {
-    hasUser: !!user,
-    hasAuthError: !!authError,
-    hasSession: !!session,
-    hasSessionError: !!sessionError,
-    isAuthenticated,
-    userRole,
-    logoutReason,
-    path: request.nextUrl.pathname,
-    forceLogoutEnabled: FORCE_LOGOUT_ON_START
-  })
+  // Only log important auth events, not every request
+  const isImportantPath = !request.nextUrl.pathname.includes('/_next/') && 
+                         !request.nextUrl.pathname.includes('/manifest.json') &&
+                         !request.nextUrl.pathname.includes('/favicon.ico');
+  
+  if (!isAuthenticated && isImportantPath) {
+    console.log(`🔐 Auth required for: ${request.nextUrl.pathname}`);
+  } else if (isAuthenticated && isImportantPath && userRole) {
+    // Only log when role or path changes significantly
+    const isAuthPage = request.nextUrl.pathname.startsWith('/auth');
+    const isMainPage = request.nextUrl.pathname === '/';
+    const isProtectedPage = request.nextUrl.pathname.startsWith('/settings') || request.nextUrl.pathname.startsWith('/users');
+    
+    if (isMainPage || isProtectedPage || isAuthPage) {
+      console.log(`✅ ${userRole.toUpperCase()} access to: ${request.nextUrl.pathname}`);
+    }
+  }
 
   // Role-based access control for authenticated users
   if (isAuthenticated && userRole) {
@@ -157,7 +163,7 @@ export async function middleware(request: NextRequest) {
 
     // If user doesn't have access, redirect them
     if (!hasAccess) {
-      console.log(`Access denied for role "${userRole}" to path "${pathname}". Redirecting to: ${redirectTo}`);
+      console.log(`🚫 ACCESS DENIED: ${userRole.toUpperCase()} role cannot access ${pathname} → redirecting to ${redirectTo}`);
       const url = request.nextUrl.clone();
       url.pathname = redirectTo;
       url.searchParams.set('access_denied', 'true');

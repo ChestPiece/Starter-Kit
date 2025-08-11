@@ -58,10 +58,18 @@ export const passwordResetService = {
         throw insertError;
       }
       
-      // TODO: Send email with reset link
-      // For now, we'll just log the token (in production, this should be sent via email)
-      console.log(`Password reset token for ${email}: ${resetToken}`);
-      console.log(`Reset link: ${window.location.origin}/auth/reset-password?token=${resetToken}`);
+      // Send email with reset link using email service
+      try {
+        const { sendPasswordResetEmail } = await import('@/lib/email-service');
+        const resetUrl = `${typeof window !== 'undefined' ? window.location.origin : process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/auth/reset-password?token=${resetToken}`;
+        
+        await sendPasswordResetEmail(email, resetUrl);
+        console.log(`Password reset email sent to ${email}`);
+      } catch (emailError) {
+        console.error('Error sending password reset email:', emailError);
+        // Continue with success response even if email fails - for security reasons
+        // In production, you might want to implement retry logic or queue the email
+      }
       
       return {
         success: true,
