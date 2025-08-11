@@ -37,17 +37,20 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { RolePageGuard } from "@/components/role-page-guard";
+import { RoleGuard } from "@/components/access-denied";
 
-export default function SettingsDialog() {
+function SettingsContent() {
   const { user: currentUser } = useUser();
   const [activeSection, setActiveSection] = useState("Profile");
   const searchParams = useSearchParams();
   const router = useRouter();
   const tab = searchParams.get("tab");
 
-  // Give all users full access - no role checking needed
-  const isAdmin = true; // All users have admin access
-  const isManager = true; // All users have manager access
+  // Role-based access control
+  const userRole = currentUser?.roles?.name || 'user';
+  const isAdmin = userRole === 'admin';
+  const isManager = userRole === 'manager' || userRole === 'admin';
 
   // State for dynamic settings from database
   const [settings, setSettings] = useState<any>(null);
@@ -94,21 +97,26 @@ export default function SettingsDialog() {
     loadSettings();
   }, []);
 
-  // Navigation data - all users have access to all settings
+  // Navigation data - role-based access
   const data = {
     nav: [
       {
         name: "Profile",
         icon: User,
+        // Profile is available to all users
       },
-      {
-        name: "Organization",
-        icon: Building,
-      },
-      {
-        name: "Appearance",
-        icon: Paintbrush,
-      },
+      ...(isManager ? [
+        {
+          name: "Organization",
+          icon: Building,
+          // Organization settings require manager or admin
+        },
+        {
+          name: "Appearance",
+          icon: Paintbrush,
+          // Appearance settings require manager or admin
+        },
+      ] : []),
     ],
   };
 
@@ -163,13 +171,17 @@ export default function SettingsDialog() {
       case "Organization":
         return (
           <div key="organization">
-            <OrganizationSettings settings={settings} />
+            <RoleGuard requiredRole="manager">
+              <OrganizationSettings settings={settings} />
+            </RoleGuard>
           </div>
         );
       case "Appearance":
         return (
           <div key="appearance">
-            <AppearanceSettings settings={settings} />
+            <RoleGuard requiredRole="manager">
+              <AppearanceSettings settings={settings} />
+            </RoleGuard>
           </div>
         );
       default:
@@ -271,5 +283,13 @@ export default function SettingsDialog() {
         </SidebarProvider>
       </div>
     </div>
+  );
+}
+
+export default function SettingsDialog() {
+  return (
+    <RolePageGuard requiredRole="manager" currentPath="/settings">
+      <SettingsContent />
+    </RolePageGuard>
   );
 }

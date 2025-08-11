@@ -1,4 +1,4 @@
-// Role restrictions removed - all users get full access
+// Role-based navigation system
 import {
   RiScanLine,
   RiMessage2Line,
@@ -7,10 +7,12 @@ import {
 } from "@remixicon/react";
 
 export const getNavData = (user: { roles?: { name: string } }) => {
-  // Give ALL users full access to the application
-  const fullAccessNav = [
+  const userRole = user?.roles?.name || "user";
+
+  // Base navigation available to all authenticated users
+  const baseNav = [
     {
-      title: "Sections",
+      title: "Dashboard",
       url: "#",
       items: [
         {
@@ -21,27 +23,62 @@ export const getNavData = (user: { roles?: { name: string } }) => {
         },
       ],
     },
-    {
-      title: "Application",
-      url: "#",
-      items: [
-        {
-          title: "Settings",
-          url: "/settings",
-          icon: RiSettings3Line,
-          isActive: false,
-        },
-        {
-          title: "Users",
-          url: "/users",
-          icon: RiTeamLine,
-          isActive: false,
-          resource: "users",
-        },
-      ],
-    },
   ];
 
-  // Return the same navigation for all users
-  return { navMain: fullAccessNav };
+  // Role-specific navigation
+  switch (userRole) {
+    case "admin":
+      // Admin gets full access to everything
+      return {
+        navMain: [
+          ...baseNav,
+          {
+            title: "Administration",
+            url: "#",
+            items: [
+              {
+                title: "Settings",
+                url: "/settings",
+                icon: RiSettings3Line,
+                isActive: false,
+              },
+              {
+                title: "Users",
+                url: "/users",
+                icon: RiTeamLine,
+                isActive: false,
+                resource: "users",
+              },
+            ],
+          },
+        ],
+      };
+
+    case "manager":
+      // Manager gets dashboard + settings only
+      return {
+        navMain: [
+          ...baseNav,
+          {
+            title: "Management",
+            url: "#",
+            items: [
+              {
+                title: "Settings",
+                url: "/settings",
+                icon: RiSettings3Line,
+                isActive: false,
+              },
+            ],
+          },
+        ],
+      };
+
+    case "user":
+    default:
+      // Simple user gets only dashboard (mini profile accessible via user dropdown)
+      return {
+        navMain: baseNav,
+      };
+  }
 };

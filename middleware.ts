@@ -53,6 +53,25 @@ export async function middleware(request: NextRequest) {
   // Use only authenticated user from getUser(), not session.user (security best practice)
   let isAuthenticated = !!(user && !authError && session && !sessionError);
   let logoutReason = '';
+  let userRole: string | null = null;
+
+  // Get user role if authenticated
+  if (isAuthenticated && user) {
+    try {
+      // Get user role using the database function
+      const { data: roleData, error: roleError } = await supabase
+        .rpc('get_user_role');
+      
+      if (!roleError && roleData) {
+        userRole = roleData;
+      } else {
+        userRole = 'user'; // Default role
+      }
+    } catch (error) {
+      console.error('Error getting user role in middleware:', error);
+      userRole = 'user'; // Default role
+    }
+  }
 
   // Skip force logout on start if already on auth pages to prevent loops
   if (FORCE_LOGOUT_ON_START && isAuthenticated && !request.nextUrl.pathname.startsWith('/auth')) {
@@ -107,10 +126,44 @@ export async function middleware(request: NextRequest) {
     hasSession: !!session,
     hasSessionError: !!sessionError,
     isAuthenticated,
+    userRole,
     logoutReason,
     path: request.nextUrl.pathname,
     forceLogoutEnabled: FORCE_LOGOUT_ON_START
   })
+
+  // Role-based access control for authenticated users
+  if (isAuthenticated && userRole) {
+    const pathname = request.nextUrl.pathname;
+    
+    // Check if user has permission to access the requested route
+    let hasAccess = true;
+    let redirectTo = '/';
+
+    // Apply role-based access rules
+    if (pathname.startsWith('/settings')) {
+      // Settings require manager or admin role
+      if (userRole !== 'manager' && userRole !== 'admin') {
+        hasAccess = false;
+        redirectTo = '/'; // Redirect to dashboard
+      }
+    } else if (pathname.startsWith('/users')) {
+      // Users page requires admin role only
+      if (userRole !== 'admin') {
+        hasAccess = false;
+        redirectTo = userRole === 'manager' ? '/settings' : '/';
+      }
+    }
+
+    // If user doesn't have access, redirect them
+    if (!hasAccess) {
+      console.log(`Access denied for role "${userRole}" to path "${pathname}". Redirecting to: ${redirectTo}`);
+      const url = request.nextUrl.clone();
+      url.pathname = redirectTo;
+      url.searchParams.set('access_denied', 'true');
+      return NextResponse.redirect(url);
+    }
+  }
 
   // Redirect authenticated users away from auth pages to dashboard
   if (isAuthenticated && (request.nextUrl.pathname.startsWith('/auth') || request.nextUrl.pathname.startsWith('/login'))) {

@@ -99,7 +99,12 @@ export function ProfileSettings() {
               first_name: data.first_name || "",
               last_name: data.last_name || "",
               email: data.email,
-              roles: data.roles || { name: "user" },
+              roles:
+                data.roles &&
+                typeof data.roles === "object" &&
+                "name" in data.roles
+                  ? { name: String(data.roles.name) }
+                  : { name: "user" },
               avatar_url: data.profile || undefined,
               profile: data.profile || undefined,
             });
@@ -179,10 +184,14 @@ export function ProfileSettings() {
       // Upload the file to server/storage
       const fileUrl = await saveFile(file);
       if (fileUrl) {
-        setUserProfile((prev) => ({
-          ...prev,
-          profile: fileUrl,
-        }));
+        setUserProfile((prev) =>
+          prev
+            ? {
+                ...prev,
+                profile: fileUrl,
+              }
+            : null
+        );
       }
 
       // Close the dialog
@@ -206,6 +215,8 @@ export function ProfileSettings() {
   }, [fileId]);
 
   const handleUpdateUserProfile = async () => {
+    if (!userProfile) return;
+
     setIsLoading(true);
     try {
       await usersService.updateUser({
@@ -230,10 +241,14 @@ export function ProfileSettings() {
   };
 
   const handleRemoveAvatar = () => {
-    setUserProfile((prev) => ({
-      ...prev,
-      profile: undefined,
-    }));
+    setUserProfile((prev) =>
+      prev
+        ? {
+            ...prev,
+            profile: undefined,
+          }
+        : null
+    );
   };
 
   // Show loading state while profile is being loaded
@@ -334,10 +349,14 @@ export function ProfileSettings() {
                 placeholder="Enter first name"
                 value={userProfile.first_name}
                 onChange={(e) =>
-                  setUserProfile((prev) => ({
-                    ...prev,
-                    first_name: e.target.value,
-                  }))
+                  setUserProfile((prev) =>
+                    prev
+                      ? {
+                          ...prev,
+                          first_name: e.target.value,
+                        }
+                      : null
+                  )
                 }
               />
             </div>
@@ -348,10 +367,14 @@ export function ProfileSettings() {
                 placeholder="Enter last name"
                 value={userProfile.last_name}
                 onChange={(e) =>
-                  setUserProfile((prev) => ({
-                    ...prev,
-                    last_name: e.target.value,
-                  }))
+                  setUserProfile((prev) =>
+                    prev
+                      ? {
+                          ...prev,
+                          last_name: e.target.value,
+                        }
+                      : null
+                  )
                 }
               />
             </div>
