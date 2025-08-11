@@ -171,15 +171,19 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // Redirect authenticated users away from auth pages to dashboard
-  if (isAuthenticated && (request.nextUrl.pathname.startsWith('/auth') || request.nextUrl.pathname.startsWith('/login'))) {
-    const url = request.nextUrl.clone()
-    url.pathname = '/'
-    console.log('Redirecting authenticated user to dashboard:', user?.email)
-    
-    // Clear any error parameters when redirecting authenticated users
-    const response = NextResponse.redirect(url)
-    return response
+  // Only redirect authenticated users away from auth pages AFTER login is complete
+  // But allow them to stay on auth pages during the login process
+  if (isAuthenticated && user && (request.nextUrl.pathname.startsWith('/auth') || request.nextUrl.pathname.startsWith('/login'))) {
+    // Check if this is not a login form submission or confirmation process
+    if (!request.nextUrl.pathname.includes('/confirm') && !request.nextUrl.searchParams.has('code')) {
+      const url = request.nextUrl.clone()
+      url.pathname = '/'
+      console.log('Redirecting authenticated user to dashboard:', user?.email)
+      
+      // Clear any error parameters when redirecting authenticated users
+      const response = NextResponse.redirect(url)
+      return response
+    }
   }
 
   // Force redirect unauthenticated users to login form

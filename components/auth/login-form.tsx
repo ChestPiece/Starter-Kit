@@ -16,6 +16,7 @@ import {
 import { Eye, EyeOff, Mail, Lock, Loader2, ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ForgotPassword } from "./forgot-password";
+import { ResendVerification } from "./resend-verification";
 
 export function LoginForm() {
   const [email, setEmail] = useState("");
@@ -24,17 +25,22 @@ export function LoginForm() {
   const [error, setError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [showResendVerification, setShowResendVerification] = useState(false);
   const router = useRouter();
   const supabase = createClient();
 
   // Handle URL parameters for session messages
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
-    const reason = urlParams.get('reason');
-    const sessionExpired = urlParams.get('session_expired');
-    const sessionError = urlParams.get('session_error');
-    
-    if (reason === 'session_expired_on_start' || sessionExpired || sessionError) {
+    const reason = urlParams.get("reason");
+    const sessionExpired = urlParams.get("session_expired");
+    const sessionError = urlParams.get("session_error");
+
+    if (
+      reason === "session_expired_on_start" ||
+      sessionExpired ||
+      sessionError
+    ) {
       setError("Your previous session has expired. Please log in again.");
       // Clean up URL without refreshing the page
       const cleanUrl = window.location.pathname;
@@ -54,31 +60,68 @@ export function LoginForm() {
       });
 
       if (error) {
-        setError(error.message);
+        console.error("Login error:", error);
+
+        // Handle specific error cases
+        if (
+          error.message.includes("email not confirmed") ||
+          error.message.includes("Email not confirmed")
+        ) {
+          setError(
+            "Please verify your email before logging in. Check your inbox for a verification link."
+          );
+        } else if (error.message.includes("Invalid login credentials")) {
+          setError("Invalid email or password. Please check your credentials.");
+        } else if (error.message.includes("Email not verified")) {
+          setError(
+            "Please verify your email before logging in. Check your inbox for a verification link."
+          );
+        } else {
+          setError(error.message);
+        }
+
         setLoading(false);
         return;
       }
 
-      if (data.user && data.session) {
-        console.log("Login successful, initializing session");
-        
+      if (data.user) {
+        // Check if user's email is verified
+        if (!data.user.email_confirmed_at) {
+          console.log(
+            "Login blocked - user email not verified:",
+            data.user.email
+          );
+          setError(
+            "Please verify your email before logging in. Need a new verification link?"
+          );
+          setLoading(false);
+          return;
+        }
+
+        console.log("Login successful - verified user:", data.user.email);
+
         // Initialize session tracking
         try {
-          const { initializeSessionTracking, updateLastActivity } = await import("@/lib/session-config");
+          const { initializeSessionTracking, updateLastActivity } =
+            await import("@/lib/session-config");
           initializeSessionTracking();
           updateLastActivity();
         } catch (e) {
           console.warn("Could not initialize session tracking:", e);
         }
 
-        // Use window.location for hard refresh to ensure proper state reset
-        window.location.href = "/";
+        // Set a timeout to prevent infinite loading
+        setTimeout(() => {
+          window.location.href = "/";
+        }, 500);
         return;
+      } else {
+        setError("Login failed - no user returned");
+        setLoading(false);
       }
     } catch (err) {
-      console.error("Login error:", err);
-      setError("An unexpected error occurred");
-    } finally {
+      console.error("Login exception:", err);
+      setError("An unexpected error occurred. Please try again.");
       setLoading(false);
     }
   };
@@ -90,7 +133,14 @@ export function LoginForm() {
     );
   }
 
-
+  // Show resend verification screen if needed
+  if (showResendVerification) {
+    return (
+      <ResendVerification
+        onBackToLogin={() => setShowResendVerification(false)}
+      />
+    );
+  }
 
   return (
     <Card className="w-full max-w-md mx-auto shadow-2xl border-0 bg-white/95 backdrop-blur-sm">
@@ -171,6 +221,17 @@ export function LoginForm() {
               <p className="text-red-600 text-sm text-center font-medium">
                 {error}
               </p>
+              {error.includes("verify your email") && (
+                <div className="mt-2 text-center">
+                  <button
+                    type="button"
+                    onClick={() => setShowResendVerification(true)}
+                    className="text-xs text-blue-600 hover:text-blue-800 underline"
+                  >
+                    Resend Verification Email
+                  </button>
+                </div>
+              )}
             </div>
           )}
 

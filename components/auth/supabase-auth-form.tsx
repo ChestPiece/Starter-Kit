@@ -200,13 +200,45 @@ export function SupabaseAuthForm({
         });
 
         if (error) {
-          setErrors({ general: error.message });
+          console.error("Login error:", error);
+
+          // Handle specific error cases
+          let errorMessage = error.message;
+          if (
+            error.message.includes("email not confirmed") ||
+            error.message.includes("Email not confirmed")
+          ) {
+            errorMessage =
+              "Please verify your email before logging in. Check your inbox for a verification link.";
+          } else if (error.message.includes("Invalid login credentials")) {
+            errorMessage =
+              "Invalid email or password. Please check your credentials.";
+          } else if (error.message.includes("Email not verified")) {
+            errorMessage =
+              "Please verify your email before logging in. Check your inbox for a verification link.";
+          }
+
+          setErrors({ general: errorMessage });
           setIsSubmitting(false);
           return;
         }
 
-        if (data.user && data.session) {
-          console.log("Login successful, redirecting to dashboard");
+        if (data.user) {
+          // Check if user's email is verified
+          if (!data.user.email_confirmed_at) {
+            console.log(
+              "Login blocked - user email not verified:",
+              data.user.email
+            );
+            setErrors({
+              general:
+                "Please verify your email before logging in. Check your inbox for a verification link.",
+            });
+            setIsSubmitting(false);
+            return;
+          }
+
+          console.log("Login successful - verified user:", data.user.email);
           // Initialize session tracking for successful login
           try {
             const { initializeSessionTracking, updateLastActivity } =
@@ -217,8 +249,14 @@ export function SupabaseAuthForm({
             console.warn("Could not initialize session tracking:", e);
           }
 
-          // Use window.location for hard refresh to ensure proper state reset
-          window.location.href = "/";
+          // Set a timeout to prevent infinite loading
+          setTimeout(() => {
+            window.location.href = "/";
+          }, 500);
+          return;
+        } else {
+          setErrors({ general: "Login failed - no user returned" });
+          setIsSubmitting(false);
           return;
         }
       } else {
@@ -336,8 +374,6 @@ export function SupabaseAuthForm({
     if (score <= 4) return "Good";
     return "Strong";
   };
-
-
 
   return (
     <Card className="w-full shadow-xl border-0 bg-white/80 backdrop-blur-sm">

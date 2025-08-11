@@ -300,22 +300,15 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         setSupabaseUser(null);
       }
 
-      if (event === "SIGNED_IN" && session && authUser) {
-        initializeSessionTracking();
-        updateLastActivity();
-        setLoading(false);
-
-        // Redirect to main app after successful login if on auth page
-        if (typeof window !== "undefined") {
-          const currentPath = window.location.pathname;
-          if (
-            currentPath.startsWith("/auth") ||
-            currentPath.startsWith("/login")
-          ) {
-            console.log("🏠 Redirecting to dashboard after login");
-            window.location.href = "/";
-          }
+      if (event === "SIGNED_IN" && authUser) {
+        try {
+          initializeSessionTracking();
+          updateLastActivity();
+        } catch (e) {
+          console.warn("Could not initialize session tracking:", e);
         }
+        setLoading(false);
+        console.log(`✅ User signed in: ${authUser.email}`);
       }
 
       if (event === "TOKEN_REFRESHED" && !session) {
