@@ -186,7 +186,7 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // Force redirect unauthenticated users to login form
+  // Redirect unauthenticated users to login form with clean URL
   if (
     !isAuthenticated &&
     !request.nextUrl.pathname.startsWith('/auth') &&
@@ -195,30 +195,14 @@ export async function middleware(request: NextRequest) {
     const url = request.nextUrl.clone()
     url.pathname = '/auth/login'
     
-    // Only add error parameters when there's actually an error or logout reason
-    // For normal access (no session), redirect to clean login page
-    if (logoutReason) {
-      url.searchParams.set('reason', logoutReason)
-      console.log('Redirecting with logout reason:', logoutReason)
-    } else if (authError && authError.message !== 'Auth session missing!') {
-      // Only add session_expired for real authentication errors, not missing session
-      url.searchParams.set('session_expired', 'true')
-      console.log('Redirecting due to auth error:', authError.message)
-    } else if (sessionError) {
-      url.searchParams.set('session_error', 'true')
-      console.log('Redirecting due to session error:', sessionError.message)
-    } else {
-      // Normal redirect for unauthenticated user - no parameters needed
-      console.log('Normal redirect to login - no error parameters')
-    }
+    // Always redirect to clean login page without error parameters
+    console.log('Redirecting unauthenticated user to login')
     
-    // Clear session tracking cookies only if there was an actual session
     const response = NextResponse.redirect(url)
-    if (logoutReason || authError || sessionError) {
-      response.cookies.delete('lastActivity')
-      response.cookies.delete('sessionStart')
-      response.cookies.delete('sessionWarningShown')
-    }
+    // Clean up any session tracking cookies
+    response.cookies.delete('lastActivity')
+    response.cookies.delete('sessionStart')
+    response.cookies.delete('sessionWarningShown')
     
     return response
   }
@@ -227,7 +211,6 @@ export async function middleware(request: NextRequest) {
   if (user && !session) {
     const url = request.nextUrl.clone()
     url.pathname = '/auth/login'
-    url.searchParams.set('session_invalid', 'true')
     console.log('Session invalid, redirecting to login')
     return NextResponse.redirect(url)
   }

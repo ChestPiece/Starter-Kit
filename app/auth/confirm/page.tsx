@@ -8,8 +8,10 @@ export const metadata: Metadata = {
 
 export default function ConfirmPage() {
   return (
-    <div className="space-y-8">
-      <EmailConfirmationHandler />
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center p-4">
+      <div className="w-full max-w-md">
+        <EmailConfirmationHandler />
+      </div>
     </div>
   );
 }

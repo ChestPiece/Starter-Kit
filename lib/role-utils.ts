@@ -27,9 +27,10 @@ export const canAccessRoute = (userRole: UserRole, route: string): boolean => {
     return true;
   }
 
-  // Settings page access
+  // Settings page - all authenticated users can access profile settings
+  // But only managers+ can access organization/appearance settings
   if (route.startsWith('/settings')) {
-    return hasPermission(userRole, 'manager');
+    return true; // All users can access settings (role guards handle specific sections)
   }
 
   // Users page access (admin only)
@@ -67,9 +68,19 @@ export const getUserRole = async (): Promise<UserRole | null> => {
       return 'user'; // Default role
     }
 
-    // Handle the response structure - roles is returned as an object, not an array
-    const roleName = (data?.roles as { name: string })?.name || 'user';
-    return roleName as UserRole;
+    // Handle the response structure - roles might be returned as an object or null
+    let roleName = 'user';
+    
+    if (data?.roles && typeof data.roles === 'object' && 'name' in data.roles) {
+      roleName = (data.roles as { name: string }).name;
+    } else if (Array.isArray(data?.roles) && data.roles.length > 0) {
+      // Handle array case if returned as array
+      roleName = data.roles[0]?.name || 'user';
+    }
+    
+    return (roleName === 'admin' || roleName === 'manager' || roleName === 'user') 
+      ? roleName as UserRole 
+      : 'user';
   } catch (error) {
     console.error('Error in getUserRole:', error);
     return 'user'; // Default role
@@ -99,7 +110,7 @@ export const ROLE_ROUTES = {
  * Get allowed routes for a user role
  */
 export const getAllowedRoutes = (role: UserRole): string[] => {
-  return ROLE_ROUTES[role] || ROLE_ROUTES.user;
+  return [...(ROLE_ROUTES[role] || ROLE_ROUTES.user)];
 };
 
 /**

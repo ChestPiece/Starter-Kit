@@ -61,7 +61,9 @@ export function RoleDebugInfo() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-center text-muted-foreground">No user logged in</div>
+          <div className="text-center text-muted-foreground">
+            No user logged in
+          </div>
         </CardContent>
       </Card>
     );
@@ -81,25 +83,31 @@ export function RoleDebugInfo() {
             className="p-1 hover:bg-muted rounded"
             title="Refresh user data"
           >
-            <RefreshCw className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} />
+            <RefreshCw
+              className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`}
+            />
           </button>
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
         <div className="flex items-center justify-between">
           <span className="text-sm font-medium">Current Role:</span>
-          <Badge variant={getRoleBadgeVariant(user.roles?.name || "user")}>
-            {user.roles?.name || "user"}
+          <Badge
+            variant={getRoleBadgeVariant(
+              ((user.roles as any)?.name || "user") as string
+            )}
+          >
+            {(user.roles as any)?.name || "user"}
           </Badge>
         </div>
-        
+
         <div className="flex items-center justify-between">
           <span className="text-sm font-medium">User ID:</span>
           <span className="text-xs text-muted-foreground font-mono">
             {user.id.slice(0, 8)}...
           </span>
         </div>
-        
+
         <div className="flex items-center justify-between">
           <span className="text-sm font-medium">Role ID:</span>
           <span className="text-xs text-muted-foreground">
@@ -117,28 +125,35 @@ export function RoleDebugInfo() {
         <div className="pt-2 border-t">
           <div className="text-xs text-muted-foreground space-y-1">
             <div className="font-medium">Current Access Level:</div>
-            {user.roles?.name === "admin" && (
+            {(user.roles as any)?.name === "admin" && (
               <div className="space-y-1">
                 <div>✅ Dashboard - Full access</div>
                 <div>✅ Settings - Full access</div>
                 <div>✅ Users - Full access</div>
-                <div className="text-green-600 font-medium">🔑 Administrator privileges</div>
+                <div className="text-green-600 font-medium">
+                  🔑 Administrator privileges
+                </div>
               </div>
             )}
-            {user.roles?.name === "manager" && (
+            {(user.roles as any)?.name === "manager" && (
               <div className="space-y-1">
                 <div>✅ Dashboard - Full access</div>
                 <div>✅ Settings - Full access</div>
                 <div>❌ Users - No access</div>
-                <div className="text-blue-600 font-medium">👔 Manager privileges</div>
+                <div className="text-blue-600 font-medium">
+                  👔 Manager privileges
+                </div>
               </div>
             )}
-            {(!user.roles?.name || user.roles?.name === "user") && (
+            {(!(user.roles as any)?.name ||
+              (user.roles as any)?.name === "user") && (
               <div className="space-y-1">
                 <div>✅ Dashboard - Full access</div>
                 <div>❌ Settings - No access</div>
                 <div>❌ Users - No access</div>
-                <div className="text-gray-600 font-medium">👤 Standard user</div>
+                <div className="text-gray-600 font-medium">
+                  👤 Standard user
+                </div>
               </div>
             )}
           </div>

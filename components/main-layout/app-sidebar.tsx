@@ -98,29 +98,38 @@ export default function SideBarLayout({
   // Get navigation data based on user role - updates dynamically when role changes
   useEffect(() => {
     if (user) {
-      const userRole = user.roles?.name || "user";
+      const userRole = ((user.roles as any)?.name || "user") as string;
       const navData = getNavData({ roles: user.roles || { name: "user" } });
       setNavItems(navData.navMain as NavSection[]);
 
       // Only log navigation updates when they actually change
-      const currentNavTitles = navItems.map(section => section.title).join(', ');
-      const newNavTitles = navData.navMain.map(section => section.title).join(', ');
-      
+      const currentNavTitles = navItems
+        .map((section) => section.title)
+        .join(", ");
+      const newNavTitles = navData.navMain
+        .map((section) => section.title)
+        .join(", ");
+
       if (currentNavTitles !== newNavTitles || !navItems.length) {
         console.log(`🧭 Navigation updated for ${userRole.toUpperCase()} role`);
-        
+
         // Show available sections in a clean format
-        const sections = navData.navMain.map(section => 
-          `${section.title}: ${section.items?.map(item => item.title).join(', ')}`
-        ).join(' | ');
-        
+        const sections = navData.navMain
+          .map(
+            (section) =>
+              `${section.title}: ${section.items?.map((item) => item.title).join(", ")}`
+          )
+          .join(" | ");
+
         console.log(`   📱 Available: ${sections}`);
-        
+
         // Show role-specific permissions
         if (userRole === "admin") {
           console.log("   🔑 Full admin access - all features available");
         } else if (userRole === "manager") {
-          console.log("   👔 Manager access - settings available, no user management");
+          console.log(
+            "   👔 Manager access - settings available, no user management"
+          );
         } else {
           console.log("   👤 Basic access - dashboard only");
         }

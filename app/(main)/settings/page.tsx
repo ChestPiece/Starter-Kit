@@ -48,9 +48,9 @@ function SettingsContent() {
   const tab = searchParams.get("tab");
 
   // Role-based access control
-  const userRole = currentUser?.roles?.name || 'user';
-  const isAdmin = userRole === 'admin';
-  const isManager = userRole === 'manager' || userRole === 'admin';
+  const userRole = currentUser?.roles?.name || "user";
+  const isAdmin = userRole === "admin";
+  const isManager = userRole === "manager" || userRole === "admin";
 
   // State for dynamic settings from database
   const [settings, setSettings] = useState<any>(null);
@@ -105,18 +105,20 @@ function SettingsContent() {
         icon: User,
         // Profile is available to all users
       },
-      ...(isManager ? [
-        {
-          name: "Organization",
-          icon: Building,
-          // Organization settings require manager or admin
-        },
-        {
-          name: "Appearance",
-          icon: Paintbrush,
-          // Appearance settings require manager or admin
-        },
-      ] : []),
+      ...(isManager
+        ? [
+            {
+              name: "Organization",
+              icon: Building,
+              // Organization settings require manager or admin
+            },
+            {
+              name: "Appearance",
+              icon: Paintbrush,
+              // Appearance settings require manager or admin
+            },
+          ]
+        : []),
     ],
   };
 
@@ -169,19 +171,33 @@ function SettingsContent() {
           </div>
         );
       case "Organization":
+        if (!isManager) {
+          return (
+            <div key="organization">
+              <RoleGuard requiredRole="manager">
+                <OrganizationSettings settings={settings} />
+              </RoleGuard>
+            </div>
+          );
+        }
         return (
           <div key="organization">
-            <RoleGuard requiredRole="manager">
-              <OrganizationSettings settings={settings} />
-            </RoleGuard>
+            <OrganizationSettings settings={settings} />
           </div>
         );
       case "Appearance":
+        if (!isManager) {
+          return (
+            <div key="appearance">
+              <RoleGuard requiredRole="manager">
+                <AppearanceSettings settings={settings} />
+              </RoleGuard>
+            </div>
+          );
+        }
         return (
           <div key="appearance">
-            <RoleGuard requiredRole="manager">
-              <AppearanceSettings settings={settings} />
-            </RoleGuard>
+            <AppearanceSettings settings={settings} />
           </div>
         );
       default:
@@ -286,10 +302,6 @@ function SettingsContent() {
   );
 }
 
-export default function SettingsDialog() {
-  return (
-    <RolePageGuard requiredRole="manager" currentPath="/settings">
-      <SettingsContent />
-    </RolePageGuard>
-  );
+export default function SettingsPage() {
+  return <SettingsContent />;
 }

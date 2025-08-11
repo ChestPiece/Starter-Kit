@@ -47,6 +47,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<CustomUser | null>(null);
   const [supabaseUser, setSupabaseUser] = useState<SupabaseUser | null>(null);
   const [loading, setLoading] = useState(true);
+
   const supabase = createClient();
 
   // Enhanced user fetching with role data from user_profiles table
@@ -126,7 +127,9 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
         // Only log when role data is actually meaningful
         const roleChanged =
-          user && user.roles?.name !== enhancedUser.roles?.name;
+          user &&
+          ((user.roles as any)?.name || "user") !==
+            ((enhancedUser.roles as any)?.name || "user");
         if (roleChanged || !user) {
           console.log(
             `👤 User profile loaded: ${enhancedUser.first_name} ${enhancedUser.last_name} (${enhancedUser.roles?.name})`
@@ -334,57 +337,68 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     if (!supabaseUser) return;
 
     // Set up real-time monitoring for role changes
+    let subscription: ReturnType<typeof supabase.channel> | undefined;
+    
+    try {
+      // Subscribe to changes in user_profiles table for current user
+      subscription = supabase
+        .channel("user_profile_changes")
+        .on(
+          "postgres_changes",
+          {
+            event: "*",
+            schema: "public",
+            table: "user_profiles",
+            filter: `id=eq.${supabaseUser.id}`,
+          },
+          async (payload) => {
+            if (payload.eventType === "UPDATE") {
+              const oldRole = user?.roles?.name;
 
-    // Subscribe to changes in user_profiles table for current user
-    const subscription = supabase
-      .channel("user_profile_changes")
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "user_profiles",
-          filter: `id=eq.${supabaseUser.id}`,
-        },
-        async (payload) => {
-          if (payload.eventType === "UPDATE") {
-            const oldRole = user?.roles?.name;
+              // Refresh user data when profile changes
+              const updatedUser = await fetchUserWithProfile(supabaseUser);
+              const newRole = updatedUser?.roles?.name;
 
-            // Refresh user data when profile changes
-            const updatedUser = await fetchUserWithProfile(supabaseUser);
-            const newRole = updatedUser?.roles?.name;
-
-            if (oldRole !== newRole) {
-              console.log("🚀 REAL-TIME ROLE CHANGE DETECTED!");
-              console.log(
-                `   From: ${oldRole || "unknown"} → To: ${newRole || "unknown"}`
-              );
-              console.log("   🧭 Sidebar navigation will update automatically");
-              console.log("   ✅ New permissions now active");
+              if (oldRole !== newRole) {
+                console.log("🚀 REAL-TIME ROLE CHANGE DETECTED!");
+                console.log(
+                  `   From: ${oldRole || "unknown"} → To: ${newRole || "unknown"}`
+                );
+                console.log("   🧭 Sidebar navigation will update automatically");
+                console.log("   ✅ New permissions now active");
+              }
+            } else if (payload.eventType === "INSERT") {
+              console.log("📡 New profile created via Supabase");
+              await fetchUserWithProfile(supabaseUser);
+            } else {
+              // For other events, just refresh silently
+              await fetchUserWithProfile(supabaseUser);
             }
-          } else if (payload.eventType === "INSERT") {
-            console.log("📡 New profile created via Supabase");
-            await fetchUserWithProfile(supabaseUser);
-          } else {
-            // For other events, just refresh silently
-            await fetchUserWithProfile(supabaseUser);
           }
-        }
-      )
-      .subscribe((status) => {
-        if (status === "SUBSCRIBED") {
-          console.log("✅ Real-time role monitoring active");
-        } else if (
-          status === "CLOSED" ||
-          status === "CHANNEL_ERROR" ||
-          status === "TIMED_OUT"
-        ) {
-          console.error("❌ Real-time subscription failed:", status);
-        }
-      });
+        )
+        .subscribe((status) => {
+          if (status === "SUBSCRIBED") {
+            console.log("✅ Real-time role monitoring active");
+          } else if (
+            status === "CLOSED" ||
+            status === "CHANNEL_ERROR" ||
+            status === "TIMED_OUT"
+          ) {
+            console.error("❌ Real-time subscription failed:", status);
+          }
+        });
+    } catch (error) {
+      console.error("Error setting up real-time subscription:", error);
+    }
 
     return () => {
-      subscription.unsubscribe();
+      if (subscription) {
+        try {
+          subscription.unsubscribe();
+        } catch (error) {
+          console.warn("Error unsubscribing from channel:", error);
+        }
+      }
     };
   }, [supabaseUser, fetchUserWithProfile, supabase, user?.roles?.name]);
 

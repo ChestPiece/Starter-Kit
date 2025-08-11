@@ -178,18 +178,17 @@ export const passwordResetService = {
     const supabase = createClient();
     
     try {
-      const { count, error } = await supabase
+      const { error } = await supabase
         .from('password_resets')
         .delete()
-        .lt('expires_at', new Date().toISOString())
-        .select('*', { count: 'exact', head: true });
+        .lt('expires_at', new Date().toISOString());
       
       if (error) {
         console.error('Error cleaning up expired tokens:', error);
         throw error;
       }
       
-      return count || 0;
+      return 0; // Count not available in this version of Supabase
       
     } catch (error) {
       console.error('Error in cleanupExpiredTokens:', error);

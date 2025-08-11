@@ -173,7 +173,14 @@ export const dashboardStatsService = {
       const roleCount: { [key: string]: number } = {};
       
       data?.forEach(user => {
-        const roleName = user.roles?.name || 'user';
+        let roleName = 'user';
+        
+        if (user.roles && typeof user.roles === 'object' && 'name' in user.roles) {
+          roleName = (user.roles as { name: string }).name;
+        } else if (Array.isArray(user.roles) && user.roles.length > 0) {
+          roleName = user.roles[0]?.name || 'user';
+        }
+        
         roleCount[roleName] = (roleCount[roleName] || 0) + 1;
       });
 
@@ -207,7 +214,7 @@ export const dashboardStatsService = {
           created_at,
           roles!role_id (name)
         `)
-        .order('last_login', { ascending: false, nullsLast: true })
+        .order('last_login', { ascending: false, nullsFirst: false })
         .limit(limit);
       
       if (error) {

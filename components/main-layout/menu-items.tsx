@@ -12,7 +12,7 @@ export const getNavData = (user: { roles?: { name: string } }) => {
   // Base navigation available to all authenticated users
   const baseNav = [
     {
-      title: "Dashboard",
+      title: "Main",
       url: "#",
       items: [
         {
@@ -28,26 +28,43 @@ export const getNavData = (user: { roles?: { name: string } }) => {
   // Role-specific navigation
   switch (userRole) {
     case "admin":
-      // Admin gets full access to everything
+      // Admin gets full access: dashboard + all settings + users
       return {
         navMain: [
           ...baseNav,
+          {
+            title: "Settings",
+            url: "#",
+            items: [
+              {
+                title: "Profile Settings",
+                url: "/settings?tab=profile",
+                icon: RiSettings3Line,
+                isActive: false,
+              },
+              {
+                title: "Organization Settings",
+                url: "/settings?tab=organization",
+                icon: RiSettings3Line,
+                isActive: false,
+              },
+              {
+                title: "Appearance Settings",
+                url: "/settings?tab=appearance",
+                icon: RiSettings3Line,
+                isActive: false,
+              },
+            ],
+          },
           {
             title: "Administration",
             url: "#",
             items: [
               {
-                title: "Settings",
-                url: "/settings",
-                icon: RiSettings3Line,
-                isActive: false,
-              },
-              {
                 title: "Users",
                 url: "/users",
                 icon: RiTeamLine,
                 isActive: false,
-                resource: "users",
               },
             ],
           },
@@ -55,7 +72,7 @@ export const getNavData = (user: { roles?: { name: string } }) => {
       };
 
     case "manager":
-      // Manager gets dashboard + settings only
+      // Manager gets dashboard + all settings components
       return {
         navMain: [
           ...baseNav,
@@ -64,8 +81,20 @@ export const getNavData = (user: { roles?: { name: string } }) => {
             url: "#",
             items: [
               {
-                title: "Settings",
-                url: "/settings",
+                title: "Profile Settings",
+                url: "/settings?tab=profile",
+                icon: RiSettings3Line,
+                isActive: false,
+              },
+              {
+                title: "Organization Settings",
+                url: "/settings?tab=organization",
+                icon: RiSettings3Line,
+                isActive: false,
+              },
+              {
+                title: "Appearance Settings",
+                url: "/settings?tab=appearance",
                 icon: RiSettings3Line,
                 isActive: false,
               },
@@ -76,9 +105,23 @@ export const getNavData = (user: { roles?: { name: string } }) => {
 
     case "user":
     default:
-      // Simple user gets only dashboard (mini profile accessible via user dropdown)
+      // Simple user gets dashboard only (can access profile via settings but limited navigation)
       return {
-        navMain: baseNav,
+        navMain: [
+          ...baseNav,
+          {
+            title: "Personal",
+            url: "#",
+            items: [
+              {
+                title: "Profile Settings",
+                url: "/settings?tab=profile",
+                icon: RiSettings3Line,
+                isActive: false,
+              },
+            ],
+          },
+        ],
       };
   }
 };

@@ -38,9 +38,10 @@ export default function DashboardPage() {
   const [statsLoading, setStatsLoading] = useState(true);
 
   // Role-based access control based on actual user roles
-  const userRole = user?.roles?.name || "user";
+  const userRole = ((user?.roles as any)?.name || "user") as string;
   const isAdmin = userRole === "admin";
   const isManager = userRole === "manager" || userRole === "admin";
+  const isUser = userRole === "user";
 
   // Load real dashboard stats from database
   useEffect(() => {
@@ -97,10 +98,10 @@ export default function DashboardPage() {
         </div>
         <p className="text-muted-foreground">
           {isAdmin
-            ? "You have full administrative access to manage the system."
+            ? "You have full administrative access: Dashboard, Settings, and Users."
             : isManager
-              ? "You can manage users and view system settings."
-              : "Welcome to your dashboard! You have successfully logged in."}
+              ? "You have management access: Dashboard and all Settings components."
+              : "You have standard access: Dashboard and Profile settings."}
         </p>
       </div>
 
@@ -210,8 +211,8 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
 
-        {/* User Management - Admin/Manager only */}
-        {isManager && (
+        {/* User Management - Admin only */}
+        {isAdmin && (
           <Card className="hover:shadow-md transition-shadow">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -219,23 +220,19 @@ export default function DashboardPage() {
                 User Management
               </CardTitle>
               <CardDescription>
-                {isAdmin
-                  ? "Manage all users, roles, and permissions"
-                  : "View and manage user accounts"}
+                Manage all users, roles, and permissions (Admin only)
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-2">
               <Link href="/users">
                 <Button className="w-full">View All Users</Button>
               </Link>
-              {isAdmin && (
-                <Link href="/users?action=add">
-                  <Button variant="outline" className="w-full">
-                    <UserPlus className="h-4 w-4 mr-2" />
-                    Add New User
-                  </Button>
-                </Link>
-              )}
+              <Link href="/users?action=add">
+                <Button variant="outline" className="w-full">
+                  <UserPlus className="h-4 w-4 mr-2" />
+                  Add New User
+                </Button>
+              </Link>
             </CardContent>
           </Card>
         )}

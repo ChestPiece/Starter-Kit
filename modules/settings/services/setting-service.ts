@@ -50,7 +50,7 @@ const settingsService = {
                         secondary_color: "#00ff88",
                         favicon_url: "/favicon.ico",
                         logo_url: "https://res.cloudinary.com/dlzlfasou/image/upload/v1741345507/logo-01_kp2j8x.png",
-                        logo_horizontal_url: null,
+                        logo_horizontal_url: undefined,
                         logo_setting: "square",
                         appearance_theme: "light"
                     };
@@ -70,7 +70,7 @@ const settingsService = {
                 secondary_color: "#00ff88",
                 favicon_url: "/favicon.ico",
                 logo_url: "https://res.cloudinary.com/dlzlfasou/image/upload/v1741345507/logo-01_kp2j8x.png",
-                logo_horizontal_url: null,
+                logo_horizontal_url: undefined,
                 logo_setting: "square",
                 appearance_theme: "light"
             };
@@ -80,7 +80,7 @@ const settingsService = {
     /**
      * Update settings by ID
      */
-    updateSettingsById: async (data: Partial<Settings>, id?: number): Promise<number> => {
+    updateSettingsById: async (data: Partial<Settings>, id?: number): Promise<Settings | number> => {
         const supabase = createClient();
         
         try {

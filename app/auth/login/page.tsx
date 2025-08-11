@@ -2,29 +2,64 @@
 
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { SupabaseAuthForm } from "@/components/auth/supabase-auth-form";
+import { createClient } from "@/lib/supabase/client";
+import { SimpleLoginForm } from "@/components/auth/simple-login-form";
 import { SupabaseForgotPassword } from "@/components/auth/supabase-forgot-password";
 import { SupabaseEmailConfirmation } from "@/components/auth/supabase-email-confirmation";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertCircle, RefreshCw } from "lucide-react";
+import { AlertCircle, RefreshCw, CheckCircle } from "lucide-react";
 
 export default function LoginPage() {
   const [currentView, setCurrentView] = useState<
-    "login" | "signup" | "forgot-password" | "email-sent"
+    "login" | "signup" | "forgot-password" | "email-sent" | "confirming-email"
   >("login");
   const [userEmail, setUserEmail] = useState("");
+  const [confirmationError, setConfirmationError] = useState<string | null>(
+    null
+  );
+  const [isConfirming, setIsConfirming] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
+  const supabase = createClient();
 
-  // Check for session expiration and logout reasons
-  const sessionExpired = searchParams.get("session_expired") === "true";
-  const logoutReason = searchParams.get("reason");
-  const sessionInvalid = searchParams.get("session_invalid") === "true";
-  const sessionError = searchParams.get("session_error") === "true";
-  const logoutError = searchParams.get("logout_error") === "true";
-  
-  // Check if there are any error conditions that should show messages
-  const hasError = sessionExpired || logoutReason || sessionInvalid || sessionError || logoutError;
+  // Only show network-related error messages
+  const networkError = searchParams.get("network_error") === "true";
+  const confirmationCode = searchParams.get("code");
+
+  // Handle email confirmation code
+  useEffect(() => {
+    const handleEmailConfirmation = async () => {
+      if (confirmationCode && !isConfirming) {
+        setIsConfirming(true);
+        setCurrentView("confirming-email");
+
+        try {
+          const { data, error } =
+            await supabase.auth.exchangeCodeForSession(confirmationCode);
+
+          if (error) {
+            console.error("Email confirmation error:", error);
+            setConfirmationError(
+              "Failed to confirm email. The link may have expired."
+            );
+            setCurrentView("login");
+          } else if (data.user) {
+            // Email confirmed successfully, redirect to dashboard
+            router.push("/");
+            return;
+          }
+        } catch (error) {
+          console.error("Email confirmation error:", error);
+          setConfirmationError("An error occurred during email confirmation.");
+          setCurrentView("login");
+        } finally {
+          setIsConfirming(false);
+        }
+      }
+    };
+
+    handleEmailConfirmation();
+  }, [confirmationCode, supabase, router, isConfirming]);
 
   // Set page title dynamically
   useEffect(() => {
@@ -32,67 +67,58 @@ export default function LoginPage() {
   }, []);
 
   return (
-    <div className="space-y-8">
-      {/* Show error messages only when there's an actual error */}
-      {hasError && (
-        <Alert variant="destructive" className="mb-4">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>
-            {logoutReason === "force_logout_on_start" &&
-              "For security, you need to log in again when starting the application."}
-            {logoutReason === "session_timeout" &&
-              "Your session expired due to inactivity. Please log in again to continue."}
-            {logoutReason === "inactivity_timeout" &&
-              "Your session expired due to 30 minutes of inactivity. Please log in again."}
-            {logoutReason === "max_duration_exceeded" &&
-              "Your session expired after 24 hours for security. Please log in again."}
-            {logoutReason === "supabase_session_expired" &&
-              "Your session has expired. Please log in again to continue."}
-            {logoutReason === "app_start_logout" &&
-              "For enhanced security, please verify your credentials to continue."}
-            {logoutReason === "invalid_session_on_start" &&
-              "Invalid session detected. Please log in again."}
-            {logoutReason === "session_expired_on_start" &&
-              "Your previous session has expired. Please log in again."}
-            {logoutReason === "user_initiated_logout" &&
-              "You have been logged out. Please log in again to continue."}
-            {sessionExpired &&
-              !logoutReason &&
-              "Your session has expired. Please log in again to continue."}
-            {sessionInvalid && "Your session is invalid. Please log in again."}
-            {sessionError && "There was a session error. Please log in again."}
-            {logoutError &&
-              "There was an issue with your session. Please log in again."}
-          </AlertDescription>
-        </Alert>
-      )}
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center p-4">
+      <div className="w-full max-w-md space-y-8">
+        {/* Show network-related errors */}
+        {networkError && (
+          <Alert variant="destructive" className="mb-4">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              Connection failed. Please check your internet connection and try
+              again.
+            </AlertDescription>
+          </Alert>
+        )}
 
-      {currentView === "login" ? (
-        <SupabaseAuthForm
-          view="login"
-          onViewChange={(view) => {
-            if (view === "signup") {
-              router.push("/auth/signup");
-            } else {
-              setCurrentView(view);
-            }
-          }}
-          onEmailSet={setUserEmail}
-        />
-      ) : currentView === "forgot-password" ? (
-        <SupabaseForgotPassword
-          onBack={() => setCurrentView("login")}
-          onEmailSent={(email) => {
-            setUserEmail(email);
-            setCurrentView("email-sent");
-          }}
-        />
-      ) : (
-        <SupabaseEmailConfirmation
-          email={userEmail}
-          onBack={() => setCurrentView("login")}
-        />
-      )}
+        {/* Show email confirmation errors */}
+        {confirmationError && (
+          <Alert variant="destructive" className="mb-4">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>{confirmationError}</AlertDescription>
+          </Alert>
+        )}
+
+        {currentView === "confirming-email" ? (
+          <div className="text-center space-y-4">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-blue-100">
+              <RefreshCw className="h-6 w-6 text-blue-600 animate-spin" />
+            </div>
+            <div>
+              <h2 className="text-xl font-semibold">
+                Confirming your email...
+              </h2>
+              <p className="text-gray-600 text-sm mt-2">
+                Please wait while we verify your email address.
+              </p>
+            </div>
+          </div>
+        ) : currentView === "login" ? (
+          <SimpleLoginForm />
+        ) : currentView === "forgot-password" ? (
+          <SupabaseForgotPassword
+            onBack={() => setCurrentView("login")}
+            onEmailSent={(email) => {
+              setUserEmail(email);
+              setCurrentView("email-sent");
+            }}
+          />
+        ) : (
+          <SupabaseEmailConfirmation
+            email={userEmail}
+            onBack={() => setCurrentView("login")}
+          />
+        )}
+      </div>
     </div>
   );
 }

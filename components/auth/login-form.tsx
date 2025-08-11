@@ -29,23 +29,11 @@ export function LoginForm() {
   const router = useRouter();
   const supabase = createClient();
 
-  // Handle URL parameters for session messages
+  // Clean URL on component mount
   useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const reason = urlParams.get("reason");
-    const sessionExpired = urlParams.get("session_expired");
-    const sessionError = urlParams.get("session_error");
-
-    if (
-      reason === "session_expired_on_start" ||
-      sessionExpired ||
-      sessionError
-    ) {
-      setError("Your previous session has expired. Please log in again.");
-      // Clean up URL without refreshing the page
-      const cleanUrl = window.location.pathname;
-      window.history.replaceState({}, document.title, cleanUrl);
-    }
+    // Clean up URL parameters without refreshing the page
+    const cleanUrl = window.location.pathname;
+    window.history.replaceState({}, document.title, cleanUrl);
   }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -62,22 +50,24 @@ export function LoginForm() {
       if (error) {
         console.error("Login error:", error);
 
-        // Handle specific error cases
+        // Only show network-related errors or simple messages
         if (
+          error.message.includes("Network") ||
+          error.message.includes("fetch") ||
+          error.message.includes("connection")
+        ) {
+          setError(
+            "Connection failed. Please check your internet connection and try again."
+          );
+        } else if (error.message.includes("Invalid login credentials")) {
+          setError("Invalid email or password.");
+        } else if (
           error.message.includes("email not confirmed") ||
           error.message.includes("Email not confirmed")
         ) {
-          setError(
-            "Please verify your email before logging in. Check your inbox for a verification link."
-          );
-        } else if (error.message.includes("Invalid login credentials")) {
-          setError("Invalid email or password. Please check your credentials.");
-        } else if (error.message.includes("Email not verified")) {
-          setError(
-            "Please verify your email before logging in. Check your inbox for a verification link."
-          );
+          setError("Please verify your email address first.");
         } else {
-          setError(error.message);
+          setError("Please check your credentials and try again.");
         }
 
         setLoading(false);
@@ -85,20 +75,7 @@ export function LoginForm() {
       }
 
       if (data.user) {
-        // Check if user's email is verified
-        if (!data.user.email_confirmed_at) {
-          console.log(
-            "Login blocked - user email not verified:",
-            data.user.email
-          );
-          setError(
-            "Please verify your email before logging in. Need a new verification link?"
-          );
-          setLoading(false);
-          return;
-        }
-
-        console.log("Login successful - verified user:", data.user.email);
+        console.log("Login successful:", data.user.email);
 
         // Initialize session tracking
         try {
