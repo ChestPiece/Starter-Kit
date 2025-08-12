@@ -1,7 +1,9 @@
 "use client";
 
+import type React from "react";
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { passwordResetService } from "@/lib/services/password-reset-service";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,152 +11,166 @@ import {
   Card,
   CardContent,
   CardDescription,
+  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Mail, ArrowLeft, Loader2, CheckCircle } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { ArrowLeft, Mail, Send, AlertCircle, CheckCircle } from "lucide-react";
 
 interface ForgotPasswordProps {
-  onBackToLogin: () => void;
+  onBack: () => void;
+  onEmailSent: (email: string) => void;
 }
 
-export function ForgotPassword({ onBackToLogin }: ForgotPasswordProps) {
+export function ForgotPassword({
+  onBack,
+  onEmailSent,
+}: ForgotPasswordProps) {
   const [email, setEmail] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [touched, setTouched] = useState(false);
   const supabase = createClient();
 
-  const handleResetPassword = async (e: React.FormEvent) => {
+  const validateEmail = (email: string): string | undefined => {
+    if (!email) return "Email is required";
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) return "Please enter a valid email address";
+    return undefined;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
-    setError(null);
+    setTouched(true);
+
+    const emailError = validateEmail(email);
+    if (emailError) {
+      setError(emailError);
+      return;
+    }
+
+    setIsLoading(true);
+    setError("");
 
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/auth/reset-password`,
-      });
+      // Check rate limiting - max 3 requests per hour
+      const recentRequests = await passwordResetService.getRecentResetRequests(
+        email,
+        1
+      );
+      if (recentRequests >= 3) {
+        setError("Too many reset requests. Please wait before trying again.");
+        return;
+      }
 
-      if (error) {
-        setError(error.message);
+      const result = await passwordResetService.createResetRequest(email);
+
+      if (result.success) {
+        onEmailSent(email);
       } else {
-        setSuccess(true);
+        setError(result.message);
       }
     } catch (err) {
-      setError("An unexpected error occurred");
+      setError(
+        err instanceof Error ? err.message : "An unexpected error occurred"
+      );
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
-  if (success) {
-    return (
-      <Card className="w-full max-w-md mx-auto shadow-2xl border-0 bg-white/95 backdrop-blur-sm">
-        <CardHeader className="space-y-1 pb-8 text-center">
-          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-green-100">
-            <CheckCircle className="h-8 w-8 text-green-600" />
-          </div>
-          <CardTitle className="text-2xl font-bold text-gray-900">
-            Reset Link Sent
-          </CardTitle>
-          <CardDescription className="text-gray-600">
-            Check your email for password reset instructions
-          </CardDescription>
-        </CardHeader>
+  const handleEmailChange = (value: string) => {
+    setEmail(value);
+    if (error) {
+      setError("");
+    }
+  };
 
-        <CardContent className="space-y-6">
-          <div className="p-4 rounded-lg bg-green-50 border border-green-200">
-            <p className="text-green-800 text-sm text-center">
-              We've sent a password reset link to <strong>{email}</strong>
-            </p>
-          </div>
+  const handleBlur = () => {
+    setTouched(true);
+    const emailError = validateEmail(email);
+    if (emailError) {
+      setError(emailError);
+    }
+  };
 
-          <Button onClick={onBackToLogin} className="w-full" variant="outline">
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Login
-          </Button>
-        </CardContent>
-      </Card>
-    );
-  }
+  const isValid = !validateEmail(email);
 
   return (
-    <Card className="w-full max-w-md mx-auto shadow-2xl border-0 bg-white/95 backdrop-blur-sm">
-      <CardHeader className="space-y-1 pb-8">
-        <CardTitle className="text-3xl font-bold text-center bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
+    <Card className="w-full shadow-xl border-0 bg-white/80 backdrop-blur-sm">
+      <CardHeader className="space-y-1 text-center">
+        <CardTitle className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
           Reset Password
         </CardTitle>
-        <CardDescription className="text-center text-gray-600 text-base">
-          Enter your email to receive a reset link
+        <CardDescription className="text-gray-600">
+          Enter your email address and we'll send you a link to reset your
+          password
         </CardDescription>
       </CardHeader>
 
       <CardContent>
-        <form onSubmit={handleResetPassword} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label
-              htmlFor="email"
-              className="text-sm font-medium text-gray-700"
-            >
+            <Label htmlFor="reset-email" className="text-gray-700 font-medium">
               Email Address
             </Label>
             <div className="relative">
-              <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+              <Mail className="absolute left-3 top-3 h-4 w-4 text-purple-400" />
               <Input
-                id="email"
-                name="email"
+                id="reset-email"
                 type="email"
-                autoComplete="email"
-                required
+                placeholder="john@example.com"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="pl-10 h-12 border-gray-200 focus:border-purple-500 focus:ring-purple-500 rounded-xl transition-all duration-200"
-                placeholder="Enter your email address"
+                onChange={(e) => handleEmailChange(e.target.value)}
+                onBlur={handleBlur}
+                className={`pl-10 ${
+                  error && touched
+                    ? "border-red-300 focus:border-red-400 focus:ring-red-400"
+                    : "border-purple-200 focus:border-purple-400 focus:ring-purple-400"
+                }`}
+                required
               />
+              {!error && touched && email && isValid && (
+                <CheckCircle className="absolute right-3 top-3 h-4 w-4 text-green-500" />
+              )}
             </div>
-          </div>
-
-          {error && (
-            <div className="p-3 rounded-lg bg-red-50 border border-red-200">
-              <p className="text-red-600 text-sm text-center font-medium">
-                {error}
+            {error && touched && (
+              <p className="text-sm text-red-600 flex items-center space-x-1">
+                <AlertCircle className="h-3 w-3" />
+                <span>{error}</span>
               </p>
-            </div>
-          )}
+            )}
+          </div>
 
           <Button
             type="submit"
-            disabled={loading}
-            className={cn(
-              "w-full h-12 rounded-xl font-semibold text-white transition-all duration-200",
-              "bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700",
-              "shadow-lg hover:shadow-xl transform hover:scale-[1.02]",
-              "disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
-            )}
+            disabled={isLoading || !isValid}
+            className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-semibold py-2.5 transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50"
           >
-            {loading ? (
-              <div className="flex items-center space-x-2">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                <span>Sending Reset Link...</span>
+            {isLoading ? (
+              <div className="flex items-center">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                Sending...
               </div>
             ) : (
-              "Send Reset Link"
+              <div className="flex items-center">
+                <Send className="mr-2 h-4 w-4" />
+                Send Reset Link
+              </div>
             )}
           </Button>
-
-          <div className="text-center">
-            <button
-              type="button"
-              onClick={onBackToLogin}
-              className="text-sm text-gray-500 hover:text-gray-700 transition-colors flex items-center justify-center space-x-1"
-            >
-              <ArrowLeft className="h-3 w-3" />
-              <span>Back to Login</span>
-            </button>
-          </div>
         </form>
       </CardContent>
+
+      <CardFooter className="flex justify-center">
+        <button
+          onClick={onBack}
+          className="flex items-center text-sm text-purple-600 hover:text-purple-800 font-medium"
+        >
+          <ArrowLeft className="mr-1 h-4 w-4" />
+          Back to Sign In
+        </button>
+      </CardFooter>
     </Card>
   );
 }

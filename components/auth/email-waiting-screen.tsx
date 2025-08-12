@@ -13,15 +13,12 @@ import {
 } from "@/components/ui/card";
 import { ArrowLeft, Mail, CheckCircle, RefreshCw } from "lucide-react";
 
-interface SupabaseEmailConfirmationProps {
+interface EmailConfirmationProps {
   email: string;
   onBack: () => void;
 }
 
-export function SupabaseEmailConfirmation({
-  email,
-  onBack,
-}: SupabaseEmailConfirmationProps) {
+export function EmailConfirmation({ email, onBack }: EmailConfirmationProps) {
   const [isResending, setIsResending] = useState(false);
   const [resent, setResent] = useState(false);
   const [countdown, setCountdown] = useState(0);
@@ -68,23 +65,23 @@ export function SupabaseEmailConfirmation({
   };
 
   return (
-    <Card className="w-full shadow-xl border-0 bg-white/80 backdrop-blur-sm">
-      <CardHeader className="space-y-1 text-center">
-        <div className="mx-auto w-16 h-16 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center mb-4">
-          <Mail className="h-8 w-8 text-white" />
+    <Card className="w-full border bg-white">
+      <CardHeader className="space-y-1 text-center pb-3">
+        <div className="mx-auto w-12 h-12 bg-pink-100 rounded-full flex items-center justify-center mb-3">
+          <Mail className="h-6 w-6 text-pink-600" />
         </div>
-        <CardTitle className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+        <CardTitle className="text-xl font-semibold text-gray-900">
           Check Your Email
         </CardTitle>
-        <CardDescription className="text-gray-600">
+        <CardDescription className="text-gray-600 text-sm">
           We've sent a confirmation link to
         </CardDescription>
-        <p className="text-purple-600 font-semibold break-all">{email}</p>
+        <p className="text-pink-600 font-semibold break-all text-sm">{email}</p>
       </CardHeader>
 
-      <CardContent className="space-y-4 text-center">
-        <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
-          <CheckCircle className="h-6 w-6 text-purple-600 mx-auto mb-2" />
+      <CardContent className="space-y-3 text-center">
+        <div className="bg-pink-50 border border-pink-200 rounded p-3">
+          <CheckCircle className="h-5 w-5 text-pink-600 mx-auto mb-2" />
           <p className="text-sm text-gray-700">
             Click the link in the email to complete your registration. The link
             will expire in 24 hours.
@@ -103,26 +100,26 @@ export function SupabaseEmailConfirmation({
             variant="outline"
             onClick={handleResend}
             disabled={isResending || resent || countdown > 0}
-            className="border-purple-200 hover:bg-purple-50 text-purple-600 bg-transparent"
+            className="h-8 text-sm border-pink-200 hover:bg-pink-50 text-pink-600 bg-transparent"
           >
             {isResending ? (
               <div className="flex items-center">
-                <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                <RefreshCw className="mr-2 h-3 w-3 animate-spin" />
                 Resending...
               </div>
             ) : resent ? (
               <div className="flex items-center">
-                <CheckCircle className="mr-2 h-4 w-4" />
+                <CheckCircle className="mr-2 h-3 w-3" />
                 Email Sent!
               </div>
             ) : countdown > 0 ? (
               <div className="flex items-center">
-                <RefreshCw className="mr-2 h-4 w-4" />
+                <RefreshCw className="mr-2 h-3 w-3" />
                 Resend in {countdown}s
               </div>
             ) : (
               <div className="flex items-center">
-                <RefreshCw className="mr-2 h-4 w-4" />
+                <RefreshCw className="mr-2 h-3 w-3" />
                 Resend Email
               </div>
             )}
@@ -133,9 +130,9 @@ export function SupabaseEmailConfirmation({
       <CardFooter className="flex justify-center">
         <button
           onClick={onBack}
-          className="flex items-center text-sm text-purple-600 hover:text-purple-800 font-medium"
+          className="flex items-center text-sm text-pink-600 hover:text-pink-700 font-medium"
         >
-          <ArrowLeft className="mr-1 h-4 w-4" />
+          <ArrowLeft className="mr-1 h-3 w-3" />
           Back to Sign In
         </button>
       </CardFooter>

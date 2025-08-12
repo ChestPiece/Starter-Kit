@@ -1,27 +1,33 @@
-"use client"
+"use client";
 
-import type React from "react"
+import type React from "react";
 
-import { useState } from "react"
-import Link from "next/link"
-import { Eye, EyeOff, Lock, Check, X } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Progress } from "@/components/ui/progress"
+import { useState } from "react";
+import Link from "next/link";
+import { Eye, EyeOff, Lock, Check, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Progress } from "@/components/ui/progress";
 
 export default function ResetPasswordPage() {
-  const [showPassword, setShowPassword] = useState(false)
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState("")
-  const [success, setSuccess] = useState(false)
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState(false);
   const [formData, setFormData] = useState({
     password: "",
     confirmPassword: "",
-  })
+  });
 
   const passwordRequirements = [
     { regex: /.{8,}/, text: "At least 8 characters" },
@@ -29,48 +35,52 @@ export default function ResetPasswordPage() {
     { regex: /[a-z]/, text: "One lowercase letter" },
     { regex: /\d/, text: "One number" },
     { regex: /[^A-Za-z0-9]/, text: "One special character" },
-  ]
+  ];
 
   const getPasswordStrength = () => {
-    const score = passwordRequirements.filter((req) => req.regex.test(formData.password)).length
-    return (score / passwordRequirements.length) * 100
-  }
+    const score = passwordRequirements.filter((req) =>
+      req.regex.test(formData.password)
+    ).length;
+    return (score / passwordRequirements.length) * 100;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsLoading(true)
-    setError("")
+    e.preventDefault();
+    setIsLoading(true);
+    setError("");
 
     if (formData.password !== formData.confirmPassword) {
-      setError("Passwords do not match")
-      setIsLoading(false)
-      return
+      setError("Passwords do not match");
+      setIsLoading(false);
+      return;
     }
 
-    const allRequirementsMet = passwordRequirements.every((req) => req.regex.test(formData.password))
+    const allRequirementsMet = passwordRequirements.every((req) =>
+      req.regex.test(formData.password)
+    );
     if (!allRequirementsMet) {
-      setError("Password does not meet all requirements")
-      setIsLoading(false)
-      return
+      setError("Password does not meet all requirements");
+      setIsLoading(false);
+      return;
     }
 
     // Simulate API call
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1000))
-      setSuccess(true)
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      setSuccess(true);
     } catch (err) {
-      setError("Failed to reset password. Please try again.")
+      setError("Failed to reset password. Please try again.");
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData((prev) => ({
       ...prev,
       [e.target.name]: e.target.value,
-    }))
-  }
+    }));
+  };
 
   if (success) {
     return (
@@ -80,19 +90,22 @@ export default function ResetPasswordPage() {
             <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
               <Check className="h-8 w-8 text-green-600" />
             </div>
-            <CardTitle className="text-2xl font-bold">Password Reset Successful</CardTitle>
+            <CardTitle className="text-2xl font-bold">
+              Password Reset Successful
+            </CardTitle>
             <CardDescription>
-              Your password has been successfully reset. You can now sign in with your new password.
+              Your password has been successfully reset. You can now sign in
+              with your new password.
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Link href="/login">
+            <Link href="/auth/login">
               <Button className="w-full">Continue to Login</Button>
             </Link>
           </CardContent>
         </Card>
       </div>
-    )
+    );
   }
 
   return (
@@ -142,21 +155,35 @@ export default function ResetPasswordPage() {
               {formData.password && (
                 <div className="space-y-2">
                   <div className="flex items-center space-x-2">
-                    <Progress value={getPasswordStrength()} className="flex-1" />
+                    <Progress
+                      value={getPasswordStrength()}
+                      className="flex-1"
+                    />
                     <span className="text-xs text-muted-foreground">
-                      {getPasswordStrength() < 40 ? "Weak" : getPasswordStrength() < 80 ? "Medium" : "Strong"}
+                      {getPasswordStrength() < 40
+                        ? "Weak"
+                        : getPasswordStrength() < 80
+                          ? "Medium"
+                          : "Strong"}
                     </span>
                   </div>
                   <div className="space-y-1">
                     {passwordRequirements.map((req, index) => (
-                      <div key={index} className="flex items-center space-x-2 text-xs">
+                      <div
+                        key={index}
+                        className="flex items-center space-x-2 text-xs"
+                      >
                         {req.regex.test(formData.password) ? (
                           <Check className="h-3 w-3 text-green-500" />
                         ) : (
                           <X className="h-3 w-3 text-red-500" />
                         )}
                         <span
-                          className={req.regex.test(formData.password) ? "text-green-600" : "text-muted-foreground"}
+                          className={
+                            req.regex.test(formData.password)
+                              ? "text-green-600"
+                              : "text-muted-foreground"
+                          }
                         >
                           {req.text}
                         </span>
@@ -195,27 +222,33 @@ export default function ResetPasswordPage() {
                   )}
                 </Button>
               </div>
-              {formData.confirmPassword && formData.password !== formData.confirmPassword && (
-                <p className="text-xs text-red-500">Passwords do not match</p>
-              )}
+              {formData.confirmPassword &&
+                formData.password !== formData.confirmPassword && (
+                  <p className="text-xs text-red-500">Passwords do not match</p>
+                )}
             </div>
 
             <Button
               type="submit"
               className="w-full"
-              disabled={isLoading || formData.password !== formData.confirmPassword}
+              disabled={
+                isLoading || formData.password !== formData.confirmPassword
+              }
             >
               {isLoading ? "Resetting Password..." : "Reset Password"}
             </Button>
           </form>
 
           <div className="mt-6 text-center">
-            <Link href="/login" className="text-sm text-primary hover:underline">
+            <Link
+              href="/auth/login"
+              className="text-sm text-primary hover:underline"
+            >
               Back to Login
             </Link>
           </div>
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }

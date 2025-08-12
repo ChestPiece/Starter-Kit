@@ -1,6 +1,12 @@
 import { Resend } from 'resend';
 
-const resend = new Resend(process.env.RESEND_API_KEY || 're_ZVrp7HSP_7Umc1ZRNbC2k7sEBmDGt3JCx');
+function getResendClient() {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) {
+    throw new Error('RESEND_API_KEY is not set');
+  }
+  return new Resend(apiKey);
+}
 
 interface EmailOptions {
   to: string;
@@ -11,6 +17,7 @@ interface EmailOptions {
 export const emailService = {
   sendEmail: async ({ to, subject, html }: EmailOptions) => {
     try {
+      const resend = getResendClient();
       const data = await resend.emails.send({
         from: process.env.EMAIL_FROM || 'STARTER <probotic@browserautomations.com>',
         to,

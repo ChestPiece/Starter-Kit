@@ -13,10 +13,10 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Badge } from "@/components/badge";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/checkbox";
-import { Progress } from "@/components/progress";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Progress } from "@/components/ui/progress";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -24,15 +24,16 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/dropdown-menu";
-import { Input } from "@/components/input";
-import { Label } from "@/components/label";
+} from "@/components/ui/dropdown-menu";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { DataTablePagination } from "@/components/data-table/data-table-pagination";
+// Creating inline pagination components since ui/pagination doesn't exist
 import {
-  Pagination,
-  PaginationContent,
-  PaginationItem,
-} from "@/components/pagination";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/popover";
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import {
   Table,
   TableBody,
@@ -40,7 +41,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/table";
+} from "@/components/ui/table";
 import {
   ColumnDef,
   ColumnFiltersState,
@@ -82,7 +83,7 @@ import {
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from "@/components/tooltip";
+} from "@/components/ui/tooltip";
 
 type Item = {
   id: string;
@@ -302,10 +303,17 @@ export default function ContactsTable() {
         const res = await fetch(
           "https://res.cloudinary.com/dlzlfasou/raw/upload/users-02_mohkpe.json"
         );
+
+        if (!res.ok) {
+          throw new Error(`HTTP error! status: ${res.status}`);
+        }
+
         const data = await res.json();
         setData(data);
       } catch (error) {
         console.error("Error fetching data:", error);
+        // Set empty data array on error to prevent UI crashes
+        setData([]);
       } finally {
         setIsLoading(false);
       }
@@ -644,32 +652,26 @@ export default function ContactsTable() {
             </span>{" "}
             of <span className="text-foreground">{table.getPageCount()}</span>
           </p>
-          <Pagination className="w-auto">
-            <PaginationContent className="gap-3">
-              <PaginationItem>
-                <Button
-                  variant="outline"
-                  className="aria-disabled:pointer-events-none aria-disabled:opacity-50"
-                  onClick={() => table.previousPage()}
-                  disabled={!table.getCanPreviousPage()}
-                  aria-label="Go to previous page"
-                >
-                  Previous
-                </Button>
-              </PaginationItem>
-              <PaginationItem>
-                <Button
-                  variant="outline"
-                  className="aria-disabled:pointer-events-none aria-disabled:opacity-50"
-                  onClick={() => table.nextPage()}
-                  disabled={!table.getCanNextPage()}
-                  aria-label="Go to next page"
-                >
-                  Next
-                </Button>
-              </PaginationItem>
-            </PaginationContent>
-          </Pagination>
+          <div className="flex items-center gap-3">
+            <Button
+              variant="outline"
+              className="aria-disabled:pointer-events-none aria-disabled:opacity-50"
+              onClick={() => table.previousPage()}
+              disabled={!table.getCanPreviousPage()}
+              aria-label="Go to previous page"
+            >
+              Previous
+            </Button>
+            <Button
+              variant="outline"
+              className="aria-disabled:pointer-events-none aria-disabled:opacity-50"
+              onClick={() => table.nextPage()}
+              disabled={!table.getCanNextPage()}
+              aria-label="Go to next page"
+            >
+              Next
+            </Button>
+          </div>
         </div>
       )}
     </div>

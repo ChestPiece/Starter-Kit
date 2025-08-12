@@ -18,7 +18,7 @@ interface ResendVerificationProps {
   onBackToLogin: () => void;
 }
 
-export function ResendVerification({ onBackToLogin }: ResendVerificationProps) {
+export function ResendEmail({ onBackToLogin }: ResendVerificationProps) {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{

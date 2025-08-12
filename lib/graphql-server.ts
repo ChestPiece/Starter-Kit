@@ -1,6 +1,11 @@
 export async function executeGraphQLBackend<T = any>(query: string, variables?: Record<string, any>) {
   try {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/graphql`, {
+    // Use relative URL for internal API calls to avoid needing NEXT_PUBLIC_APP_URL
+    const apiUrl = typeof window !== 'undefined' 
+      ? '/api/graphql' 
+      : `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/graphql`;
+      
+    const response = await fetch(apiUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

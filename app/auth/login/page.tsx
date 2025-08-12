@@ -2,73 +2,75 @@
 
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
-import { SimpleLoginForm } from "@/components/auth/simple-login-form";
-import { SupabaseForgotPassword } from "@/components/auth/supabase-forgot-password";
-import { SupabaseEmailConfirmation } from "@/components/auth/supabase-email-confirmation";
+import { LoginForm } from "@/components/auth/login-form";
+import { ForgotPassword } from "@/components/auth/forgot-password";
+import { EmailConfirmation } from "@/components/auth/email-waiting-screen";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertCircle, RefreshCw, CheckCircle } from "lucide-react";
+import { AlertCircle } from "lucide-react";
 
 export default function LoginPage() {
   const [currentView, setCurrentView] = useState<
-    "login" | "signup" | "forgot-password" | "email-sent" | "confirming-email"
+    "login" | "forgot-password" | "email-sent"
   >("login");
   const [userEmail, setUserEmail] = useState("");
-  const [confirmationError, setConfirmationError] = useState<string | null>(
-    null
-  );
-  const [isConfirming, setIsConfirming] = useState(false);
-  const router = useRouter();
   const searchParams = useSearchParams();
-  const supabase = createClient();
+  const router = useRouter();
+  const [reasonMessage, setReasonMessage] = useState<string | null>(null);
 
   // Only show network-related error messages
   const networkError = searchParams.get("network_error") === "true";
-  const confirmationCode = searchParams.get("code");
-
-  // Handle email confirmation code
-  useEffect(() => {
-    const handleEmailConfirmation = async () => {
-      if (confirmationCode && !isConfirming) {
-        setIsConfirming(true);
-        setCurrentView("confirming-email");
-
-        try {
-          const { data, error } =
-            await supabase.auth.exchangeCodeForSession(confirmationCode);
-
-          if (error) {
-            console.error("Email confirmation error:", error);
-            setConfirmationError(
-              "Failed to confirm email. The link may have expired."
-            );
-            setCurrentView("login");
-          } else if (data.user) {
-            // Email confirmed successfully, redirect to dashboard
-            router.push("/");
-            return;
-          }
-        } catch (error) {
-          console.error("Email confirmation error:", error);
-          setConfirmationError("An error occurred during email confirmation.");
-          setCurrentView("login");
-        } finally {
-          setIsConfirming(false);
-        }
-      }
-    };
-
-    handleEmailConfirmation();
-  }, [confirmationCode, supabase, router, isConfirming]);
 
   // Set page title dynamically
   useEffect(() => {
     document.title = "Login - Your App";
   }, []);
 
+  // Handle session reason messages and clear from URL to prevent sticky state
+  useEffect(() => {
+    const reason = searchParams.get("reason");
+    const logoutError = searchParams.get("logout_error") === "true";
+
+    if (!reason && !logoutError) return;
+
+    const reasonToMessage = (code: string): string => {
+      switch (code) {
+        case "session_expired_on_start":
+        case "session_timeout":
+          return "Your session expired. Please sign in again.";
+        case "invalid_session_on_start":
+          return "Your previous session was invalid. Please sign in again.";
+        case "force_logout_on_start":
+          return "You were signed out for security. Please sign in again.";
+        case "app_start_logout":
+        case "session_expired":
+          return "You're signed out. Please sign in to continue.";
+        default:
+          return "Please sign in to continue.";
+      }
+    };
+
+    if (logoutError) {
+      setReasonMessage("You were logged out. Please sign in again.");
+    } else if (reason) {
+      setReasonMessage(reasonToMessage(reason));
+    }
+
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete("reason");
+    params.delete("logout_error");
+    const next = `/auth/login${params.toString() ? `?${params.toString()}` : ""}`;
+    router.replace(next, { scroll: false });
+  }, [searchParams, router]);
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center p-4">
-      <div className="w-full max-w-md space-y-8">
+    <div className="min-h-screen bg-white flex items-center justify-center p-8">
+      <div className="w-full max-w-7xl space-y-3">
+        {reasonMessage && (
+          <Alert className="mb-4">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>{reasonMessage}</AlertDescription>
+          </Alert>
+        )}
         {/* Show network-related errors */}
         {networkError && (
           <Alert variant="destructive" className="mb-4">
@@ -80,32 +82,10 @@ export default function LoginPage() {
           </Alert>
         )}
 
-        {/* Show email confirmation errors */}
-        {confirmationError && (
-          <Alert variant="destructive" className="mb-4">
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>{confirmationError}</AlertDescription>
-          </Alert>
-        )}
-
-        {currentView === "confirming-email" ? (
-          <div className="text-center space-y-4">
-            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-blue-100">
-              <RefreshCw className="h-6 w-6 text-blue-600 animate-spin" />
-            </div>
-            <div>
-              <h2 className="text-xl font-semibold">
-                Confirming your email...
-              </h2>
-              <p className="text-gray-600 text-sm mt-2">
-                Please wait while we verify your email address.
-              </p>
-            </div>
-          </div>
-        ) : currentView === "login" ? (
-          <SimpleLoginForm />
+        {currentView === "login" ? (
+          <LoginForm />
         ) : currentView === "forgot-password" ? (
-          <SupabaseForgotPassword
+          <ForgotPassword
             onBack={() => setCurrentView("login")}
             onEmailSent={(email) => {
               setUserEmail(email);
@@ -113,7 +93,7 @@ export default function LoginPage() {
             }}
           />
         ) : (
-          <SupabaseEmailConfirmation
+          <EmailConfirmation
             email={userEmail}
             onBack={() => setCurrentView("login")}
           />

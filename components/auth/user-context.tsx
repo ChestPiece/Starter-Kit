@@ -73,7 +73,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
           profile,
           created_at,
           updated_at,
-          roles:roles(name)
+          roles:role_id(name)
         `
           )
           .eq("id", supaUser.id)
@@ -125,21 +125,10 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
           roles: roleData,
         };
 
-        // Only log when role data is actually meaningful
-        const roleChanged =
-          user &&
-          ((user.roles as any)?.name || "user") !==
-            ((enhancedUser.roles as any)?.name || "user");
-        if (roleChanged || !user) {
-          console.log(
-            `👤 User profile loaded: ${enhancedUser.first_name} ${enhancedUser.last_name} (${enhancedUser.roles?.name})`
-          );
-          if (roleChanged) {
-            console.log(
-              `🎭 ROLE CHANGED: ${user?.roles?.name} → ${enhancedUser.roles?.name}`
-            );
-          }
-        }
+        console.log(
+          `👤 User profile loaded: ${enhancedUser.first_name} ${enhancedUser.last_name} (${enhancedUser.roles?.name})`
+        );
+
         setUser(enhancedUser);
         return enhancedUser;
       } catch (error) {
@@ -150,7 +139,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         return mappedUser;
       }
     },
-    [supabase, user]
+    [supabase]
   );
 
   // Manual refresh function
@@ -186,6 +175,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
           ) {
             console.log("Session expired on app start:", expiryReason);
             clearSessionTracking();
+            // Redirect to a clean login page with a simple session message handled there
             await forceLogoutAndRedirect("session_expired_on_start");
             setLoading(false);
             return;
@@ -338,7 +328,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
     // Set up real-time monitoring for role changes
     let subscription: ReturnType<typeof supabase.channel> | undefined;
-    
+
     try {
       // Subscribe to changes in user_profiles table for current user
       subscription = supabase
@@ -353,20 +343,9 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
           },
           async (payload) => {
             if (payload.eventType === "UPDATE") {
-              const oldRole = user?.roles?.name;
-
+              console.log("🚀 Real-time profile update detected");
               // Refresh user data when profile changes
-              const updatedUser = await fetchUserWithProfile(supabaseUser);
-              const newRole = updatedUser?.roles?.name;
-
-              if (oldRole !== newRole) {
-                console.log("🚀 REAL-TIME ROLE CHANGE DETECTED!");
-                console.log(
-                  `   From: ${oldRole || "unknown"} → To: ${newRole || "unknown"}`
-                );
-                console.log("   🧭 Sidebar navigation will update automatically");
-                console.log("   ✅ New permissions now active");
-              }
+              await fetchUserWithProfile(supabaseUser);
             } else if (payload.eventType === "INSERT") {
               console.log("📡 New profile created via Supabase");
               await fetchUserWithProfile(supabaseUser);
@@ -379,13 +358,14 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         .subscribe((status) => {
           if (status === "SUBSCRIBED") {
             console.log("✅ Real-time role monitoring active");
-          } else if (
-            status === "CLOSED" ||
-            status === "CHANNEL_ERROR" ||
-            status === "TIMED_OUT"
-          ) {
-            console.error("❌ Real-time subscription failed:", status);
+          } else if (status === "CHANNEL_ERROR") {
+            // Only log channel errors as actual errors
+            console.error("❌ Real-time subscription channel error:", status);
+          } else if (status === "TIMED_OUT") {
+            // Log timeout as warning, might retry automatically
+            console.warn("⚠️ Real-time subscription timed out, retrying...");
           }
+          // Don't log "CLOSED" status as it's normal during navigation/unmount
         });
     } catch (error) {
       console.error("Error setting up real-time subscription:", error);
@@ -400,7 +380,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         }
       }
     };
-  }, [supabaseUser, fetchUserWithProfile, supabase, user?.roles?.name]);
+  }, [supabaseUser, fetchUserWithProfile, supabase]);
 
   return (
     <UserContext.Provider value={{ user, supabaseUser, loading, refreshUser }}>

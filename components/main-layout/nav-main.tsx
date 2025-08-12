@@ -1,8 +1,13 @@
 "use client";
 
-import { ChevronRight, type LucideIcon } from "lucide-react";
+import {
+  ChevronRight,
+  type LucideIcon,
+  Settings as SettingsIcon,
+} from "lucide-react";
 import { SidebarGroupContent, useSidebar } from "@/components/ui/sidebar";
 import { RemixiconComponentType } from "@remixicon/react";
+import { useState } from "react";
 
 import {
   Collapsible,
@@ -21,6 +26,7 @@ import {
 } from "@/components/ui/sidebar";
 import { useRouter, usePathname } from "next/navigation";
 import { User } from "@/types/types";
+// Removed modal trigger; Settings now navigates to /settings
 import Link from "next/link";
 
 type IconType = LucideIcon | RemixiconComponentType;
@@ -73,11 +79,29 @@ export function NavMain({ items, user }: { items: NavSection[]; user?: User }) {
     <>
       {items.map((section) => (
         <SidebarGroup key={section.title}>
-          <SidebarGroupLabel className="uppercase text-muted-foreground/60">
-            {section.title}
+          <SidebarGroupLabel className="uppercase text-muted-foreground/60 flex items-center justify-between pr-2">
+            <span>{section.title}</span>
           </SidebarGroupLabel>
           <SidebarGroupContent className="px-2">
             <SidebarMenu>
+              {section.title === "Settings" && (
+                <SidebarMenuItem key="__settings-link">
+                  <SidebarMenuButton
+                    asChild
+                    className="group/menu-button font-medium gap-3 h-9 rounded-md bg-gradient-to-r hover:bg-transparent hover:from-sidebar-accent hover:to-sidebar-accent/40 data-[active=true]:from-primary/20 data-[active=true]:to-primary/5 [&>svg]:size-auto"
+                    isActive={isRouteActive("/settings")}
+                  >
+                    <Link href="/settings">
+                      <SettingsIcon
+                        className="text-muted-foreground/60 group-data-[active=true]/menu-button:text-primary"
+                        size={22}
+                        aria-hidden="true"
+                      />
+                      <span>Settings</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              )}
               {section.items &&
                 section.items.map((item) => {
                   if (item.items?.length) {

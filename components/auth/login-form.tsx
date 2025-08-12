@@ -1,11 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Card,
   CardContent,
@@ -13,240 +15,230 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Eye, EyeOff, Mail, Lock, Loader2, ArrowRight } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { ForgotPassword } from "./forgot-password";
-import { ResendVerification } from "./resend-verification";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Eye, EyeOff, Loader2, AlertCircle } from "lucide-react";
+import Link from "next/link";
+
+const loginSchema = z.object({
+  email: z.string().email("Please enter a valid email address"),
+  password: z.string().min(1, "Password is required"),
+});
+
+type LoginFormData = z.infer<typeof loginSchema>;
 
 export function LoginForm() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
-  const [showForgotPassword, setShowForgotPassword] = useState(false);
-  const [showResendVerification, setShowResendVerification] = useState(false);
   const router = useRouter();
   const supabase = createClient();
 
-  // Clean URL on component mount
-  useEffect(() => {
-    // Clean up URL parameters without refreshing the page
-    const cleanUrl = window.location.pathname;
-    window.history.replaceState({}, document.title, cleanUrl);
-  }, []);
+  const searchParams = useSearchParams();
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const form = useForm<LoginFormData>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: {
+      email: "",
+      password: "",
+    },
+  });
+
+  // Handle messages from email confirmation
+  useEffect(() => {
+    const message = searchParams.get("message");
+    if (message === "email_confirmed") {
+      setSuccess(
+        "Email confirmed successfully! You can now sign in to your account."
+      );
+      setError(null);
+    } else if (message === "confirmation_failed") {
+      setError(
+        "Email confirmation failed. Please try again or contact support."
+      );
+      setSuccess(null);
+    } else if (message === "invalid_link") {
+      setError(
+        "Invalid confirmation link. Please check your email for the correct link."
+      );
+      setSuccess(null);
+    }
+  }, [searchParams]);
+
+  const onSubmit = async (data: LoginFormData) => {
     setLoading(true);
     setError(null);
 
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
+      const { data: authData, error } = await supabase.auth.signInWithPassword({
+        email: data.email,
+        password: data.password,
       });
 
       if (error) {
-        console.error("Login error:", error);
-
         // Only show network-related errors or simple messages
         if (
           error.message.includes("Network") ||
           error.message.includes("fetch") ||
           error.message.includes("connection")
         ) {
-          setError(
-            "Connection failed. Please check your internet connection and try again."
-          );
+          setError("Connection failed. Please check your internet connection.");
         } else if (error.message.includes("Invalid login credentials")) {
           setError("Invalid email or password.");
-        } else if (
-          error.message.includes("email not confirmed") ||
-          error.message.includes("Email not confirmed")
-        ) {
-          setError("Please verify your email address first.");
+        } else if (error.message.includes("email not confirmed")) {
+          setError("Please verify your email first.");
         } else {
           setError("Please check your credentials and try again.");
         }
-
         setLoading(false);
         return;
       }
 
-      if (data.user) {
-        console.log("Login successful:", data.user.email);
-
-        // Initialize session tracking
-        try {
-          const { initializeSessionTracking, updateLastActivity } =
-            await import("@/lib/session-config");
-          initializeSessionTracking();
-          updateLastActivity();
-        } catch (e) {
-          console.warn("Could not initialize session tracking:", e);
-        }
-
-        // Set a timeout to prevent infinite loading
-        setTimeout(() => {
-          window.location.href = "/";
-        }, 500);
-        return;
-      } else {
-        setError("Login failed - no user returned");
-        setLoading(false);
+      if (authData.user) {
+        router.push("/");
       }
-    } catch (err) {
-      console.error("Login exception:", err);
-      setError("An unexpected error occurred. Please try again.");
+    } catch (error) {
+      console.error("Login error:", error);
+      setError("Connection failed. Please check your internet connection.");
       setLoading(false);
     }
   };
 
-  // Show forgot password screen if needed
-  if (showForgotPassword) {
-    return (
-      <ForgotPassword onBackToLogin={() => setShowForgotPassword(false)} />
-    );
-  }
-
-  // Show resend verification screen if needed
-  if (showResendVerification) {
-    return (
-      <ResendVerification
-        onBackToLogin={() => setShowResendVerification(false)}
-      />
-    );
-  }
-
   return (
-    <Card className="w-full max-w-md mx-auto shadow-2xl border-0 bg-white/95 backdrop-blur-sm">
-      <CardHeader className="space-y-1 pb-8">
-        <CardTitle className="text-3xl font-bold text-center bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+    <Card className="w-full border bg-white">
+      <CardHeader className="text-center pb-3">
+        <CardTitle className="text-xl font-semibold text-gray-900">
           Welcome Back
         </CardTitle>
-        <CardDescription className="text-center text-gray-600 text-base">
+        <CardDescription className="text-gray-600 text-sm">
           Sign in to your account to continue
         </CardDescription>
       </CardHeader>
-      <CardContent>
-        <form onSubmit={handleLogin} className="space-y-6">
-          <div className="space-y-4">
-            {/* Email Field */}
-            <div className="space-y-2">
-              <Label
-                htmlFor="email"
-                className="text-sm font-medium text-gray-700"
-              >
-                Email Address
-              </Label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                <Input
-                  id="email"
-                  name="email"
-                  type="email"
-                  autoComplete="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="pl-10 h-12 border-gray-200 focus:border-blue-500 focus:ring-blue-500 rounded-xl transition-all duration-200"
-                  placeholder="Enter your email address"
-                />
-              </div>
-            </div>
+      <CardContent className="space-y-3">
+        {success && (
+          <Alert className="border-green-200 bg-green-50">
+            <AlertCircle className="h-4 w-4 text-green-600" />
+            <AlertDescription className="text-green-800">
+              {success}
+            </AlertDescription>
+          </Alert>
+        )}
 
-            {/* Password Field */}
-            <div className="space-y-2">
-              <Label
-                htmlFor="password"
-                className="text-sm font-medium text-gray-700"
-              >
-                Password
-              </Label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                <Input
-                  id="password"
-                  name="password"
-                  type={showPassword ? "text" : "password"}
-                  autoComplete="current-password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="pl-10 pr-10 h-12 border-gray-200 focus:border-blue-500 focus:ring-blue-500 rounded-xl transition-all duration-200"
-                  placeholder="Enter your password"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-3 text-gray-400 hover:text-gray-600 transition-colors"
-                >
-                  {showPassword ? (
-                    <EyeOff className="h-4 w-4" />
-                  ) : (
-                    <Eye className="h-4 w-4" />
-                  )}
-                </button>
-              </div>
-            </div>
-          </div>
+        {error && (
+          <Alert variant="destructive" className="border-red-200 bg-red-50">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription className="text-red-800">
+              {error}
+            </AlertDescription>
+          </Alert>
+        )}
 
-          {/* Error Message */}
-          {error && (
-            <div className="p-3 rounded-lg bg-red-50 border border-red-200">
-              <p className="text-red-600 text-sm text-center font-medium">
-                {error}
-              </p>
-              {error.includes("verify your email") && (
-                <div className="mt-2 text-center">
-                  <button
-                    type="button"
-                    onClick={() => setShowResendVerification(true)}
-                    className="text-xs text-blue-600 hover:text-blue-800 underline"
-                  >
-                    Resend Verification Email
-                  </button>
-                </div>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3">
+            <FormField
+              control={form.control}
+              name="email"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-sm font-medium text-gray-700">
+                    Email Address
+                  </FormLabel>
+                  <FormControl>
+                    <Input
+                      {...field}
+                      type="email"
+                      placeholder="Enter your email address"
+                      className="h-8 border-gray-200 focus:border-pink-600 focus:ring-1 focus:ring-pink-600/20"
+                      disabled={loading}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
               )}
-            </div>
-          )}
+            />
 
-          {/* Submit Button */}
-          <Button
-            type="submit"
-            disabled={loading}
-            className={cn(
-              "w-full h-12 rounded-xl font-semibold text-white transition-all duration-200",
-              "bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700",
-              "shadow-lg hover:shadow-xl transform hover:scale-[1.02]",
-              "disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
-            )}
-          >
-            {loading ? (
-              <div className="flex items-center space-x-2">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                <span>Signing in...</span>
-              </div>
-            ) : (
-              <div className="flex items-center space-x-2">
-                <span>Sign In</span>
-                <ArrowRight className="h-4 w-4" />
-              </div>
-            )}
-          </Button>
+            <FormField
+              control={form.control}
+              name="password"
+              render={({ field }) => (
+                <FormItem>
+                  <div className="flex items-center justify-between">
+                    <FormLabel className="text-sm font-medium text-gray-700">
+                      Password
+                    </FormLabel>
+                    <Link
+                      href="/auth/forgot-password"
+                      className="text-xs text-pink-600 hover:text-pink-700 font-medium"
+                    >
+                      Forgot password?
+                    </Link>
+                  </div>
+                  <FormControl>
+                    <div className="relative">
+                      <Input
+                        {...field}
+                        type={showPassword ? "text" : "password"}
+                        placeholder="Enter your password"
+                        className="h-8 pr-8 border-gray-200 focus:border-pink-600 focus:ring-1 focus:ring-pink-600/20"
+                        disabled={loading}
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="absolute right-0 top-0 h-full px-2 hover:bg-transparent"
+                        onClick={() => setShowPassword(!showPassword)}
+                        disabled={loading}
+                      >
+                        {showPassword ? (
+                          <EyeOff className="h-3 w-3 text-gray-400 hover:text-gray-600" />
+                        ) : (
+                          <Eye className="h-3 w-3 text-gray-400 hover:text-gray-600" />
+                        )}
+                      </Button>
+                    </div>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-          {/* Forgot Password Link */}
-          <div className="text-center">
-            <button
-              type="button"
-              onClick={() => setShowForgotPassword(true)}
-              className="text-sm text-blue-600 hover:text-blue-800 transition-colors font-medium"
+            <Button
+              type="submit"
+              className="w-full h-8 text-sm font-medium bg-pink-600 hover:bg-pink-700 focus:ring-1 focus:ring-pink-600/20"
+              disabled={loading}
             >
-              Forgot your password?
-            </button>
-          </div>
-        </form>
+              {loading ? (
+                <>
+                  <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+                  Signing in...
+                </>
+              ) : (
+                "Sign In"
+              )}
+            </Button>
+          </form>
+        </Form>
+
+        <div className="text-center">
+          <p className="text-gray-600 text-sm">
+            Don't have an account?{" "}
+            <Link
+              href="/auth/signup"
+              className="text-pink-600 hover:text-pink-700 font-medium transition-colors"
+            >
+              Create one here
+            </Link>
+          </p>
+        </div>
       </CardContent>
     </Card>
   );

@@ -1,5 +1,5 @@
 import { Metadata } from "next";
-import { EmailConfirmationHandler } from "@/components/auth/email-confirmation-handler";
+import { EmailConfirmationHandler } from "@/components/auth/confirmation-handler";
 
 export const metadata: Metadata = {
   title: "Confirm Email",
@@ -8,8 +8,8 @@ export const metadata: Metadata = {
 
 export default function ConfirmPage() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
+    <div className="min-h-screen bg-white flex items-center justify-center p-8">
+      <div className="w-full max-w-7xl">
         <EmailConfirmationHandler />
       </div>
     </div>

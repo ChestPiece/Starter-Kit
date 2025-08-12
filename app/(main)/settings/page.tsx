@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   User,
   Building,
@@ -97,30 +97,30 @@ function SettingsContent() {
     loadSettings();
   }, []);
 
-  // Navigation data - role-based access
-  const data = {
-    nav: [
-      {
-        name: "Profile",
-        icon: User,
-        // Profile is available to all users
-      },
-      ...(isManager
-        ? [
-            {
-              name: "Organization",
-              icon: Building,
-              // Organization settings require manager or admin
-            },
-            {
-              name: "Appearance",
-              icon: Paintbrush,
-              // Appearance settings require manager or admin
-            },
-          ]
-        : []),
-    ],
-  };
+  // Navigation data - role-based access (memoized to avoid re-creating on every render)
+  const data = useMemo(
+    () => ({
+      nav: [
+        {
+          name: "Profile",
+          icon: User,
+        },
+        ...(isManager
+          ? [
+              {
+                name: "Organization",
+                icon: Building,
+              },
+              {
+                name: "Appearance",
+                icon: Paintbrush,
+              },
+            ]
+          : []),
+      ],
+    }),
+    [isManager]
+  );
 
   // Function to handle tab switching with URL updates
   const handleTabSwitch = (tabName: string) => {
@@ -132,19 +132,15 @@ function SettingsContent() {
   };
 
   useEffect(() => {
-    if (tab) {
-      const tabName = tab.charAt(0).toUpperCase() + tab.slice(1);
-      // Check if this is a valid tab
-      const validTab = data.nav.some((item) => item.name === tabName);
-      if (validTab) {
-        setActiveSection(tabName);
-      } else {
-        setActiveSection("Profile"); // Fallback to Profile
-      }
-    } else {
-      setActiveSection("Profile");
-    }
-  }, [tab, data.nav]);
+    const desiredTab = tab
+      ? tab.charAt(0).toUpperCase() + tab.slice(1)
+      : "Profile";
+
+    const validTab = data.nav.some((item) => item.name === desiredTab);
+    const next = validTab ? desiredTab : "Profile";
+
+    setActiveSection((prev) => (prev === next ? prev : next));
+  }, [tab, data]);
 
   // Render different setting sections - all users have access
   const renderSettingsContent = () => {

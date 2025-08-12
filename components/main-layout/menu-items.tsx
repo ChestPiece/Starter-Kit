@@ -28,33 +28,14 @@ export const getNavData = (user: { roles?: { name: string } }) => {
   // Role-specific navigation
   switch (userRole) {
     case "admin":
-      // Admin gets full access: dashboard + all settings + users
+      // Admin gets full access: dashboard + settings (single entry) + users
       return {
         navMain: [
           ...baseNav,
           {
             title: "Settings",
-            url: "#",
-            items: [
-              {
-                title: "Profile Settings",
-                url: "/settings?tab=profile",
-                icon: RiSettings3Line,
-                isActive: false,
-              },
-              {
-                title: "Organization Settings",
-                url: "/settings?tab=organization",
-                icon: RiSettings3Line,
-                isActive: false,
-              },
-              {
-                title: "Appearance Settings",
-                url: "/settings?tab=appearance",
-                icon: RiSettings3Line,
-                isActive: false,
-              },
-            ],
+            url: "/settings",
+            items: [],
           },
           {
             title: "Administration",
@@ -72,56 +53,23 @@ export const getNavData = (user: { roles?: { name: string } }) => {
       };
 
     case "manager":
-      // Manager gets dashboard + all settings components
+      // Manager gets dashboard + settings (single entry)
       return {
         navMain: [
           ...baseNav,
           {
-            title: "Management",
-            url: "#",
-            items: [
-              {
-                title: "Profile Settings",
-                url: "/settings?tab=profile",
-                icon: RiSettings3Line,
-                isActive: false,
-              },
-              {
-                title: "Organization Settings",
-                url: "/settings?tab=organization",
-                icon: RiSettings3Line,
-                isActive: false,
-              },
-              {
-                title: "Appearance Settings",
-                url: "/settings?tab=appearance",
-                icon: RiSettings3Line,
-                isActive: false,
-              },
-            ],
+            title: "Settings",
+            url: "/settings",
+            items: [],
           },
         ],
       };
 
     case "user":
     default:
-      // Simple user gets dashboard only (can access profile via settings but limited navigation)
+      // Regular user sees only Dashboard in the sidebar
       return {
-        navMain: [
-          ...baseNav,
-          {
-            title: "Personal",
-            url: "#",
-            items: [
-              {
-                title: "Profile Settings",
-                url: "/settings?tab=profile",
-                icon: RiSettings3Line,
-                isActive: false,
-              },
-            ],
-          },
-        ],
+        navMain: [...baseNav],
       };
   }
 };

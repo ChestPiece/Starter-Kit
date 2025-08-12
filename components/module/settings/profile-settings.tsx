@@ -16,7 +16,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { getUserId, getUserProfile, useUserData } from "@/lib/utils";
+import { useUser } from "@/components/auth/user-context";
 import { usersService } from "@/modules/users/services/users-service";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -59,65 +59,64 @@ export type UserProfile = {
 };
 
 export function ProfileSettings() {
-  const userId = getUserId();
+  const { supabaseUser } = useUser();
   // State for user profile data
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [profileLoading, setProfileLoading] = useState(true);
 
   useEffect(() => {
     const fetchUserData = async () => {
+      if (!supabaseUser?.id) {
+        return; // wait for auth to load
+      }
+
       setProfileLoading(true);
       try {
-        if (userId) {
-          // Get Supabase client
-          const supabase = createClient();
-
-          // Fetch real user data from database
-          const { data, error } = await supabase
-            .from("user_profiles")
-            .select(
-              `
-              id,
-              first_name,
-              last_name,
-              email,
-              profile,
-              roles:role_id (name)
+        const supabase = createClient();
+        const { data, error } = await supabase
+          .from("user_profiles")
+          .select(
             `
-            )
-            .eq("id", userId)
-            .single();
+            id,
+            first_name,
+            last_name,
+            email,
+            profile,
+            roles:role_id (name)
+          `
+          )
+          .eq("id", supabaseUser.id)
+          .single();
 
-          if (error) {
-            console.error("Error fetching user profile:", error);
-            throw error;
-          }
+        if (error) {
+          console.error("Error fetching user profile:", error);
+          throw error;
+        }
 
-          if (data) {
-            setUserProfile({
-              id: data.id,
-              first_name: data.first_name || "",
-              last_name: data.last_name || "",
-              email: data.email,
-              roles:
-                data.roles &&
-                typeof data.roles === "object" &&
-                "name" in data.roles
-                  ? { name: String(data.roles.name) }
-                  : { name: "user" },
-              avatar_url: data.profile || undefined,
-              profile: data.profile || undefined,
-            });
-          }
+        if (data) {
+          setUserProfile({
+            id: data.id,
+            first_name: data.first_name || "",
+            last_name: data.last_name || "",
+            email: data.email,
+            roles:
+              data.roles &&
+              typeof data.roles === "object" &&
+              "name" in data.roles
+                ? { name: String((data.roles as any).name) }
+                : { name: "user" },
+            avatar_url: data.profile || undefined,
+            profile: data.profile || undefined,
+          });
         }
       } catch (error) {
         console.error("Error loading user profile:", error);
-        // Fallback to basic profile structure
+        // Fallback
         setUserProfile({
-          id: userId || "fallback-id",
-          first_name: "User",
-          last_name: "",
-          email: "user@example.com",
+          id: supabaseUser?.id || "fallback-id",
+          first_name: supabaseUser?.user_metadata?.first_name || "User",
+          last_name: supabaseUser?.user_metadata?.last_name || "",
+          email: supabaseUser?.email || "user@example.com",
           roles: { name: "user" },
           avatar_url: undefined,
           profile: undefined,
@@ -128,7 +127,12 @@ export function ProfileSettings() {
     };
 
     fetchUserData();
-  }, [userId]);
+  }, [
+    supabaseUser?.id,
+    supabaseUser?.email,
+    supabaseUser?.user_metadata?.first_name,
+    supabaseUser?.user_metadata?.last_name,
+  ]);
 
   const [isLoading, setIsLoading] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -220,7 +224,7 @@ export function ProfileSettings() {
     setIsLoading(true);
     try {
       await usersService.updateUser({
-        id: userId,
+        id: supabaseUser?.id || "",
         first_name: userProfile.first_name,
         last_name: userProfile.last_name,
         profile: userProfile.profile ?? null,
@@ -252,7 +256,7 @@ export function ProfileSettings() {
   };
 
   // Show loading state while profile is being loaded
-  if (profileLoading || !userProfile) {
+  if (profileLoading) {
     return (
       <Card className="w-full flex-1">
         <CardHeader>
@@ -266,6 +270,24 @@ export function ProfileSettings() {
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto"></div>
             <p className="mt-2 text-sm text-gray-600">Loading profile...</p>
           </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (!userProfile) {
+    return (
+      <Card className="w-full flex-1">
+        <CardHeader>
+          <CardTitle className="text-2xl">Personal Information</CardTitle>
+          <CardDescription>
+            Update your personal details and profile picture
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-muted-foreground">
+            No profile data found.
+          </p>
         </CardContent>
       </Card>
     );

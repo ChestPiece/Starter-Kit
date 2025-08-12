@@ -30,7 +30,8 @@ export function parseUserData(userCookie: string) {
 
 // Get the user cookie from the request
 export function getUserCookie(request: NextRequest) {
-  return request.cookies.get('auth.user')
+  const cookies = request.cookies.getAll()
+  return cookies.find((c) => c.name === 'auth.user')
 }
 
 // Mock utility functions (authentication removed)

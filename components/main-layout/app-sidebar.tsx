@@ -95,50 +95,40 @@ export default function SideBarLayout({
     ],
   };
 
-  // Get navigation data based on user role - updates dynamically when role changes
+  // Get navigation data based on user role - updates when role changes
+  const hasUser = !!user;
+  const roleName = ((user?.roles as any)?.name || "user") as string;
+ 
   useEffect(() => {
-    if (user) {
-      const userRole = ((user.roles as any)?.name || "user") as string;
-      const navData = getNavData({ roles: user.roles || { name: "user" } });
-      setNavItems(navData.navMain as NavSection[]);
-
-      // Only log navigation updates when they actually change
-      const currentNavTitles = navItems
-        .map((section) => section.title)
-        .join(", ");
-      const newNavTitles = navData.navMain
-        .map((section) => section.title)
-        .join(", ");
-
-      if (currentNavTitles !== newNavTitles || !navItems.length) {
-        console.log(`🧭 Navigation updated for ${userRole.toUpperCase()} role`);
-
-        // Show available sections in a clean format
-        const sections = navData.navMain
-          .map(
-            (section) =>
-              `${section.title}: ${section.items?.map((item) => item.title).join(", ")}`
-          )
-          .join(" | ");
-
-        console.log(`   📱 Available: ${sections}`);
-
-        // Show role-specific permissions
-        if (userRole === "admin") {
-          console.log("   🔑 Full admin access - all features available");
-        } else if (userRole === "manager") {
-          console.log(
-            "   👔 Manager access - settings available, no user management"
-          );
-        } else {
-          console.log("   👤 Basic access - dashboard only");
-        }
-      }
-    } else {
+    if (!hasUser) {
       setNavItems([]);
       console.log("❌ No user - navigation cleared");
+      return;
     }
-  }, [user, user?.roles?.name, navItems]); // Watch both user and role changes
+
+    const navData = getNavData({ roles: { name: roleName } });
+
+    // Build lightweight comparison keys so we only update when content actually changes
+    const buildKey = (sections: NavSection[]) =>
+      sections
+        .map(
+          (section) =>
+            `${section.title}|${(section.items || [])
+              .map((item) => `${item.title}:${item.url}`)
+              .join(",")}`
+        )
+        .join("/");
+
+    setNavItems((prev) => {
+      const prevKey = buildKey(prev);
+      const nextKey = buildKey((navData.navMain || []) as NavSection[]);
+      if (prevKey === nextKey) {
+        return prev; // No structural change → avoid state update to prevent loops
+      }
+      console.log(`🧭 Navigation updated for ${roleName.toUpperCase()} role`);
+      return (navData.navMain || []) as NavSection[];
+    });
+  }, [hasUser, roleName]);
 
   return (
     <SidebarProvider>

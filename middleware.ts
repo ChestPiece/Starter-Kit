@@ -37,17 +37,42 @@ export async function middleware(request: NextRequest) {
   // issues with users being randomly logged out.
 
   // IMPORTANT: DO NOT REMOVE auth.getUser()
+  // Retry authentication up to 2 times for reliability
+  let user = null;
+  let authError = null;
+  let session = null;
+  let sessionError = null;
 
-  const {
-    data: { user },
-    error: authError
-  } = await supabase.auth.getUser()
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    try {
+      console.log(`🔐 Middleware auth attempt ${attempt}/2 for ${request.nextUrl.pathname}`);
+      
+      const authResult = await supabase.auth.getUser();
+      user = authResult.data.user;
+      authError = authResult.error;
 
-  // Additional session validation
-  const {
-    data: { session },
-    error: sessionError
-  } = await supabase.auth.getSession()
+      if (!authError && user) {
+        // If we got a user, also get the session
+        const sessionResult = await supabase.auth.getSession();
+        session = sessionResult.data.session;
+        sessionError = sessionResult.error;
+        
+        console.log(`✅ Auth successful on attempt ${attempt}`);
+        break; // Success, exit retry loop
+      } else {
+        console.warn(`⚠️ Auth attempt ${attempt} failed:`, authError?.message || 'No user');
+        if (attempt < 2) {
+          // Wait a bit before retrying
+          await new Promise(resolve => setTimeout(resolve, 100));
+        }
+      }
+    } catch (error) {
+      console.error(`💥 Auth attempt ${attempt} error:`, error);
+      if (attempt < 2) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+    }
+  }
 
   // Enhanced session validation with timeout checks
   // Use only authenticated user from getUser(), not session.user (security best practice)
@@ -58,18 +83,25 @@ export async function middleware(request: NextRequest) {
   // Get user role if authenticated
   if (isAuthenticated && user) {
     try {
-      // Get user role using the database function
-      const { data: roleData, error: roleError } = await supabase
-        .rpc('get_user_role');
-      
-      if (!roleError && roleData) {
-        userRole = roleData;
-      } else {
-        userRole = 'user'; // Default role
+      // Prefer a direct SELECT to avoid issues with different RPC variants
+      const { data, error } = await supabase
+        .from('user_profiles')
+        .select('id, role_id, roles:role_id(name)')
+        .eq('id', user.id)
+        .maybeSingle();
+
+      if (!error && data) {
+        userRole = (data as any)?.roles?.name || null;
+      }
+
+      if (!userRole) {
+        // Fallback to RPC if direct select didn't resolve
+        const { data: roleData } = await supabase.rpc('get_user_role');
+        userRole = (roleData as any) || 'user';
       }
     } catch (error) {
       console.error('Error getting user role in middleware:', error);
-      userRole = 'user'; // Default role
+      userRole = 'user';
     }
   }
 
@@ -94,8 +126,9 @@ export async function middleware(request: NextRequest) {
 
   // Check session duration and inactivity from cookies if available
   if (isAuthenticated) {
-    const lastActivityCookie = request.cookies.get('lastActivity');
-    const sessionStartCookie = request.cookies.get('sessionStart');
+    const allCookies = request.cookies.getAll();
+    const lastActivityCookie = allCookies.find((c) => c.name === 'lastActivity');
+    const sessionStartCookie = allCookies.find((c) => c.name === 'sessionStart');
     
     if (sessionStartCookie) {
       const sessionStart = new Date(sessionStartCookie.value).getTime();
@@ -125,7 +158,7 @@ export async function middleware(request: NextRequest) {
                          !request.nextUrl.pathname.includes('/manifest.json') &&
                          !request.nextUrl.pathname.includes('/favicon.ico');
   
-  if (!isAuthenticated && isImportantPath) {
+    if (!isAuthenticated && isImportantPath) {
     console.log(`🔐 Auth required for: ${request.nextUrl.pathname}`);
   } else if (isAuthenticated && isImportantPath && userRole) {
     // Only log when role or path changes significantly
@@ -167,7 +200,17 @@ export async function middleware(request: NextRequest) {
       const url = request.nextUrl.clone();
       url.pathname = redirectTo;
       url.searchParams.set('access_denied', 'true');
-      return NextResponse.redirect(url);
+      const response = NextResponse.next({ request });
+      // Copy cookies from supabaseResponse to the intermediate response
+      supabaseResponse.cookies.getAll().forEach((cookie) => {
+        response.cookies.set(cookie.name, cookie.value);
+      });
+      const redirectResponse = NextResponse.redirect(url);
+      // Preserve cookies on the redirect response as well
+      response.cookies.getAll().forEach((cookie) => {
+        redirectResponse.cookies.set(cookie.name, cookie.value);
+      });
+      return redirectResponse;
     }
   }
 
@@ -182,6 +225,9 @@ export async function middleware(request: NextRequest) {
       
       // Clear any error parameters when redirecting authenticated users
       const response = NextResponse.redirect(url)
+      supabaseResponse.cookies.getAll().forEach((cookie) => {
+        response.cookies.set(cookie.name, cookie.value)
+      })
       return response
     }
   }
@@ -199,6 +245,10 @@ export async function middleware(request: NextRequest) {
     console.log('Redirecting unauthenticated user to login')
     
     const response = NextResponse.redirect(url)
+    // Preserve Supabase session cookies
+    supabaseResponse.cookies.getAll().forEach((cookie) => {
+      response.cookies.set(cookie.name, cookie.value)
+    })
     // Clean up any session tracking cookies
     response.cookies.delete('lastActivity')
     response.cookies.delete('sessionStart')
@@ -212,14 +262,22 @@ export async function middleware(request: NextRequest) {
     const url = request.nextUrl.clone()
     url.pathname = '/auth/login'
     console.log('Session invalid, redirecting to login')
-    return NextResponse.redirect(url)
+    const response = NextResponse.redirect(url)
+    supabaseResponse.cookies.getAll().forEach((cookie) => {
+      response.cookies.set(cookie.name, cookie.value)
+    })
+    return response
   }
 
   // Ensure root auth path redirects to login
   if (!isAuthenticated && request.nextUrl.pathname === '/auth') {
     const url = request.nextUrl.clone()
     url.pathname = '/auth/login'
-    return NextResponse.redirect(url)
+    const response = NextResponse.redirect(url)
+    supabaseResponse.cookies.getAll().forEach((cookie) => {
+      response.cookies.set(cookie.name, cookie.value)
+    })
+    return response
   }
 
   // IMPORTANT: You *must* return the supabaseResponse object as it is.

@@ -14,6 +14,10 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key-here
 THEME_SITE_NAME="Kaizen CMA"
 THEME_FAV_ICON="/favicon.ico"
 
+# Optional: Production Configuration
+# Only needed for production deployments or server-side GraphQL calls
+# NEXT_PUBLIC_APP_URL=https://your-domain.com
+
 # Optional: Email Service Configuration
 # Choose one of these email services:
 
@@ -28,11 +32,13 @@ THEME_FAV_ICON="/favicon.ico"
 ## Setup Steps
 
 1. **Create Supabase Project**
+
    - Go to [Supabase Dashboard](https://app.supabase.com)
    - Create a new project
    - Copy the Project URL and anon key from Settings > API
 
 2. **Setup Database**
+
    ```bash
    npm run supabase:init
    npm run supabase:link
@@ -40,6 +46,7 @@ THEME_FAV_ICON="/favicon.ico"
    ```
 
 3. **Install Dependencies**
+
    ```bash
    npm install
    ```
@@ -59,6 +66,7 @@ THEME_FAV_ICON="/favicon.ico"
 ## Troubleshooting
 
 If you encounter build errors:
+
 1. Ensure all environment variables are set correctly
 2. Verify your Supabase project is properly configured
 3. Check that database migrations have been applied

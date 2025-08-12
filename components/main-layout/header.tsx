@@ -7,7 +7,7 @@ import {
   BreadcrumbList,
   BreadcrumbSeparator,
   BreadcrumbPage,
-} from "../breadcrumb";
+} from "../ui/breadcrumb";
 import { RiScanLine } from "@remixicon/react";
 import Link from "next/link";
 import { SidebarTrigger } from "../ui/sidebar";

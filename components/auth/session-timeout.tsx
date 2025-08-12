@@ -15,7 +15,7 @@ import {
 import { forceLogoutAndRedirect, validateUserSession } from "@/lib/auth-utils";
 import { SESSION_CONFIG, updateLastActivity } from "@/lib/session-config";
 
-interface SessionTimeoutWarningProps {
+interface SessionTimeoutProps {
   /**
    * Whether to show the warning as a dialog (default) or inline alert
    */
@@ -27,10 +27,10 @@ interface SessionTimeoutWarningProps {
   warningTime?: number;
 }
 
-export function SessionTimeoutWarning({
+export function SessionTimeout({
   variant = "dialog",
   warningTime = SESSION_CONFIG.SESSION_WARNING_TIME,
-}: SessionTimeoutWarningProps) {
+}: SessionTimeoutProps) {
   const [showWarning, setShowWarning] = useState(false);
   const [timeRemaining, setTimeRemaining] = useState(0);
   const [isExtending, setIsExtending] = useState(false);
@@ -239,4 +239,4 @@ export function SessionTimeoutWarning({
   );
 }
 
-export default SessionTimeoutWarning;
+// No default export needed since we're using named export

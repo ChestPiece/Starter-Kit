@@ -25,7 +25,7 @@ import {
   CheckCircle,
 } from "lucide-react";
 
-interface SupabaseAuthFormProps {
+interface CombinedAuthFormProps {
   view: "login" | "signup";
   onViewChange: (
     view: "login" | "signup" | "forgot-password" | "email-sent"
@@ -55,11 +55,11 @@ interface PasswordStrength {
   feedback: string[];
 }
 
-export function SupabaseAuthForm({
+export function CombinedAuthForm({
   view,
   onViewChange,
   onEmailSet,
-}: SupabaseAuthFormProps) {
+}: CombinedAuthFormProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [formData, setFormData] = useState<FormData>({
