@@ -7,6 +7,7 @@ import {
   useState,
   useCallback,
 } from "react";
+import { useRouter } from "next/navigation";
 import { User as SupabaseUser } from "@supabase/supabase-js";
 import { User as CustomUser } from "@/types/types";
 import { createClient } from "@/lib/supabase/client";
@@ -49,6 +50,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   const supabase = createClient();
+  const router = useRouter();
 
   // Enhanced user fetching with role data from user_profiles table
   const fetchUserWithProfile = useCallback(
@@ -321,6 +323,8 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
       if (event === "TOKEN_REFRESHED" && session) {
         updateLastActivity();
+        // Ensure latest role/profile is reflected immediately
+        await fetchUserWithProfile(supaUser);
       }
     });
 
@@ -336,6 +340,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
     // Set up real-time monitoring for role changes
     let subscription: ReturnType<typeof supabase.channel> | undefined;
+    let roleBroadcastChannel: ReturnType<typeof supabase.channel> | undefined;
 
     try {
       // Subscribe to changes in user_profiles table for current user
@@ -352,14 +357,23 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
           async (payload) => {
             if (payload.eventType === "UPDATE") {
               console.log("🚀 Real-time profile update detected");
-              // Refresh user data when profile changes
+              // Refresh user data when profile changes and refresh the router to re-run any server logic
               await fetchUserWithProfile(supabaseUser);
+              try {
+                router.refresh();
+              } catch {}
             } else if (payload.eventType === "INSERT") {
               console.log("📡 New profile created via Supabase");
               await fetchUserWithProfile(supabaseUser);
+              try {
+                router.refresh();
+              } catch {}
             } else {
               // For other events, just refresh silently
               await fetchUserWithProfile(supabaseUser);
+              try {
+                router.refresh();
+              } catch {}
             }
           }
         )
@@ -375,6 +389,22 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
           }
           // Don't log "CLOSED" status as it's normal during navigation/unmount
         });
+
+      // Also listen to a user-specific broadcast channel to react instantly to admin role changes
+      roleBroadcastChannel = supabase
+        .channel(`role_updates_${supabaseUser.id}`)
+        .on("broadcast", { event: "role-changed" }, async () => {
+          console.log("📣 Role change broadcast received");
+          await fetchUserWithProfile(supabaseUser);
+          try {
+            router.refresh();
+          } catch {}
+        })
+        .subscribe((status) => {
+          if (status === "SUBSCRIBED") {
+            console.log("✅ Listening for role change broadcasts");
+          }
+        });
     } catch (error) {
       console.error("Error setting up real-time subscription:", error);
     }
@@ -385,6 +415,13 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
           subscription.unsubscribe();
         } catch (error) {
           console.warn("Error unsubscribing from channel:", error);
+        }
+      }
+      if (roleBroadcastChannel) {
+        try {
+          roleBroadcastChannel.unsubscribe();
+        } catch (error) {
+          console.warn("Error unsubscribing role broadcast channel:", error);
         }
       }
     };

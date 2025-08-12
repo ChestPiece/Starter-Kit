@@ -3,7 +3,11 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useUser } from "@/components/auth/user-context";
-import { canAccessRoute, getUnauthorizedRedirect, UserRole } from "@/lib/role-utils";
+import {
+  canAccessRoute,
+  getUnauthorizedRedirect,
+  UserRole,
+} from "@/lib/role-utils";
 import { Skeleton } from "@/components/ui/skeleton";
 
 interface RolePageGuardProps {
@@ -15,27 +19,33 @@ interface RolePageGuardProps {
 /**
  * Page-level role guard that redirects users if they don't have access
  */
-export function RolePageGuard({ children, requiredRole, currentPath }: RolePageGuardProps) {
+export function RolePageGuard({
+  children,
+  requiredRole,
+  currentPath,
+}: RolePageGuardProps) {
   const { user, loading } = useUser();
   const router = useRouter();
 
   useEffect(() => {
     if (loading) return; // Still loading, don't redirect yet
 
-    const userRole = (user?.roles?.name as UserRole) || 'user';
-    
+    const userRole = (user?.roles?.name as UserRole) || "user";
+
     // Check if user can access this route
     if (!canAccessRoute(userRole, currentPath)) {
-      console.log(`Role-based access denied: ${userRole} trying to access ${currentPath}`);
-      
+      console.log(
+        `Role-based access denied: ${userRole} trying to access ${currentPath}`
+      );
+
       // Get the appropriate redirect URL for this user's role
       const redirectUrl = getUnauthorizedRedirect(userRole, currentPath);
-      
+
       // Add access denied parameter
       const url = new URL(redirectUrl, window.location.origin);
-      url.searchParams.set('access_denied', 'true');
-      
-      router.push(url.toString());
+      url.searchParams.set("access_denied", "true");
+      // Use replace to avoid back button returning to unauthorized page
+      router.replace(url.toString());
       return;
     }
   }, [user, loading, router, currentPath, requiredRole]);
@@ -52,8 +62,8 @@ export function RolePageGuard({ children, requiredRole, currentPath }: RolePageG
     );
   }
 
-  const userRole = (user?.roles?.name as UserRole) || 'user';
-  
+  const userRole = (user?.roles?.name as UserRole) || "user";
+
   // Final check before rendering
   if (!canAccessRoute(userRole, currentPath)) {
     // This should not happen due to the useEffect above, but just in case
@@ -80,7 +90,7 @@ export function withRoleProtection<P extends object>(
   };
 
   ProtectedComponent.displayName = `withRoleProtection(${WrappedComponent.displayName || WrappedComponent.name})`;
-  
+
   return ProtectedComponent;
 }
 
@@ -89,9 +99,9 @@ export function withRoleProtection<P extends object>(
  */
 export function useRolePermissions() {
   const { user, loading } = useUser();
-  
-  const userRole = (user?.roles?.name as UserRole) || 'user';
-  
+
+  const userRole = (user?.roles?.name as UserRole) || "user";
+
   const hasRole = (role: UserRole): boolean => {
     const roleHierarchy = { user: 1, manager: 2, admin: 3 };
     return roleHierarchy[userRole] >= roleHierarchy[role];
@@ -107,8 +117,8 @@ export function useRolePermissions() {
     loading,
     hasRole,
     canAccess,
-    isUser: userRole === 'user',
-    isManager: userRole === 'manager' || userRole === 'admin',
-    isAdmin: userRole === 'admin',
+    isUser: userRole === "user",
+    isManager: userRole === "manager" || userRole === "admin",
+    isAdmin: userRole === "admin",
   };
 }

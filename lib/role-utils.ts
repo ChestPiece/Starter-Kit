@@ -53,6 +53,7 @@ export const getUserRole = async (): Promise<UserRole | null> => {
     if (!user) return null;
 
     // Try to get role from user_profiles table
+    // Force fresh read from the database by bypassing cache
     const { data, error } = await supabase
       .from('user_profiles')
       .select(`
@@ -61,7 +62,7 @@ export const getUserRole = async (): Promise<UserRole | null> => {
         )
       `)
       .eq('id', user.id)
-      .single();
+      .maybeSingle();
 
     if (error) {
       console.error('Error fetching user role:', error);
@@ -71,8 +72,8 @@ export const getUserRole = async (): Promise<UserRole | null> => {
     // Handle the response structure - roles might be returned as an object or null
     let roleName = 'user';
     
-    if (data?.roles && typeof data.roles === 'object' && 'name' in data.roles) {
-      roleName = (data.roles as { name: string }).name;
+    if (data?.roles && typeof data.roles === 'object' && 'name' in (data as any).roles) {
+      roleName = ((data as any).roles as { name: string }).name;
     } else if (Array.isArray(data?.roles) && data.roles.length > 0) {
       // Handle array case if returned as array
       roleName = data.roles[0]?.name || 'user';

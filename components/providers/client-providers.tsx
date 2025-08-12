@@ -7,7 +7,8 @@ export function ClientProviders({ children }: { children: React.ReactNode }) {
   return (
     <UserProvider>
       {children}
-      <SessionTimeout />
+      {/* Disable intrusive session warning unless explicitly enabled */}
+      {/* <SessionTimeout /> */}
     </UserProvider>
   );
 }

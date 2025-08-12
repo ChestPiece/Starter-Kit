@@ -199,17 +199,11 @@ export async function middleware(request: NextRequest) {
       const url = request.nextUrl.clone();
       url.pathname = redirectTo;
       url.searchParams.set('access_denied', 'true');
-      const response = NextResponse.next({ request });
-      // Copy cookies from supabaseResponse to the intermediate response
+      const response = NextResponse.redirect(url);
       supabaseResponse.cookies.getAll().forEach((cookie) => {
         response.cookies.set(cookie.name, cookie.value);
       });
-      const redirectResponse = NextResponse.redirect(url);
-      // Preserve cookies on the redirect response as well
-      response.cookies.getAll().forEach((cookie) => {
-        redirectResponse.cookies.set(cookie.name, cookie.value);
-      });
-      return redirectResponse;
+      return response;
     }
   }
 

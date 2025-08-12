@@ -7,7 +7,7 @@ export const SESSION_CONFIG = {
   SESSION_TIMEOUT: 30 * 60 * 1000,
   
   // Warning time before session expires (5 minutes before timeout)
-  SESSION_WARNING_TIME: 5 * 60 * 1000,
+  SESSION_WARNING_TIME: 1 * 60 * 1000,
   
   // Check session validity every 60 seconds
   SESSION_CHECK_INTERVAL: 60 * 1000,
@@ -18,6 +18,9 @@ export const SESSION_CONFIG = {
   
   // Maximum session duration (24 hours) - after this, force re-authentication
   MAX_SESSION_DURATION: 24 * 60 * 60 * 1000,
+  
+  // Toggle session warning UI (set to false to disable the warning overlay)
+  SHOW_WARNING: false,
   
   // Local storage keys for session tracking
   STORAGE_KEYS: {
@@ -87,6 +90,7 @@ export function clearSessionTracking(): void {
  * Check if session warning should be shown
  */
 export function shouldShowSessionWarning(): boolean {
+  if (!SESSION_CONFIG.SHOW_WARNING) return false;
   const lastActivity = localStorage.getItem(SESSION_CONFIG.STORAGE_KEYS.LAST_ACTIVITY);
   const warningShown = localStorage.getItem(SESSION_CONFIG.STORAGE_KEYS.SESSION_WARNING_SHOWN);
   

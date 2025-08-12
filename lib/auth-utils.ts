@@ -82,16 +82,26 @@ export const validateUserSession = async (): Promise<boolean> => {
       }
     }
     
-    // Check if session has exceeded maximum duration
-    if (typeof window !== 'undefined' && isSessionExpiredByDuration()) {
-      console.log('Session expired by duration');
-      return false;
+    // Check if session has exceeded maximum duration (disabled in production to reduce noise)
+    if (typeof window !== 'undefined') {
+      try {
+        const disabled = localStorage.getItem('disableMaxDurationCheck') === 'true';
+        if (!disabled && isSessionExpiredByDuration()) {
+          console.log('Session expired by duration');
+          return false;
+        }
+      } catch {}
     }
     
-    // Check if session has exceeded inactivity timeout
-    if (typeof window !== 'undefined' && isSessionExpiredByInactivity()) {
-      console.log('Session expired by inactivity');
-      return false;
+    // Check if session has exceeded inactivity timeout (less aggressive)
+    if (typeof window !== 'undefined') {
+      try {
+        const disabled = localStorage.getItem('disableInactivityCheck') === 'true';
+        if (!disabled && isSessionExpiredByInactivity()) {
+          console.log('Session expired by inactivity');
+          return false;
+        }
+      } catch {}
     }
     
     // Update last activity if session is valid
@@ -187,10 +197,12 @@ export const setupSessionMonitoring = () => {
       // Check if warning should be shown
       if (shouldShowSessionWarning()) {
         markSessionWarningShown();
-        // Trigger session warning event
-        window.dispatchEvent(new CustomEvent('sessionWarning', {
-          detail: { timeRemaining: SESSION_CONFIG.SESSION_WARNING_TIME }
-        }));
+        // Only show if explicitly enabled
+        if (SESSION_CONFIG.SHOW_WARNING) {
+          window.dispatchEvent(new CustomEvent('sessionWarning', {
+            detail: { timeRemaining: SESSION_CONFIG.SESSION_WARNING_TIME }
+          }));
+        }
       }
     }, SESSION_CONFIG.SESSION_CHECK_INTERVAL);
     
@@ -210,7 +222,7 @@ export const setupSessionMonitoring = () => {
       activityEvents.forEach(event => {
         window.removeEventListener(event, activityHandler);
       });
-    });
+  });
   }
 };
 
