@@ -20,13 +20,12 @@ export async function middleware(request: NextRequest) {
           return request.cookies.getAll()
         },
         setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) => request.cookies.set(name, value))
-          supabaseResponse = NextResponse.next({
-            request,
+          // Persist to a shared response and reuse it across redirects
+          const next = NextResponse.next({ request })
+          cookiesToSet.forEach(({ name, value, options }) => {
+            next.cookies.set(name, value, options)
           })
-          cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, options)
-          )
+          supabaseResponse = next
         },
       },
     }

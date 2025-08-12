@@ -33,9 +33,24 @@ export function EmailConfirmationHandler() {
               "Email confirmed successfully for user:",
               data.user.email
             );
+            // Ensure session cookies are persisted by pinging a server route
+            try {
+              const session = await supabase.auth.getSession();
+              const access_token = session.data.session?.access_token;
+              const refresh_token = session.data.session?.refresh_token;
+              if (access_token && refresh_token) {
+                await fetch("/api/auth/confirm", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ access_token, refresh_token }),
+                });
+              }
+            } catch {}
 
-            // Auto-redirect to app (user is already authenticated by exchangeCodeForSession)
-            router.push("/");
+            // Give middleware a brief moment to sync cookies, then navigate
+            setTimeout(() => {
+              window.location.replace("/");
+            }, 50);
             return;
           }
         } catch (err) {
@@ -68,8 +83,21 @@ export function EmailConfirmationHandler() {
             "Email confirmed successfully for user:",
             data.user.email
           );
-          // After verifyOtp, the user is authenticated; send to app
-          router.push("/");
+          try {
+            const session = await supabase.auth.getSession();
+            const access_token = session.data.session?.access_token;
+            const refresh_token = session.data.session?.refresh_token;
+            if (access_token && refresh_token) {
+              await fetch("/api/auth/confirm", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ access_token, refresh_token }),
+              });
+            }
+          } catch {}
+          setTimeout(() => {
+            window.location.replace("/");
+          }, 50);
         }
       } catch (err) {
         console.error("Email confirmation error:", err);

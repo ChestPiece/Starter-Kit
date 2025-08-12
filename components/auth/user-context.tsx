@@ -302,6 +302,14 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         }
         setLoading(false);
         console.log(`✅ User signed in: ${authUser.email}`);
+        // On confirmation flows, ensure navigation proceeds immediately
+        if (typeof window !== "undefined") {
+          const path = window.location.pathname;
+          if (path.startsWith("/auth/confirm")) {
+            window.location.href = "/";
+            return;
+          }
+        }
       }
 
       if (event === "TOKEN_REFRESHED" && !session) {
