@@ -3,7 +3,6 @@
 import type React from "react";
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { passwordResetService } from "@/lib/services/password-reset-service";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -22,10 +21,7 @@ interface ForgotPasswordProps {
   onEmailSent: (email: string) => void;
 }
 
-export function ForgotPassword({
-  onBack,
-  onEmailSent,
-}: ForgotPasswordProps) {
+export function ForgotPassword({ onBack, onEmailSent }: ForgotPasswordProps) {
   const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
@@ -53,22 +49,17 @@ export function ForgotPassword({
     setError("");
 
     try {
-      // Check rate limiting - max 3 requests per hour
-      const recentRequests = await passwordResetService.getRecentResetRequests(
-        email,
-        1
-      );
-      if (recentRequests >= 3) {
-        setError("Too many reset requests. Please wait before trying again.");
-        return;
-      }
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/auth/confirm`,
+      });
 
-      const result = await passwordResetService.createResetRequest(email);
-
-      if (result.success) {
-        onEmailSent(email);
+      if (error) {
+        // Show generic message to avoid enumeration
+        setError(
+          "If an account with that email exists, you will receive a password reset link."
+        );
       } else {
-        setError(result.message);
+        onEmailSent(email);
       }
     } catch (err) {
       setError(

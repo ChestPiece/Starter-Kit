@@ -208,10 +208,16 @@ export async function middleware(request: NextRequest) {
   }
 
   // Only redirect authenticated users away from auth pages AFTER login is complete
-  // But allow them to stay on auth pages during the login process
+  // But allow them to stay on auth pages during the login & recovery processes
   if (isAuthenticated && user && (request.nextUrl.pathname.startsWith('/auth') || request.nextUrl.pathname.startsWith('/login'))) {
-    // Check if this is not a login form submission or confirmation process
-    if (!request.nextUrl.pathname.includes('/confirm') && !request.nextUrl.searchParams.has('code')) {
+    const pathname = request.nextUrl.pathname
+    const searchParams = request.nextUrl.searchParams
+    const isConfirm = pathname.includes('/confirm')
+    const isResetPassword = pathname.includes('/reset-password')
+    const hasCode = searchParams.has('code')
+
+    // Allow confirm page, reset-password page, and any request that contains an auth code
+    if (!isConfirm && !isResetPassword && !hasCode) {
       const url = request.nextUrl.clone()
       url.pathname = '/'
       console.log('Redirecting authenticated user to dashboard:', user?.email)

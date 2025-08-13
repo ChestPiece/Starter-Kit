@@ -1,12 +1,6 @@
 "use client";
 
-import {
-  ChevronsUpDown,
-  LogOut,
-  Settings,
-  RefreshCw,
-  Shield,
-} from "lucide-react";
+import { ChevronsUpDown, LogOut, Shield } from "lucide-react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -28,26 +22,9 @@ import { User } from "@/types/types";
 import { generateNameAvatar } from "@/utils/generateRandomAvatar";
 import { LogoutButton } from "@/components/auth/logout-button";
 import { Badge } from "@/components/ui/badge";
-import { useUser } from "@/components/auth/user-context";
-import { useState } from "react";
-
 export function NavUser({ user }: { user: User | null }) {
   const { isMobile } = useSidebar();
   const router = useRouter();
-  const { refreshUser } = useUser();
-  const [isRefreshing, setIsRefreshing] = useState(false);
-
-  const handleRefresh = async () => {
-    setIsRefreshing(true);
-    try {
-      await refreshUser();
-      console.log("User data refreshed manually");
-    } catch (error) {
-      console.error("Failed to refresh user data:", error);
-    } finally {
-      setIsRefreshing(false);
-    }
-  };
 
   const getRoleBadgeVariant = (role: string) => {
     switch (role) {
@@ -134,16 +111,6 @@ export function NavUser({ user }: { user: User | null }) {
               </DropdownMenuLabel>
 
               <DropdownMenuSeparator />
-              <DropdownMenuItem
-                onClick={handleRefresh}
-                disabled={isRefreshing}
-                className="cursor-pointer"
-              >
-                <RefreshCw
-                  className={`mr-2 h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`}
-                />
-                {isRefreshing ? "Refreshing..." : "Refresh Role"}
-              </DropdownMenuItem>
               <DropdownMenuItem className="p-0">
                 <LogoutButton className="w-full justify-start h-auto p-2 bg-transparent hover:bg-accent text-foreground font-normal">
                   <LogOut className="mr-2 h-4 w-4" />

@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
-import { passwordResetService } from "@/lib/services/password-reset-service";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,9 +18,8 @@ import { Eye, EyeOff, CheckCircle, AlertCircle, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 
 export default function ResetPasswordPage() {
-  const searchParams = useSearchParams();
   const router = useRouter();
-  const token = searchParams.get("token");
+  const supabase = createClient();
 
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -29,37 +28,23 @@ export default function ResetPasswordPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
-  const [tokenValid, setTokenValid] = useState<boolean | null>(null);
-  const [userEmail, setUserEmail] = useState("");
+  const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [ready, setReady] = useState(false);
 
-  // Verify token on component mount
+  // Ensure there is an authenticated user (recovery session or normal session)
   useEffect(() => {
-    const verifyToken = async () => {
-      if (!token) {
-        setTokenValid(false);
-        setError("No reset token provided. Please check your email link.");
-        return;
-      }
-
+    const load = async () => {
       try {
-        const verification = await passwordResetService.verifyResetToken(token);
-        setTokenValid(verification.valid);
-
-        if (verification.valid && verification.email) {
-          setUserEmail(verification.email);
-        } else {
-          setError(
-            "Invalid or expired reset token. Please request a new password reset."
-          );
-        }
-      } catch (err) {
-        setTokenValid(false);
-        setError("Failed to verify reset token. Please try again.");
+        const { data } = await supabase.auth.getUser();
+        setUserEmail(data.user?.email ?? null);
+      } catch (e) {
+        setUserEmail(null);
+      } finally {
+        setReady(true);
       }
     };
-
-    verifyToken();
-  }, [token]);
+    load();
+  }, [supabase]);
 
   const validatePassword = (pwd: string): string | undefined => {
     if (!pwd) return "Password is required";
@@ -101,27 +86,23 @@ export default function ResetPasswordPage() {
       return;
     }
 
-    if (!token) {
-      setError(
-        "No reset token available. Please request a new password reset."
-      );
-      return;
-    }
-
     setIsLoading(true);
     setError("");
 
     try {
-      const result = await passwordResetService.resetPassword(token, password);
+      const { error: updateError } = await supabase.auth.updateUser({
+        password,
+      });
 
-      if (result.success) {
-        setSuccess(true);
-        // Redirect to login after 3 seconds
-        setTimeout(() => {
-          router.push("/auth/login?message=password_reset_success");
-        }, 3000);
+      if (updateError) {
+        setError(
+          updateError.message || "Failed to update password. Please try again."
+        );
       } else {
-        setError(result.message);
+        setSuccess(true);
+        setTimeout(() => {
+          router.replace("/");
+        }, 2000);
       }
     } catch (err) {
       setError(
@@ -132,25 +113,14 @@ export default function ResetPasswordPage() {
     }
   };
 
-  const handlePasswordChange = (value: string) => {
-    setPassword(value);
-    if (error) setError("");
-  };
-
-  const handleConfirmPasswordChange = (value: string) => {
-    setConfirmPassword(value);
-    if (error) setError("");
-  };
-
-  // Show loading state while verifying token
-  if (tokenValid === null) {
+  if (!ready) {
     return (
       <Card className="w-full max-w-md shadow-xl border-0 bg-white/80 backdrop-blur-sm">
         <CardContent className="flex items-center justify-center p-8">
           <div className="text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto"></div>
             <p className="mt-4 text-sm text-gray-600">
-              Verifying reset token...
+              Preparing reset form...
             </p>
           </div>
         </CardContent>
@@ -158,61 +128,23 @@ export default function ResetPasswordPage() {
     );
   }
 
-  // Show error if token is invalid
-  if (tokenValid === false) {
+  if (!userEmail) {
     return (
       <Card className="w-full max-w-md shadow-xl border-0 bg-white/80 backdrop-blur-sm">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl font-bold text-red-600">
-            Invalid Reset Link
+            Link invalid
           </CardTitle>
           <CardDescription className="text-gray-600">
-            The password reset link is invalid or has expired.
+            Your reset link is invalid or expired. Please request a new password
+            reset.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {error && (
-            <Alert variant="destructive">
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
-          <div className="flex flex-col space-y-3">
-            <Link href="/auth/login">
-              <Button variant="outline" className="w-full">
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Back to Login
-              </Button>
-            </Link>
-            <Link href="/auth/login">
-              <Button className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700">
-                Request New Reset Link
-              </Button>
-            </Link>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  // Show success message
-  if (success) {
-    return (
-      <Card className="w-full max-w-md shadow-xl border-0 bg-white/80 backdrop-blur-sm">
-        <CardHeader className="text-center">
-          <CheckCircle className="w-16 h-16 text-green-600 mx-auto mb-4" />
-          <CardTitle className="text-2xl font-bold text-green-600">
-            Password Reset Successful
-          </CardTitle>
-          <CardDescription className="text-gray-600">
-            Your password has been successfully updated. You will be redirected
-            to the login page shortly.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
           <Link href="/auth/login">
-            <Button className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700">
-              Continue to Login
+            <Button variant="outline" className="w-full">
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Back to Login
             </Button>
           </Link>
         </CardContent>
@@ -220,7 +152,22 @@ export default function ResetPasswordPage() {
     );
   }
 
-  // Main password reset form
+  if (success) {
+    return (
+      <Card className="w-full max-w-md shadow-xl border-0 bg-white/80 backdrop-blur-sm">
+        <CardHeader className="text-center">
+          <CheckCircle className="w-16 h-16 text-green-600 mx-auto mb-4" />
+          <CardTitle className="text-2xl font-bold text-green-600">
+            Password Updated
+          </CardTitle>
+          <CardDescription className="text-gray-600">
+            Redirecting you to the app...
+          </CardDescription>
+        </CardHeader>
+      </Card>
+    );
+  }
+
   return (
     <Card className="w-full max-w-md shadow-xl border-0 bg-white/80 backdrop-blur-sm">
       <CardHeader className="space-y-1 text-center">
@@ -248,7 +195,7 @@ export default function ResetPasswordPage() {
                 type={showPassword ? "text" : "password"}
                 placeholder="Enter your new password"
                 value={password}
-                onChange={(e) => handlePasswordChange(e.target.value)}
+                onChange={(e) => setPassword(e.target.value)}
                 className="pr-10"
                 required
               />
@@ -280,7 +227,7 @@ export default function ResetPasswordPage() {
                 type={showConfirmPassword ? "text" : "password"}
                 placeholder="Confirm your new password"
                 value={confirmPassword}
-                onChange={(e) => handleConfirmPasswordChange(e.target.value)}
+                onChange={(e) => setConfirmPassword(e.target.value)}
                 className="pr-10"
                 required
               />

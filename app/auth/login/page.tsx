@@ -137,7 +137,9 @@ export default function LoginPage() {
         )}
 
         {currentView === "login" ? (
-          <LoginForm />
+          <LoginForm
+            onForgotPassword={() => setCurrentView("forgot-password")}
+          />
         ) : currentView === "forgot-password" ? (
           <ForgotPassword
             onBack={() => setCurrentView("login")}
