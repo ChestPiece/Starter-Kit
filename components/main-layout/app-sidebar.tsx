@@ -98,7 +98,7 @@ export default function SideBarLayout({
   // Get navigation data based on user role - updates when role changes
   const hasUser = !!user;
   const roleName = ((user?.roles as any)?.name || "user") as string;
- 
+
   useEffect(() => {
     if (!hasUser) {
       setNavItems([]);
@@ -137,7 +137,7 @@ export default function SideBarLayout({
           <SidebarHeader>
             <TeamSwitcher teams={data.teams} settings={settings} />
             <hr className="border-t border-border mx-2 -mt-px" />
-            <SearchForm className="mt-3" />
+            <SearchForm className="mt-3" navItems={navItems} />
           </SidebarHeader>
           <SidebarContent>
             <NavMain items={navItems} user={user || undefined} />
