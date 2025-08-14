@@ -37,7 +37,8 @@ export type SessionConfig = typeof SESSION_CONFIG;
  */
 export function isSessionExpiredByDuration(): boolean {
   const sessionStart = localStorage.getItem(SESSION_CONFIG.STORAGE_KEYS.SESSION_START);
-  if (!sessionStart) return true;
+  // If we don't have tracking yet, do not force-expire. Treat as not started.
+  if (!sessionStart) return false;
   
   const startTime = new Date(sessionStart).getTime();
   const now = Date.now();
@@ -51,7 +52,8 @@ export function isSessionExpiredByDuration(): boolean {
  */
 export function isSessionExpiredByInactivity(): boolean {
   const lastActivity = localStorage.getItem(SESSION_CONFIG.STORAGE_KEYS.LAST_ACTIVITY);
-  if (!lastActivity) return true;
+  // If no activity is recorded yet, consider the session active until tracking starts
+  if (!lastActivity) return false;
   
   const lastActiveTime = new Date(lastActivity).getTime();
   const now = Date.now();

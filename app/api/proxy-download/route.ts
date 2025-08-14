@@ -12,8 +12,10 @@ export const GET = async (request: NextRequest) => {
       );
     }
 
-    // Fetch the file from the external source
-    const response = await fetch(url);
+    // Fetch the file from the external source with timeout
+    const response = await fetch(url, {
+      signal: AbortSignal.timeout(30000), // 30 second timeout for file downloads
+    });
     
     if (!response.ok) {
       return NextResponse.json(
@@ -38,8 +40,25 @@ export const GET = async (request: NextRequest) => {
     });
 
     return newResponse;
-  } catch (error) {
+  } catch (error: any) {
     console.error("Proxy download error:", error);
+    
+    // Handle timeout errors
+    if (error instanceof Error && error.name === 'AbortError') {
+      return NextResponse.json(
+        { error: "Download timed out - file may be too large" },
+        { status: 408 }
+      );
+    }
+    
+    // Handle connection errors
+    if (error.code === 'ECONNRESET' || error.code === 'ENOTFOUND') {
+      return NextResponse.json(
+        { error: "Connection failed - please check the URL and try again" },
+        { status: 503 }
+      );
+    }
+    
     return NextResponse.json(
       { error: "Failed to proxy download" },
       { status: 500 }

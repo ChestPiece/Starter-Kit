@@ -144,21 +144,7 @@ function SettingsContent() {
 
   // Render different setting sections - all users have access
   const renderSettingsContent = () => {
-    // Show loading state while settings are being loaded
-    if (
-      settingsLoading &&
-      (activeSection === "Organization" || activeSection === "Appearance")
-    ) {
-      return (
-        <div key="loading" className="flex items-center justify-center h-64">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto"></div>
-            <p className="mt-2 text-sm text-gray-600">Loading settings...</p>
-          </div>
-        </div>
-      );
-    }
-
+    // Do not block UI while loading settings; components use sensible defaults
     switch (activeSection) {
       case "Profile":
         return (
@@ -171,14 +157,14 @@ function SettingsContent() {
           return (
             <div key="organization">
               <RoleGuard requiredRole="manager">
-                <OrganizationSettings settings={settings} />
+                <OrganizationSettings settings={settings || undefined} />
               </RoleGuard>
             </div>
           );
         }
         return (
           <div key="organization">
-            <OrganizationSettings settings={settings} />
+            <OrganizationSettings settings={settings || undefined} />
           </div>
         );
       case "Appearance":
@@ -186,14 +172,14 @@ function SettingsContent() {
           return (
             <div key="appearance">
               <RoleGuard requiredRole="manager">
-                <AppearanceSettings settings={settings} />
+                <AppearanceSettings settings={settings || undefined} />
               </RoleGuard>
             </div>
           );
         }
         return (
           <div key="appearance">
-            <AppearanceSettings settings={settings} />
+            <AppearanceSettings settings={settings || undefined} />
           </div>
         );
       default:

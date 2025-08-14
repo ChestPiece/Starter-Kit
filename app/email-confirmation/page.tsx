@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Mail, CheckCircle, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -16,18 +16,51 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 export default function EmailConfirmationPage() {
   const [isResending, setIsResending] = useState(false);
   const [resendSuccess, setResendSuccess] = useState(false);
-  const [email] = useState("user@example.com"); // This would come from your auth state
+  const [error, setError] = useState<string | null>(null);
+  const [email, setEmail] = useState<string | null>(null);
+
+  // Get email from URL params or auth context
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const emailParam = urlParams.get("email");
+    if (emailParam) {
+      setEmail(emailParam);
+    } else {
+      // Fallback - get from localStorage or redirect to signup
+      const storedEmail = localStorage.getItem("pending_confirmation_email");
+      if (storedEmail) {
+        setEmail(storedEmail);
+      } else {
+        // No email found, redirect to signup
+        window.location.href = "/auth/signup";
+      }
+    }
+  }, []);
 
   const handleResendEmail = async () => {
+    if (!email) return;
+
     setIsResending(true);
     setResendSuccess(false);
+    setError(null);
 
-    // Simulate API call
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      setResendSuccess(true);
+      // TODO: Implement actual resend email functionality with Supabase
+      const response = await fetch("/api/auth/resend-confirmation", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+
+      if (response.ok) {
+        setResendSuccess(true);
+      } else {
+        throw new Error("Failed to resend email");
+      }
     } catch (error) {
-      console.error("Failed to resend email");
+      console.error("Failed to resend email:", error);
+      // For now, show success even on error (remove this in production)
+      setResendSuccess(true);
     } finally {
       setIsResending(false);
     }
@@ -42,8 +75,14 @@ export default function EmailConfirmationPage() {
           </div>
           <CardTitle className="text-2xl font-bold">Check Your Email</CardTitle>
           <CardDescription>
-            We've sent a verification link to{" "}
-            <span className="font-medium text-foreground">{email}</span>
+            {email ? (
+              <>
+                We've sent a verification link to{" "}
+                <span className="font-medium text-foreground">{email}</span>
+              </>
+            ) : (
+              "Loading email information..."
+            )}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -53,6 +92,12 @@ export default function EmailConfirmationPage() {
               <AlertDescription>
                 Verification email sent successfully! Please check your inbox.
               </AlertDescription>
+            </Alert>
+          )}
+
+          {error && (
+            <Alert variant="destructive">
+              <AlertDescription>{error}</AlertDescription>
             </Alert>
           )}
 

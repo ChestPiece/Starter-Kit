@@ -23,84 +23,17 @@ export function formatDate(date: string | Date | undefined, options: Intl.DateTi
   return new Date(date).toLocaleDateString(undefined, defaultOptions);
 }
 
-// Parse the user cookie
+// Cookie utilities (use Supabase auth instead for user data)
 export function parseUserData(userCookie: string) {
   return JSON.parse(userCookie)
 }
 
-// Get the user cookie from the request
 export function getUserCookie(request: NextRequest) {
   const cookies = request.cookies.getAll()
   return cookies.find((c) => c.name === 'auth.user')
 }
 
-// Mock utility functions (authentication removed)
-export function getUserDataFromCookie() {
-  // Return mock data since authentication is removed
-  return {
-    user: {
-      user_profileCollection: {
-        edges: [{
-          node: {
-            id: "mock-user-id",
-            first_name: "Demo",
-            last_name: "User",
-            email: "demo@example.com",
-            roles: { name: "admin" },
-            avatar_url: null,
-            profile: null
-          }
-        }]
-      }
-    }
-  };
-}
-
-// Utility functions that use mock data (no authentication required)
-export function getUserId() {
-  return "mock-user-id";
-}
-
-export function getUserProfile() {
-  return {
-    id: "mock-user-id",
-    first_name: "Demo",
-    last_name: "User",
-    email: "demo@example.com",
-    roles: { name: "admin" },
-    avatar_url: undefined,
-    profile: undefined
-  };
-}
-
-export function getUserEmail() {
-  return "demo@example.com";
-}
-
-export function getUserRole() {
-  return "admin";
-}
-
-// Mock user data hook (authentication removed)
-export function useUserData() {
-  return {
-    user: {
-      user_profileCollection: {
-        edges: [{
-          node: {
-            id: "mock-user-id",
-            first_name: "Demo",
-            last_name: "User", 
-            email: "demo@example.com",
-            roles: { name: "admin" },
-            avatar_url: null,
-            profile: null
-          }
-        }]
-      }
-    }
-  };
-}
+// Note: Mock functions removed - use proper Supabase authentication via useUser hook
 
 // Utility to fix pointer-events style issues
 export function fixPointerEvents() {

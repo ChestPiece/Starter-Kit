@@ -1,15 +1,8 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
-// Session timeout configuration for server-side validation
-const SESSION_TIMEOUT = 30 * 60 * 1000; // 30 minutes
-const MAX_SESSION_DURATION = 24 * 60 * 60 * 1000; // 24 hours
-const FORCE_LOGOUT_ON_START = false; // Set to false to prevent redirect loops
-
 export async function middleware(request: NextRequest) {
-  let supabaseResponse = NextResponse.next({
-    request,
-  })
+  let supabaseResponse = NextResponse.next({ request })
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -20,277 +13,79 @@ export async function middleware(request: NextRequest) {
           return request.cookies.getAll()
         },
         setAll(cookiesToSet) {
-          // Persist to a shared response and reuse it across redirects
-          const next = NextResponse.next({ request })
-          cookiesToSet.forEach(({ name, value, options }) => {
-            next.cookies.set(name, value, options)
-          })
-          supabaseResponse = next
+          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
+          supabaseResponse = NextResponse.next({ request })
+          cookiesToSet.forEach(({ name, value, options }) =>
+            supabaseResponse.cookies.set(name, value, options)
+          )
         },
       },
     }
   )
 
-  // Do not run code between createServerClient and
-  // supabase.auth.getUser(). A simple mistake could make it very hard to debug
-  // issues with users being randomly logged out.
+  // IMPORTANT: Minimal code between client creation and auth.getUser()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
 
-  // IMPORTANT: DO NOT REMOVE auth.getUser()
-  // Retry authentication up to 2 times for reliability
-  let user = null;
-  let authError = null;
-  let session = null;
-  let sessionError = null;
+  const pathname = request.nextUrl.pathname
+  const isApiRoute = pathname.startsWith('/api')
 
-  for (let attempt = 1; attempt <= 2; attempt++) {
-    try {
-      console.log(`🔐 Middleware auth attempt ${attempt}/2 for ${request.nextUrl.pathname}`);
-      
-      const authResult = await supabase.auth.getUser();
-      user = authResult.data.user;
-      authError = authResult.error;
-
-      if (!authError && user) {
-        // If we got a user, also get the session
-        const sessionResult = await supabase.auth.getSession();
-        session = sessionResult.data.session;
-        sessionError = sessionResult.error;
-        
-        console.log(`✅ Auth successful on attempt ${attempt}`);
-        break; // Success, exit retry loop
-      } else {
-        console.warn(`⚠️ Auth attempt ${attempt} failed:`, authError?.message || 'No user');
-        if (attempt < 2) {
-          // Wait a bit before retrying
-          await new Promise(resolve => setTimeout(resolve, 100));
-        }
-      }
-    } catch (error) {
-      console.error(`💥 Auth attempt ${attempt} error:`, error);
-      if (attempt < 2) {
-        await new Promise(resolve => setTimeout(resolve, 100));
-      }
-    }
+  // Never redirect API routes; just refresh cookies/session silently
+  if (isApiRoute) {
+    return supabaseResponse
   }
 
-  // Enhanced session validation with timeout checks
-  // Use only authenticated user from getUser(), not session.user (security best practice)
-  let isAuthenticated = !!(user && !authError && session && !sessionError);
-  let logoutReason = '';
-  let userRole: string | null = null;
-
-  // Get user role if authenticated
-  if (isAuthenticated && user) {
-    try {
-      // Prefer a direct SELECT to avoid issues with different RPC variants
-      const { data, error } = await supabase
-        .from('user_profiles')
-        .select('id, role_id, roles:role_id(name)')
-        .eq('id', user.id)
-        .maybeSingle();
-
-      if (!error && data) {
-        userRole = (data as any)?.roles?.name || null;
-      }
-
-      if (!userRole) {
-        // Fallback to RPC if direct select didn't resolve
-        const { data: roleData } = await supabase.rpc('get_user_role');
-        userRole = (roleData as any) || 'user';
-      }
-    } catch (error) {
-      console.error('Error getting user role in middleware:', error);
-      userRole = 'user';
-    }
+  // Redirect unauthenticated users to the login page (allow auth routes)
+  if (
+    !user &&
+    !pathname.startsWith('/auth') &&
+    !pathname.startsWith('/login')
+  ) {
+    const url = request.nextUrl.clone()
+    url.pathname = '/auth/login'
+    const response = NextResponse.redirect(url)
+    supabaseResponse.cookies.getAll().forEach(({ name, value, ...options }) => {
+      response.cookies.set(name, value, options)
+    })
+    return response
   }
 
-  // Skip force logout on start if already on auth pages to prevent loops
-  if (FORCE_LOGOUT_ON_START && isAuthenticated && !request.nextUrl.pathname.startsWith('/auth')) {
-    console.log('Force logout on start enabled, invalidating session');
-    isAuthenticated = false;
-    logoutReason = 'force_logout_on_start';
+  // Allow auth/confirm pages to always work (needed for email confirmation)
+  if (pathname.includes('/auth/confirm')) {
+    return supabaseResponse
   }
 
-  // Check session expiry based on Supabase session timestamp
-  if (isAuthenticated && session?.expires_at) {
-    const sessionExpiry = new Date(session.expires_at * 1000);
-    const now = new Date();
-    
-    if (sessionExpiry <= now) {
-      console.log('Supabase session expired');
-      isAuthenticated = false;
-      logoutReason = 'supabase_session_expired';
-    }
-  }
-
-  // Check session duration and inactivity from cookies if available
-  if (isAuthenticated) {
-    const allCookies = request.cookies.getAll();
-    const lastActivityCookie = allCookies.find((c) => c.name === 'lastActivity');
-    const sessionStartCookie = allCookies.find((c) => c.name === 'sessionStart');
-    
-    if (sessionStartCookie) {
-      const sessionStart = new Date(sessionStartCookie.value).getTime();
-      const sessionDuration = Date.now() - sessionStart;
-      
-      if (sessionDuration > MAX_SESSION_DURATION) {
-        console.log('Session exceeded maximum duration');
-        isAuthenticated = false;
-        logoutReason = 'max_duration_exceeded';
-      }
-    }
-    
-    if (lastActivityCookie && !logoutReason) {
-      const lastActivity = new Date(lastActivityCookie.value).getTime();
-      const inactiveTime = Date.now() - lastActivity;
-      
-      if (inactiveTime > SESSION_TIMEOUT) {
-        console.log('Session expired due to inactivity');
-        isAuthenticated = false;
-        logoutReason = 'inactivity_timeout';
-      }
-    }
-  }
-
-  // Only log important auth events, not every request
-  const isImportantPath = !request.nextUrl.pathname.includes('/_next/') && 
-                         !request.nextUrl.pathname.includes('/manifest.json') &&
-                         !request.nextUrl.pathname.includes('/favicon.ico');
-  
-    if (!isAuthenticated && isImportantPath) {
-    console.log(`🔐 Auth required for: ${request.nextUrl.pathname}`);
-  } else if (isAuthenticated && isImportantPath && userRole) {
-    // Only log when role or path changes significantly
-    const isAuthPage = request.nextUrl.pathname.startsWith('/auth');
-    const isMainPage = request.nextUrl.pathname === '/';
-    const isProtectedPage = request.nextUrl.pathname.startsWith('/settings') || request.nextUrl.pathname.startsWith('/users');
-    
-    if (isMainPage || isProtectedPage || isAuthPage) {
-      console.log(`✅ ${userRole.toUpperCase()} access to: ${request.nextUrl.pathname}`);
-    }
-  }
-
-  // Role-based access control for authenticated users
-  if (isAuthenticated && userRole) {
-    const pathname = request.nextUrl.pathname;
-    
-    // Check if user has permission to access the requested route
-    let hasAccess = true;
-    let redirectTo = '/';
-
-    // Apply role-based access rules
-    if (pathname.startsWith('/settings')) {
-      // Settings require manager or admin role
-      if (userRole !== 'manager' && userRole !== 'admin') {
-        hasAccess = false;
-        redirectTo = '/'; // Redirect to dashboard
-      }
-    } else if (pathname.startsWith('/users')) {
-      // Users page requires admin role only
-      if (userRole !== 'admin') {
-        hasAccess = false;
-        redirectTo = userRole === 'manager' ? '/settings' : '/';
-      }
-    }
-
-    // If user doesn't have access, redirect them
-    if (!hasAccess) {
-      console.log(`🚫 ACCESS DENIED: ${userRole.toUpperCase()} role cannot access ${pathname} → redirecting to ${redirectTo}`);
-      const url = request.nextUrl.clone();
-      url.pathname = redirectTo;
-      url.searchParams.set('access_denied', 'true');
-      const response = NextResponse.redirect(url);
-      supabaseResponse.cookies.getAll().forEach((cookie) => {
-        response.cookies.set(cookie.name, cookie.value);
-      });
-      return response;
-    }
-  }
-
-  // Only redirect authenticated users away from auth pages AFTER login is complete
-  // But allow them to stay on auth pages during the login & recovery processes
-  if (isAuthenticated && user && (request.nextUrl.pathname.startsWith('/auth') || request.nextUrl.pathname.startsWith('/login'))) {
-    const pathname = request.nextUrl.pathname
+  // Redirect authenticated users away from auth pages, except for reset with code
+  if (
+    user &&
+    (pathname.startsWith('/auth') || pathname.startsWith('/login'))
+  ) {
     const searchParams = request.nextUrl.searchParams
-    const isConfirm = pathname.includes('/confirm')
     const isResetPassword = pathname.includes('/reset-password')
     const hasCode = searchParams.has('code')
 
-    // Allow confirm page, reset-password page, and any request that contains an auth code
-    if (!isConfirm && !isResetPassword && !hasCode) {
+    if (!isResetPassword || !hasCode) {
       const url = request.nextUrl.clone()
       url.pathname = '/'
-      console.log('Redirecting authenticated user to dashboard:', user?.email)
-      
-      // Clear any error parameters when redirecting authenticated users
       const response = NextResponse.redirect(url)
-      supabaseResponse.cookies.getAll().forEach((cookie) => {
-        response.cookies.set(cookie.name, cookie.value)
+      supabaseResponse.cookies.getAll().forEach(({ name, value, ...options }) => {
+        response.cookies.set(name, value, options)
       })
       return response
     }
   }
 
-  // Redirect unauthenticated users to login form with clean URL
-  if (
-    !isAuthenticated &&
-    !request.nextUrl.pathname.startsWith('/auth') &&
-    !request.nextUrl.pathname.startsWith('/login')
-  ) {
-    const url = request.nextUrl.clone()
-    url.pathname = '/auth/login'
-    
-    // Always redirect to clean login page without error parameters
-    console.log('Redirecting unauthenticated user to login')
-    
-    const response = NextResponse.redirect(url)
-    // Preserve Supabase session cookies
-    supabaseResponse.cookies.getAll().forEach((cookie) => {
-      response.cookies.set(cookie.name, cookie.value)
-    })
-    // Clean up any session tracking cookies
-    response.cookies.delete('lastActivity')
-    response.cookies.delete('sessionStart')
-    response.cookies.delete('sessionWarningShown')
-    
-    return response
-  }
-
-  // Handle invalid or expired sessions
-  if (user && !session) {
-    const url = request.nextUrl.clone()
-    url.pathname = '/auth/login'
-    console.log('Session invalid, redirecting to login')
-    const response = NextResponse.redirect(url)
-    supabaseResponse.cookies.getAll().forEach((cookie) => {
-      response.cookies.set(cookie.name, cookie.value)
-    })
-    return response
-  }
-
-  // Ensure root auth path redirects to login
-  if (!isAuthenticated && request.nextUrl.pathname === '/auth') {
+  // Ensure root auth path redirects to login for unauthenticated users
+  if (!user && pathname === '/auth') {
     const url = request.nextUrl.clone()
     url.pathname = '/auth/login'
     const response = NextResponse.redirect(url)
-    supabaseResponse.cookies.getAll().forEach((cookie) => {
-      response.cookies.set(cookie.name, cookie.value)
+    supabaseResponse.cookies.getAll().forEach(({ name, value, ...options }) => {
+      response.cookies.set(name, value, options)
     })
     return response
   }
-
-  // IMPORTANT: You *must* return the supabaseResponse object as it is.
-  // If you're creating a new response object with NextResponse.next() make sure to:
-  // 1. Pass the request in it, like so:
-  //    const myNewResponse = NextResponse.next({ request })
-  // 2. Copy over the cookies, like so:
-  //    myNewResponse.cookies.setAll(supabaseResponse.cookies.getAll())
-  // 3. Change the myNewResponse object to fit your needs, but avoid changing
-  //    the cookies!
-  // 4. Finally:
-  //    return myNewResponse
-  // If this is not done, you may be causing the browser and server to go out
-  // of sync and terminate the user's session prematurely!
 
   return supabaseResponse
 }
@@ -304,6 +99,6 @@ export const config = {
      * - favicon.ico (favicon file)
      * - public files with extensions
      */
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|js|css)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };

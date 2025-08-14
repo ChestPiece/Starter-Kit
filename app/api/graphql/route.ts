@@ -20,6 +20,7 @@ export async function POST(req: NextRequest) {
         'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
       },
       body: JSON.stringify({ query, variables }),
+      signal: AbortSignal.timeout(20000), // 20 second timeout
     });
 
     if (!response.ok) {
@@ -34,6 +35,23 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ data: result.data });
   } catch (error: any) {
     console.error('GraphQL API Error:', error);
+    
+    // Handle timeout errors specifically
+    if (error instanceof Error && error.name === 'AbortError') {
+      return NextResponse.json(
+        { error: 'Request timed out - please try again' },
+        { status: 408 }
+      );
+    }
+    
+    // Handle connection errors
+    if (error.code === 'ECONNRESET' || error.code === 'ENOTFOUND') {
+      return NextResponse.json(
+        { error: 'Connection failed - please check your network' },
+        { status: 503 }
+      );
+    }
+    
     return NextResponse.json(
       { error: error.message || 'Internal server error' },
       { status: 500 }

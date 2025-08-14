@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,6 +19,7 @@ import Link from "next/link";
 
 export default function ResetPasswordPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const supabase = createClient();
 
   const [password, setPassword] = useState("");
@@ -35,6 +36,14 @@ export default function ResetPasswordPage() {
   useEffect(() => {
     const load = async () => {
       try {
+        const code = searchParams.get("code");
+        const type = searchParams.get("type");
+        if (type === "recovery" && code) {
+          try {
+            await supabase.auth.exchangeCodeForSession(code);
+          } catch {}
+        }
+
         const { data } = await supabase.auth.getUser();
         setUserEmail(data.user?.email ?? null);
       } catch (e) {
@@ -44,7 +53,7 @@ export default function ResetPasswordPage() {
       }
     };
     load();
-  }, [supabase]);
+  }, [supabase, searchParams]);
 
   const validatePassword = (pwd: string): string | undefined => {
     if (!pwd) return "Password is required";

@@ -11,6 +11,7 @@ export async function executeGraphQLBackend<T = any>(query: string, variables?: 
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ query, variables }),
+      signal: AbortSignal.timeout(15000), // 15 second timeout
     });
 
     if (!response.ok) {
@@ -25,6 +26,10 @@ export async function executeGraphQLBackend<T = any>(query: string, variables?: 
 
     return result.data as T;
   } catch (error) {
+    if (error instanceof Error && error.name === 'AbortError') {
+      console.error('GraphQL server request timed out:', error);
+      throw new Error('Request timed out - please try again');
+    }
     console.error('GraphQL Error:', error);
     throw error;
   }

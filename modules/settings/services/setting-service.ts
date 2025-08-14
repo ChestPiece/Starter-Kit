@@ -1,4 +1,8 @@
-// Real settings service connected to Supabase database
+// Real settings service connected to Supabase database (CLIENT VERSION)
+// This module is safe to import from Client Components only.
+// For server usage (e.g. in `generateMetadata`), import
+// `@/modules/settings/services/setting-service.server` instead.
+
 import { createClient } from '@/lib/supabase/client';
 
 export interface Settings {
@@ -44,7 +48,7 @@ const settingsService = {
                 if (error.code === 'PGRST116') {
                     // No settings found, return default settings
                     return {
-                        site_name: "Starter Kit Demo",
+                        site_name: "Starter Kit",
                         site_description: "A modern application starter kit",
                         primary_color: "#0070f3",
                         secondary_color: "#00ff88",
@@ -64,7 +68,7 @@ const settingsService = {
             console.error("Error in getSettingsById:", error);
             // Return default settings on error
             return {
-                site_name: "Starter Kit Demo",
+                site_name: "Starter Kit",
                 site_description: "A modern application starter kit",
                 primary_color: "#0070f3",
                 secondary_color: "#00ff88",

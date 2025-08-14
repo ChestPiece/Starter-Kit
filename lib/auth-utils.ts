@@ -63,13 +63,13 @@ export const validateUserSession = async (): Promise<boolean> => {
     
     // User must exist, no errors, and have a valid session
     if (userError || sessionError || !user || !session) {
-      console.log('Session validation failed:', { userError, sessionError, hasUser: !!user, hasSession: !!session });
+
       return false;
     }
     
     // Check if session is not expired (Supabase session expiry)
     if (session.expires_at && new Date(session.expires_at * 1000) < new Date()) {
-      console.log('Supabase session expired');
+
       return false;
     }
     
@@ -77,7 +77,7 @@ export const validateUserSession = async (): Promise<boolean> => {
     if (typeof window !== 'undefined') {
       const currentPath = window.location.pathname;
       if (currentPath.startsWith('/auth') || currentPath.startsWith('/login')) {
-        console.log('On auth page, skipping timeout validation');
+
         return true;
       }
     }
@@ -87,7 +87,7 @@ export const validateUserSession = async (): Promise<boolean> => {
       try {
         const disabled = localStorage.getItem('disableMaxDurationCheck') === 'true';
         if (!disabled && isSessionExpiredByDuration()) {
-          console.log('Session expired by duration');
+
           return false;
         }
       } catch {}

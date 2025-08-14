@@ -52,6 +52,14 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   const supabase = createClient();
   const router = useRouter();
 
+  // Safety: prevent indefinite loading in extreme network cases
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      setLoading((prev) => (prev ? false : prev));
+    }, 8000);
+    return () => clearTimeout(timeoutId);
+  }, []);
+
   // Enhanced user fetching with role data from user_profiles table
   const fetchUserWithProfile = useCallback(
     async (supaUser: SupabaseUser | null) => {
@@ -158,7 +166,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         // Handle force logout on start safely
         const forceLogoutHandled = await handleForceLogoutOnStart();
         if (forceLogoutHandled) {
-          console.log("Force logout on start handled");
           clearSessionTracking();
           setSupabaseUser(null);
           setUser(null);
@@ -175,7 +182,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             !currentPath.startsWith("/auth") &&
             !currentPath.startsWith("/login")
           ) {
-            console.log("Session expired on app start:", expiryReason);
             clearSessionTracking();
             // Redirect to a clean login page with a simple session message handled there
             await forceLogoutAndRedirect("session_expired_on_start");
@@ -224,14 +230,14 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
           return;
         }
 
-        const {
-          data: { user: supaUser },
-          error: userError,
-        } = await supabase.auth.getUser();
-        const {
-          data: { session },
-          error: sessionError,
-        } = await supabase.auth.getSession();
+        const [userRes, sessionRes] = await Promise.all([
+          supabase.auth.getUser(),
+          supabase.auth.getSession(),
+        ]);
+        const supaUser = userRes.data.user;
+        const userError = userRes.error;
+        const session = sessionRes.data.session;
+        const sessionError = sessionRes.error;
 
         // If there are any errors or no user/session, clear everything
         if (userError || sessionError || !supaUser || !session) {

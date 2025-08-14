@@ -102,7 +102,7 @@ export default function SideBarLayout({
   useEffect(() => {
     if (!hasUser) {
       setNavItems([]);
-      console.log("❌ No user - navigation cleared");
+
       return;
     }
 
@@ -125,7 +125,7 @@ export default function SideBarLayout({
       if (prevKey === nextKey) {
         return prev; // No structural change → avoid state update to prevent loops
       }
-      console.log(`🧭 Navigation updated for ${roleName.toUpperCase()} role`);
+
       return (navData.navMain || []) as NavSection[];
     });
   }, [hasUser, roleName]);

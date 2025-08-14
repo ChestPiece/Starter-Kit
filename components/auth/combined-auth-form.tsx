@@ -239,7 +239,20 @@ export function CombinedAuthForm({
           }
 
           console.log("Login successful - verified user:", data.user.email);
-          // Initialize session tracking for successful login
+          // Persist session to HttpOnly cookies via server and start tracking
+          try {
+            const { data: sessionData } = await supabase.auth.getSession();
+            const access_token = sessionData.session?.access_token;
+            const refresh_token = sessionData.session?.refresh_token;
+            if (access_token && refresh_token) {
+              await fetch("/api/auth/confirm", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ access_token, refresh_token }),
+              });
+            }
+          } catch {}
+
           try {
             const { initializeSessionTracking, updateLastActivity } =
               await import("@/lib/session-config");
@@ -249,10 +262,7 @@ export function CombinedAuthForm({
             console.warn("Could not initialize session tracking:", e);
           }
 
-          // Set a timeout to prevent infinite loading
-          setTimeout(() => {
-            window.location.href = "/";
-          }, 500);
+          window.location.href = "/";
           return;
         } else {
           setErrors({ general: "Login failed - no user returned" });
@@ -265,6 +275,7 @@ export function CombinedAuthForm({
           email: formData.email,
           password: formData.password,
           options: {
+            emailRedirectTo: `${window.location.origin}/auth/confirm`,
             data: {
               first_name: formData.firstName.trim(),
               last_name: formData.lastName.trim(),

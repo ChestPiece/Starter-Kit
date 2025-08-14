@@ -105,7 +105,28 @@ export function LoginForm({
       }
 
       if (authData.user) {
-        router.push("/");
+        // Persist session to HttpOnly cookies on server and start local tracking
+        try {
+          const { data: sessionData } = await supabase.auth.getSession();
+          const access_token = sessionData.session?.access_token;
+          const refresh_token = sessionData.session?.refresh_token;
+          if (access_token && refresh_token) {
+            await fetch("/api/auth/confirm", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ access_token, refresh_token }),
+            });
+          }
+        } catch {}
+
+        try {
+          const { initializeSessionTracking, updateLastActivity } =
+            await import("@/lib/session-config");
+          initializeSessionTracking();
+          updateLastActivity();
+        } catch {}
+
+        router.replace("/");
       }
     } catch (error) {
       console.error("Login error:", error);

@@ -35,6 +35,10 @@ export async function checkWhatsAppStatus() {
     const instanceId = process.env.ULTRAMSG_INSTANCE_ID || "";
     const token = process.env.ULTRAMSG_TOKEN || "";
     
+    if (!instanceId || !token) {
+      throw new Error("WhatsApp configuration missing: ULTRAMSG_INSTANCE_ID or ULTRAMSG_TOKEN not set");
+    }
+    
     const response = await fetch(
       `https://api.ultramsg.com/${instanceId}/instance/status?token=${token}`,
       {
@@ -43,16 +47,20 @@ export async function checkWhatsAppStatus() {
           "content-type": "application/x-www-form-urlencoded",
         },
         cache: "no-store",
+        signal: AbortSignal.timeout(10000), // 10 second timeout
       }
     );
 
     if (!response.ok) {
-      throw new Error(`API request failed with status ${response.status}`);
+      throw new Error(`WhatsApp API request failed with status ${response.status}: ${response.statusText}`);
     }
 
     const data = await response.json() as StatusResponse;
     return data;
   } catch (error) {
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw new Error("WhatsApp API request timed out");
+    }
     console.error("Error checking WhatsApp status:", error);
     throw error;
   }
@@ -95,6 +103,10 @@ export async function fetchUltraMsgContacts(): Promise<any[]> {
     const instanceId = process.env.ULTRAMSG_INSTANCE_ID || "";
     const token = process.env.ULTRAMSG_TOKEN || "";
     
+    if (!instanceId || !token) {
+      throw new Error("WhatsApp configuration missing: ULTRAMSG_INSTANCE_ID or ULTRAMSG_TOKEN not set");
+    }
+    
     const response = await fetch(
       `https://api.ultramsg.com/${instanceId}/chats?token=${token}`,
       {
@@ -102,17 +114,21 @@ export async function fetchUltraMsgContacts(): Promise<any[]> {
         headers: {
           'content-type': 'application/x-www-form-urlencoded'
         },
-        cache: 'no-store'
+        cache: 'no-store',
+        signal: AbortSignal.timeout(15000), // 15 second timeout for contact fetch
       }
     );
 
     if (!response.ok) {
-      throw new Error(`API request failed with status ${response.status}`);
+      throw new Error(`WhatsApp contacts API request failed with status ${response.status}: ${response.statusText}`);
     }
 
     const data = await response.json();
     return data;
   } catch (error) {
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw new Error("WhatsApp contacts API request timed out");
+    }
     console.error("Error fetching UltraMsg contacts:", error);
     throw error;
   }

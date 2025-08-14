@@ -1,7 +1,7 @@
 import { Inter } from "next/font/google";
-import "./globals.css";
+import "./layout.css";
 import { Toaster } from "sonner";
-import settingsService from "@/modules/settings/services/setting-service";
+import settingsServiceServer from "@/modules/settings/services/setting-service.server";
 import { ThemeProviderWrapper } from "@/context/theme-provider-wrapper";
 import PointerEventsFix from "@/utils/pointer-events";
 import { ClientProviders } from "@/components/providers/client-providers";
@@ -31,15 +31,13 @@ export default async function RootLayout({
   );
 }
 
-export const dynamic = "force-dynamic";
-
 export async function generateMetadata() {
   try {
     // For metadata, we use default settings (without project_id)
     // Project-specific metadata will be handled at the page level
     // Note: getProjectId() will return null on server-side
     let settings;
-    settings = await settingsService.getSettingsById();
+    settings = await settingsServiceServer.getSettingsById();
 
     return {
       title: {
@@ -79,7 +77,7 @@ export async function generateMetadata() {
 export async function generateViewport() {
   try {
     let settings;
-    settings = await settingsService.getSettingsById();
+    settings = await settingsServiceServer.getSettingsById();
 
     return {
       themeColor: settings?.primary_color || "#0070f3",
