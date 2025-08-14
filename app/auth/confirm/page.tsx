@@ -6,23 +6,20 @@ export const metadata: Metadata = {
   description: "Confirm your email address",
 };
 
-type SearchParams = { [key: string]: string | string[] | undefined };
-
-export default function ConfirmPage({
+export default async function ConfirmPage({
   searchParams,
 }: {
-  searchParams: SearchParams;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const typeParam = Array.isArray(searchParams.type)
-    ? searchParams.type[0]
-    : searchParams.type;
+  const params = await searchParams;
+  const typeParam = Array.isArray(params.type) ? params.type[0] : params.type;
 
   // If this is a password recovery link, send the user to reset-password
   if (typeParam === "recovery") {
     const qs = new URLSearchParams();
-    const codeParam = Array.isArray(searchParams.code)
-      ? searchParams.code[0]
-      : (searchParams.code as string | undefined);
+    const codeParam = Array.isArray(params.code)
+      ? params.code[0]
+      : (params.code as string | undefined);
     if (codeParam) qs.set("code", codeParam);
     qs.set("type", "recovery");
     redirect(`/auth/reset-password${qs.toString() ? `?${qs.toString()}` : ""}`);
