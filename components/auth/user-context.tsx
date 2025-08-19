@@ -753,10 +753,37 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     // Automatic role change handler
     const handleRoleChange = async (source: string) => {
       console.log(
-        `🔄 Role change detected via ${source}! Refreshing application...`
+        `🔄 Role change detected via ${source}! Refreshing user context...`
       );
-      // Force immediate page reload to apply new permissions
-      window.location.reload();
+      try {
+        if (supabaseUser) {
+          // Refresh the user profile in-place so UI updates without a hard reload
+          await fetchUserWithProfile(supabaseUser);
+        }
+        // Also nudge any server components that depend on role
+        try {
+          // Use router.refresh if available in this scope (guarded below to avoid reference errors)
+          // We cannot import the router here; rely on soft state update primarily
+          if (typeof window !== "undefined") {
+            // Trigger a soft navigation to the same path to refresh RSC boundaries
+            const url = new URL(window.location.href);
+            window.history.replaceState(
+              window.history.state,
+              "",
+              url.toString()
+            );
+          }
+        } catch (e) {
+          console.warn("Router soft refresh failed:", e);
+        }
+      } catch (e) {
+        console.warn(
+          "Context refresh after role change failed, falling back to reload",
+          e
+        );
+        // As a fallback, ensure the app picks up the new role
+        window.location.reload();
+      }
     };
 
     // Primary polling mechanism - optimized for production reliability

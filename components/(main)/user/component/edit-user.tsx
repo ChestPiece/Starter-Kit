@@ -38,6 +38,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { toast } from "sonner";
+import { useUser } from "@/components/auth/user-context";
 
 // Pretend we have initial image files
 const initialBgImage = [
@@ -87,6 +88,7 @@ export default function EditUser({
   const [isFileLoading, setIsFileLoading] = useState(false);
   const [profile, setProfile] = useState(userData?.profile || "");
   const [isLoading, setIsLoading] = useState(false);
+  const { supabaseUser, forceRefreshUserRole } = useUser();
 
   // Initialize form
   const form = useForm<z.infer<typeof formSchema>>({
@@ -131,6 +133,18 @@ export default function EditUser({
 
       await usersService.updateUser(updatedUserData);
       toast.success("User updated successfully");
+
+      // If the updated record is the current user and the role changed, refresh the role in context
+      try {
+        if (
+          supabaseUser?.id === updatedUserData.id &&
+          updatedUserData.role_id !== userData.role_id
+        ) {
+          await forceRefreshUserRole();
+        }
+      } catch (e) {
+        console.warn("Failed to refresh current user role after update:", e);
+      }
       if (onOpenChange) onOpenChange(false);
       fetchUser();
     } catch (error) {
