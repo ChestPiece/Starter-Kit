@@ -1,8 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { rateLimiter, rateLimitConfigs, getClientIP } from '@/lib/utils/rate-limiter'
+import { errorLogger } from '@/lib/services/error-logger'
 
 export async function POST(request: NextRequest) {
   try {
+    // Check rate limiting for auth endpoints (strict for resend)
+    const clientIP = getClientIP(request);
+    if (rateLimiter.isRateLimited(clientIP, rateLimitConfigs.auth)) {
+      return NextResponse.json(
+        { error: rateLimitConfigs.auth.message },
+        { status: 429 }
+      );
+    }
+
     const body = await request.json().catch(() => ({}))
     const { email } = body || {}
 
@@ -29,7 +40,7 @@ export async function POST(request: NextRequest) {
       type: 'signup',
       email: email,
       options: {
-        emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/auth/confirm`
+        emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/api/auth/confirm`
       }
     })
 
@@ -47,12 +58,19 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error: any) {
-    console.error('Resend confirmation API error:', error)
+    errorLogger.error(error, { 
+      context: 'Resend Confirmation',
+      clientIP: getClientIP(request),
+    });
     return NextResponse.json(
       { error: error?.message || 'Internal server error' },
       { status: 500 }
     )
   }
 }
+
+
+
+
 
 

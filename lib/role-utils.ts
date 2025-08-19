@@ -27,10 +27,9 @@ export const canAccessRoute = (userRole: UserRole, route: string): boolean => {
     return true;
   }
 
-  // Settings page - all authenticated users can access profile settings
-  // But only managers+ can access organization/appearance settings
+  // Settings page access: only managers and admins
   if (route.startsWith('/settings')) {
-    return true; // All users can access settings (role guards handle specific sections)
+    return hasPermission(userRole, 'manager');
   }
 
   // Users page access (admin only)
@@ -38,34 +37,55 @@ export const canAccessRoute = (userRole: UserRole, route: string): boolean => {
     return hasPermission(userRole, 'admin');
   }
 
-  // By default, allow access (for other pages)
+  // For all other routes, allow access by default (for basic pages)
   return true;
 };
 
 /**
- * Get user role from Supabase
+ * Get user role from Supabase with cache control
  */
-export const getUserRole = async (): Promise<UserRole | null> => {
+export const getUserRole = async (forceRefresh: boolean = false): Promise<UserRole | null> => {
   try {
     const supabase = createClient();
     
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return null;
 
-    // Try to get role from user_profiles table
-    // Force fresh read from the database by bypassing cache
+    // Build query - forcing refresh is handled by the calling context
     const { data, error } = await supabase
       .from('user_profiles')
       .select(`
-        roles:role_id (
-          name
-        )
+        role_id,
+        roles:role_id!inner(name)
       `)
       .eq('id', user.id)
       .maybeSingle();
 
     if (error) {
       console.error('Error fetching user role:', error);
+      
+      // Try fallback query without join as backup
+      try {
+        const { data: basicData, error: basicError } = await supabase
+          .from('user_profiles')
+          .select('role_id')
+          .eq('id', user.id)
+          .maybeSingle();
+          
+        if (basicData && !basicError) {
+          // Get role separately
+          const { data: roleData } = await supabase
+            .from('roles')
+            .select('name')
+            .eq('id', basicData.role_id)
+            .maybeSingle();
+            
+          return (roleData?.name as UserRole) || 'user';
+        }
+      } catch (fallbackError) {
+        console.error('Fallback role query failed:', fallbackError);
+      }
+      
       return 'user'; // Default role
     }
 
@@ -94,16 +114,19 @@ export const getUserRole = async (): Promise<UserRole | null> => {
 export const ROLE_ROUTES = {
   user: [
     '/', // Dashboard only
+    '/dashboard', // Dashboard access
   ],
   manager: [
     '/', // Dashboard
+    '/dashboard', // Dashboard access
     '/settings', // Settings access
   ],
   admin: [
     '/', // Dashboard
+    '/dashboard', // Dashboard access
     '/settings', // Settings access
     '/users', // User management
-    // Add more admin routes as needed
+    // Admin has access to all routes
   ],
 } as const;
 

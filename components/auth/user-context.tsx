@@ -35,6 +35,8 @@ interface UserContextType {
   supabaseUser: SupabaseUser | null;
   loading: boolean;
   refreshUser: () => Promise<void>;
+  forceRefreshUserRole: () => Promise<void>;
+  checkRoleNow: () => Promise<void>;
 }
 
 const UserContext = createContext<UserContextType>({
@@ -42,6 +44,8 @@ const UserContext = createContext<UserContextType>({
   supabaseUser: null,
   loading: true,
   refreshUser: async () => {},
+  forceRefreshUserRole: async () => {},
+  checkRoleNow: async () => {},
 });
 
 export function UserProvider({ children }: { children: React.ReactNode }) {
@@ -55,12 +59,134 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   // Safety: prevent indefinite loading in extreme network cases
   useEffect(() => {
     const timeoutId = setTimeout(() => {
-      setLoading((prev) => (prev ? false : prev));
-    }, 8000);
+      if (loading) {
+        console.warn(
+          "⚠️ User context loading timeout - using emergency fallback"
+        );
+        // Try to get basic user info even if profile loading fails
+        const tryEmergencyAuth = async () => {
+          try {
+            const {
+              data: { user },
+              error,
+            } = await supabase.auth.getUser();
+            if (user && !error) {
+              console.log("🚨 Emergency auth recovery successful");
+              setSupabaseUser(user);
+              const fallbackUser = mapSupabaseUserToCustomUser(user);
+              if (fallbackUser) {
+                fallbackUser.roles = { name: "user" };
+                setUser(fallbackUser);
+              }
+            }
+          } catch (emergencyError) {
+            console.error("Emergency auth recovery failed:", emergencyError);
+          } finally {
+            setLoading(false);
+          }
+        };
+        tryEmergencyAuth();
+      }
+    }, 10000); // Reduced to 10 seconds for faster emergency recovery
     return () => clearTimeout(timeoutId);
+  }, [loading, supabase]);
+
+  // Helper function to extract role data
+  const extractRoleData = useCallback((roles: any) => {
+    if (!roles) return { name: "user" };
+
+    if (Array.isArray(roles) && roles.length > 0) {
+      return { name: roles[0].name };
+    } else if (typeof roles === "object" && roles !== null && "name" in roles) {
+      return { name: typeof roles.name === "string" ? roles.name : "user" };
+    }
+
+    return { name: "user" };
   }, []);
 
-  // Enhanced user fetching with role data from user_profiles table
+  // Helper function to create enhanced user object
+  const createEnhancedUser = useCallback(
+    (userProfile: any, supaUser: SupabaseUser, roleData: any): CustomUser => {
+      return {
+        id: userProfile.id,
+        email: userProfile.email || supaUser.email || "",
+        first_name:
+          userProfile.first_name || supaUser.user_metadata?.first_name || "",
+        last_name:
+          userProfile.last_name || supaUser.user_metadata?.last_name || "",
+        profile:
+          userProfile.profile || supaUser.user_metadata?.avatar_url || null,
+        is_active: userProfile.is_active ?? true,
+        created_at: userProfile.created_at,
+        updated_at: userProfile.updated_at,
+        role_id: userProfile.role_id,
+        roles: roleData,
+      };
+    },
+    []
+  );
+
+  // Helper function to create user profile in background
+  const createUserProfileInBackground = useCallback(
+    async (supaUser: SupabaseUser) => {
+      try {
+        // Get default user role
+        const { data: defaultRole } = await supabase
+          .from("roles")
+          .select("id")
+          .eq("name", "user")
+          .single();
+
+        // Create user profile
+        const { data: newProfile, error: createError } = await supabase
+          .from("user_profiles")
+          .insert([
+            {
+              id: supaUser.id,
+              email: supaUser.email,
+              first_name: supaUser.user_metadata?.first_name || "",
+              last_name: supaUser.user_metadata?.last_name || "",
+              role_id:
+                defaultRole?.id || "d9a0935b-9fe1-4550-8f7e-67639fd0c6f0",
+              is_active: true,
+              profile: supaUser.user_metadata?.avatar_url || null,
+            },
+          ])
+          .select(
+            `
+            id,
+            email,
+            first_name,
+            last_name,
+            role_id,
+            is_active,
+            profile,
+            created_at,
+            updated_at,
+            roles:role_id(name)
+          `
+          )
+          .single();
+
+        if (!createError && newProfile) {
+          console.log("✅ Background profile creation successful");
+          // Update the user with the new profile data
+          const roleData = extractRoleData(newProfile.roles);
+          const enhancedUser = createEnhancedUser(
+            newProfile,
+            supaUser,
+            roleData
+          );
+          setUser(enhancedUser);
+        }
+      } catch (error) {
+        console.warn("Background profile creation failed:", error);
+      }
+    },
+    [supabase, extractRoleData, createEnhancedUser]
+  );
+
+  // Optimized user fetching with faster fallbacks and non-blocking profile creation
   const fetchUserWithProfile = useCallback(
     async (supaUser: SupabaseUser | null) => {
       if (!supaUser) {
@@ -68,9 +194,15 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         return null;
       }
 
+      // First, immediately set a basic fallback user to prevent timeouts
+      const fallbackUser = mapSupabaseUserToCustomUser(supaUser);
+      if (fallbackUser) {
+        fallbackUser.roles = { name: "user" };
+      }
+
       try {
-        // Fetch user profile with role information
-        const { data: userProfile, error } = await supabase
+        // Try to fetch user profile with optimized query
+        const profilePromise = supabase
           .from("user_profiles")
           .select(
             `
@@ -83,57 +215,143 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
           profile,
           created_at,
           updated_at,
-          roles:role_id(name)
+          roles:role_id!inner(name)
         `
           )
           .eq("id", supaUser.id)
-          .single();
+          .maybeSingle();
 
-        if (error) {
-          console.warn("Error fetching user profile:", error);
-          // Fallback to mapped Supabase user
-          const mappedUser = mapSupabaseUserToCustomUser(supaUser);
-          setUser(mappedUser);
-          return mappedUser;
-        }
+        // Set a very short timeout for faster fallback (2 seconds)
+        const timeoutPromise = new Promise((_, reject) => {
+          setTimeout(() => reject(new Error("Database query timeout")), 2000);
+        });
 
-        // Handle role data properly - check different possible structures
-        let roleData = { name: "user" }; // Default role
-
-        if (userProfile.roles) {
-          if (
-            Array.isArray(userProfile.roles) &&
-            userProfile.roles.length > 0
-          ) {
-            roleData = { name: userProfile.roles[0].name };
-          } else if (
-            typeof userProfile.roles === "object" &&
-            userProfile.roles !== null &&
-            "name" in userProfile.roles
-          ) {
-            const roleName = userProfile.roles.name;
-            roleData = {
-              name: typeof roleName === "string" ? roleName : "user",
-            };
+        let userProfile, error;
+        try {
+          const result = (await Promise.race([
+            profilePromise,
+            timeoutPromise,
+          ])) as any;
+          userProfile = result.data;
+          error = result.error;
+        } catch (timeoutError: any) {
+          if (timeoutError.message === "Database query timeout") {
+            console.info(
+              "⏱️ Database query timed out - using fallback immediately"
+            );
+            error = timeoutError;
+            userProfile = null;
+          } else {
+            throw timeoutError;
           }
         }
 
-        // Create enhanced user object with profile data
-        const enhancedUser: CustomUser = {
-          id: userProfile.id,
-          email: userProfile.email || supaUser.email || "",
-          first_name:
-            userProfile.first_name || supaUser.user_metadata?.first_name || "",
-          last_name:
-            userProfile.last_name || supaUser.user_metadata?.last_name || "",
-          profile:
-            userProfile.profile || supaUser.user_metadata?.avatar_url || null,
-          is_active: userProfile.is_active ?? true,
-          created_at: userProfile.created_at,
-          updated_at: userProfile.updated_at,
-          role_id: userProfile.role_id,
-          roles: roleData,
-        };
+        if (error || !userProfile) {
+          if (error?.message === "Database query timeout") {
+            console.info(
+              "⏱️ Database query timed out - using fallback user profile (this is normal on slow networks)"
+            );
+          } else {
+            console.warn(
+              "👤 User profile query failed, trying backup query:",
+              error?.message || "No profile data returned"
+            );
+
+            // Try a simpler query without role join as backup with shorter timeout
+            try {
+              const basicPromise = supabase
+                .from("user_profiles")
+                .select(
+                  "id, email, first_name, last_name, role_id, is_active, profile, created_at, updated_at"
+                )
+                .eq("id", supaUser.id)
+                .maybeSingle();
+
+              const basicTimeoutPromise = new Promise((_, reject) => {
+                setTimeout(
+                  () => reject(new Error("Backup query timeout")),
+                  1500
+                );
+              });
+
+              const { data: basicProfile, error: basicError } =
+                (await Promise.race([
+                  basicPromise,
+                  basicTimeoutPromise,
+                ])) as any;
+
+              if (basicProfile && !basicError) {
+                console.log("✅ Backup profile query successful");
+                // Get role separately with quick timeout
+                try {
+                  const rolePromise = supabase
+                    .from("roles")
+                    .select("name")
+                    .eq("id", basicProfile.role_id)
+                    .maybeSingle();
+
+                  const roleTimeoutPromise = new Promise((_, reject) => {
+                    setTimeout(
+                      () => reject(new Error("Role query timeout")),
+                      1000
+                    );
+                  });
+
+                  const { data: roleData } = (await Promise.race([
+                    rolePromise,
+                    roleTimeoutPromise,
+                  ])) as any;
+
+                  const enhancedUserFromBackup = createEnhancedUser(
+                    basicProfile,
+                    supaUser,
+                    roleData ? { name: roleData.name } : { name: "user" }
+                  );
+                  setUser(enhancedUserFromBackup);
+                  return enhancedUserFromBackup;
+                } catch (roleError) {
+                  console.warn(
+                    "Role lookup failed, using default role:",
+                    roleError
+                  );
+                  const enhancedUserFromBackup = createEnhancedUser(
+                    basicProfile,
+                    supaUser,
+                    { name: "user" }
+                  );
+                  setUser(enhancedUserFromBackup);
+                  return enhancedUserFromBackup;
+                }
+              }
+            } catch (backupError) {
+              console.warn("Backup profile query also failed:", backupError);
+            }
+
+            // Create profile in background without blocking the UI
+            setTimeout(async () => {
+              try {
+                await createUserProfileInBackground(supaUser);
+              } catch (backgroundError) {
+                console.warn(
+                  "Background profile creation failed:",
+                  backgroundError
+                );
+              }
+            }, 100);
+          }
+
+          // Always set fallback user for any error to prevent loading loops
+          setUser(fallbackUser);
+          return fallbackUser;
+        }
+
+        // Successfully got profile data
+        const roleData = extractRoleData(userProfile.roles);
+        const enhancedUser = createEnhancedUser(
+          userProfile,
+          supaUser,
+          roleData
+        );
 
         console.log(
           `👤 User profile loaded: ${enhancedUser.first_name} ${enhancedUser.last_name} (${enhancedUser.roles?.name})`
@@ -143,194 +361,376 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         return enhancedUser;
       } catch (error) {
         console.error("Error in fetchUserWithProfile:", error);
-        // Fallback to mapped Supabase user
-        const mappedUser = mapSupabaseUserToCustomUser(supaUser);
-        setUser(mappedUser);
-        return mappedUser;
+        // Always fall back to basic user to prevent loading timeouts
+        setUser(fallbackUser);
+        return fallbackUser;
       }
     },
-    [supabase]
+    [
+      supabase,
+      createUserProfileInBackground,
+      extractRoleData,
+      createEnhancedUser,
+    ]
   );
 
   // Manual refresh function
   const refreshUser = useCallback(async () => {
     if (supabaseUser) {
+      console.log("🔄 Manual user refresh triggered");
       await fetchUserWithProfile(supabaseUser);
     }
   }, [supabaseUser, fetchUserWithProfile]);
 
+  // Force refresh function for role changes
+  const forceRefreshUserRole = useCallback(async () => {
+    if (supabaseUser) {
+      console.log("🔄 Force refreshing user role data");
+
+      // Clear any potential caches and force fresh data
+      await fetchUserWithProfile(supabaseUser);
+
+      // Also refresh the router to update any server-side role checks
+      try {
+        router.refresh();
+      } catch (e) {
+        console.warn("Router refresh failed:", e);
+      }
+    }
+  }, [supabaseUser, fetchUserWithProfile, router]);
+
+  // Enhanced manual role check function for debugging/testing
+  const checkRoleNow = useCallback(async () => {
+    if (!supabaseUser) {
+      console.warn("❌ No authenticated user for role check");
+      return;
+    }
+
+    console.log("🔍 Manual role check triggered");
+    try {
+      const { data: currentProfile, error } = await supabase
+        .from("user_profiles")
+        .select("role_id, roles:role_id!inner(name)")
+        .eq("id", supabaseUser.id)
+        .maybeSingle();
+
+      if (!error && currentProfile) {
+        const currentRoleId = currentProfile.role_id;
+        const currentRoleName = (currentProfile.roles as any)?.name;
+        const storedRoleId = user?.role_id;
+
+        console.log("=".repeat(50));
+        console.log("📊 ROLE CHECK RESULTS:");
+        console.log(`📋 Database role: ${currentRoleName} (${currentRoleId})`);
+        console.log(`📋 App role: ${user?.roles?.name} (${storedRoleId})`);
+        console.log(`📋 User ID: ${supabaseUser.id}`);
+        console.log(
+          `📋 Environment: ${process.env.NODE_ENV === "production" ? "Production" : "Development"}`
+        );
+        console.log("=".repeat(50));
+
+        if (currentRoleId !== storedRoleId) {
+          console.log(
+            "🚨 ROLE MISMATCH DETECTED! Triggering automatic refresh..."
+          );
+          window.location.reload();
+        } else {
+          console.log("✅ Roles are synchronized - no refresh needed");
+        }
+      } else {
+        console.error("❌ Failed to retrieve role data:", error);
+      }
+    } catch (error) {
+      console.error("❌ Manual role check failed:", error);
+    }
+  }, [supabaseUser, supabase, user]);
+
+  // Make role check available globally for debugging in production
   useEffect(() => {
-    // Enhanced user initialization with session expiry checks
+    if (typeof window !== "undefined") {
+      (window as any).checkUserRole = checkRoleNow;
+      console.log(
+        "🔧 Debug: You can manually check roles with: checkUserRole()"
+      );
+    }
+
+    return () => {
+      if (typeof window !== "undefined") {
+        delete (window as any).checkUserRole;
+      }
+    };
+  }, [checkRoleNow]);
+
+  useEffect(() => {
+    // Optimized user initialization with timeout protection
     const getUser = async () => {
       try {
-        // Handle force logout on start safely
-        const forceLogoutHandled = await handleForceLogoutOnStart();
-        if (forceLogoutHandled) {
-          clearSessionTracking();
-          setSupabaseUser(null);
-          setUser(null);
+        console.log("🔄 Initializing user context...");
+
+        // Set a timeout for the entire initialization process (8 seconds)
+        const initTimeout = setTimeout(() => {
+          console.warn(
+            "⚠️ User initialization taking too long, using emergency fallback"
+          );
           setLoading(false);
-          return;
-        }
+        }, 8000);
 
-        // Check for session expiry before validating user (skip if already on auth pages)
-        if (typeof window !== "undefined") {
-          const currentPath = window.location.pathname;
-          const expiryReason = checkSessionExpiry();
-          if (
-            expiryReason &&
-            !currentPath.startsWith("/auth") &&
-            !currentPath.startsWith("/login")
-          ) {
-            clearSessionTracking();
-            // Redirect to a clean login page with a simple session message handled there
-            await forceLogoutAndRedirect("session_expired_on_start");
-            setLoading(false);
-            return;
-          } else if (expiryReason) {
-            console.log(
-              "Session expired but already on auth page, clearing data only"
-            );
-            clearSessionTracking();
-            setSupabaseUser(null);
-            setUser(null);
-            setLoading(false);
-            return;
-          }
-        }
-
-        // Validate session using enhanced validation (skip redirect if already on auth pages)
-        const isValidSession = await validateUserSession();
-        if (!isValidSession) {
-          console.log("Invalid session detected on app start");
-          clearSessionTracking();
-          setSupabaseUser(null);
-          setUser(null);
-          setLoading(false);
-
-          // Only redirect if not already on auth pages
-          if (typeof window !== "undefined") {
-            const currentPath = window.location.pathname;
-            if (
-              !currentPath.startsWith("/auth") &&
-              !currentPath.startsWith("/login")
-            ) {
-              // Only add error parameter if there's an actual session that became invalid
-              const hasSessionData =
-                localStorage.getItem("lastActivity") ||
-                localStorage.getItem("sessionStart");
-              if (hasSessionData) {
-                window.location.href =
-                  "/auth/login?reason=invalid_session_on_start";
-              } else {
-                window.location.href = "/auth/login";
-              }
-            }
-          }
-          return;
-        }
-
-        const [userRes, sessionRes] = await Promise.all([
+        // Simple check: get current user and session with timeout
+        const authPromise = Promise.all([
           supabase.auth.getUser(),
           supabase.auth.getSession(),
         ]);
-        const supaUser = userRes.data.user;
-        const userError = userRes.error;
-        const session = sessionRes.data.session;
-        const sessionError = sessionRes.error;
 
-        // If there are any errors or no user/session, clear everything
-        if (userError || sessionError || !supaUser || !session) {
-          console.log("No valid user/session on initial load, clearing data");
-          clearSessionTracking();
-          setSupabaseUser(null);
-          setUser(null);
-          setLoading(false);
+        const timeoutPromise = new Promise((_, reject) => {
+          setTimeout(
+            () => reject(new Error("Auth initialization timeout")),
+            5000 // Reduced to 5 seconds for faster response
+          );
+        });
+
+        const [userRes, sessionRes] = (await Promise.race([
+          authPromise,
+          timeoutPromise,
+        ])) as any;
+
+        clearTimeout(initTimeout);
+
+        const supaUser = userRes.data?.user;
+        const session = sessionRes.data?.session;
+
+        console.log("👤 User check result:", {
+          hasUser: !!supaUser,
+          hasSession: !!session,
+          email: supaUser?.email || "none",
+        });
+
+        // If we have a user and session, set them up
+        if (supaUser && session && !userRes.error && !sessionRes.error) {
+          console.log("✅ Valid user session found, setting up user context");
+
+          // Initialize session tracking for valid sessions
+          try {
+            initializeSessionTracking();
+            updateLastActivity();
+          } catch (e) {
+            console.warn("Could not initialize session tracking:", e);
+          }
+
+          setSupabaseUser(supaUser);
+
+          // Check if this is a recently confirmed user (email confirmation flow)
+          const isRecentlyConfirmed =
+            supaUser.email_confirmed_at &&
+            new Date(supaUser.email_confirmed_at).getTime() >
+              Date.now() - 60000; // Within last minute
+
+          if (isRecentlyConfirmed) {
+            console.log(
+              "🎉 Recently confirmed user detected, optimizing profile setup"
+            );
+            // Give a bit more time for the profile to be available
+            setTimeout(() => {
+              fetchUserWithProfile(supaUser).finally(() => {
+                setLoading(false);
+              });
+            }, 1000);
+          } else {
+            // Don't wait for profile fetch - do it asynchronously
+            fetchUserWithProfile(supaUser).finally(() => {
+              setLoading(false);
+            });
+          }
           return;
         }
 
-        // Initialize session tracking for valid sessions
-        initializeSessionTracking();
-        updateLastActivity();
-
-        setSupabaseUser(supaUser);
-        await fetchUserWithProfile(supaUser);
-        setLoading(false);
-      } catch (error) {
-        console.error("Error getting initial user:", error);
+        // No valid user/session - clear everything and set loading to false
+        console.log("❌ No valid user session found");
         clearSessionTracking();
         setSupabaseUser(null);
         setUser(null);
         setLoading(false);
+      } catch (error) {
+        if (
+          error instanceof Error &&
+          error.message === "Auth initialization timeout"
+        ) {
+          console.info(
+            "⏱️ Auth initialization timed out - using fallback mode (this is normal on slow networks)"
+          );
+        } else {
+          console.error("❌ Error getting initial user:", error);
+        }
+
+        // Try one more time with a simple auth check as final fallback
+        try {
+          const {
+            data: { user: fallbackUser },
+          } = await supabase.auth.getUser();
+          if (fallbackUser) {
+            console.log(
+              "🔄 Fallback auth check successful, using basic user data"
+            );
+            setSupabaseUser(fallbackUser);
+            const basicUser = mapSupabaseUserToCustomUser(fallbackUser);
+            if (basicUser) {
+              basicUser.roles = { name: "user" };
+              setUser(basicUser);
+            }
+          } else {
+            clearSessionTracking();
+            setSupabaseUser(null);
+            setUser(null);
+          }
+        } catch (fallbackError) {
+          console.error(
+            "Final fallback auth check also failed:",
+            fallbackError
+          );
+          clearSessionTracking();
+          setSupabaseUser(null);
+          setUser(null);
+        } finally {
+          setLoading(false);
+        }
       }
     };
 
     getUser();
 
-    // Listen for auth changes and set up enhanced session monitoring
+    // Listen for auth changes with improved error handling and timeouts
     const {
       data: { subscription: authSubscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
-      // Get authenticated user data instead of using potentially insecure session.user
-      const {
-        data: { user: authUser },
-      } = await supabase.auth.getUser();
-
-      // Only log significant auth state changes
-      if (
-        event === "SIGNED_IN" ||
-        event === "SIGNED_OUT" ||
-        event === "TOKEN_REFRESHED"
-      ) {
-        console.log(
-          `🔐 Auth event: ${event}`,
-          authUser?.email ? `(${authUser.email})` : ""
-        );
-      }
-
-      // Use authenticated user instead of session.user for security
-      const supaUser = authUser ?? null;
-      setSupabaseUser(supaUser);
-      await fetchUserWithProfile(supaUser);
-      setLoading(false);
-
-      // Handle specific auth events with session tracking
-      if (event === "SIGNED_OUT") {
-        clearSessionTracking();
-        setUser(null);
-        setSupabaseUser(null);
-      }
-
-      if (event === "SIGNED_IN" && authUser) {
-        try {
-          initializeSessionTracking();
-          updateLastActivity();
-        } catch (e) {
-          console.warn("Could not initialize session tracking:", e);
+      try {
+        // Only log significant auth state changes
+        if (
+          event === "SIGNED_IN" ||
+          event === "SIGNED_OUT" ||
+          event === "TOKEN_REFRESHED"
+        ) {
+          console.log(`🔐 Auth event: ${event}`);
         }
-        setLoading(false);
-        console.log(`✅ User signed in: ${authUser.email}`);
-        // On confirmation flows, ensure navigation proceeds immediately
-        if (typeof window !== "undefined") {
-          const path = window.location.pathname;
-          if (path.startsWith("/auth/confirm")) {
-            window.location.href = "/";
-            return;
+
+        // Get authenticated user data with timeout
+        const authUserPromise = supabase.auth.getUser();
+        const timeoutPromise = new Promise((_, reject) => {
+          setTimeout(() => reject(new Error("Auth user fetch timeout")), 10000);
+        });
+
+        let authUser = null;
+        try {
+          const result = (await Promise.race([
+            authUserPromise,
+            timeoutPromise,
+          ])) as any;
+          authUser = result.data?.user ?? null;
+        } catch (error: unknown) {
+          const errorMessage =
+            error instanceof Error ? error.message : String(error);
+          if (errorMessage.includes("Auth user fetch timeout")) {
+            console.info(
+              "⏱️ Auth user fetch timed out - using session fallback (this is normal on slow networks)"
+            );
+          } else {
+            console.warn(
+              "⏱️ Auth user fetch failed, using session fallback:",
+              errorMessage
+            );
+          }
+          authUser = session?.user ?? null;
+
+          // If session fallback also fails, log it but continue
+          if (!authUser && session) {
+            console.warn("⚠️ Session fallback also failed, no user available");
           }
         }
-      }
 
-      if (event === "TOKEN_REFRESHED" && !session) {
-        console.log("❌ Token refresh failed - re-authentication required");
-        clearSessionTracking();
-        setUser(null);
-        setSupabaseUser(null);
-      }
+        setSupabaseUser(authUser);
 
-      if (event === "TOKEN_REFRESHED" && session) {
-        updateLastActivity();
-        // Ensure latest role/profile is reflected immediately
-        await fetchUserWithProfile(supaUser);
+        // Handle specific auth events with session tracking
+        if (event === "SIGNED_OUT") {
+          clearSessionTracking();
+          setUser(null);
+          setSupabaseUser(null);
+          setLoading(false);
+          return;
+        }
+
+        if (event === "SIGNED_IN" && authUser) {
+          console.log(`🔐 Processing sign-in for: ${authUser.email}`);
+
+          try {
+            initializeSessionTracking();
+            updateLastActivity();
+          } catch (e) {
+            console.warn("Could not initialize session tracking:", e);
+          }
+
+          // Fetch profile asynchronously without blocking
+          fetchUserWithProfile(authUser).finally(() => {
+            setLoading(false);
+          });
+
+          // On confirmation flows, don't auto-redirect - let the confirmation page handle it
+          if (typeof window !== "undefined") {
+            const path = window.location.pathname;
+            const searchParams = new URLSearchParams(window.location.search);
+            if (path.startsWith("/auth/confirm")) {
+              // Only auto-redirect if this is NOT the success page (i.e., it has confirmation tokens but not the confirmed=true flag)
+              if (
+                !searchParams.get("confirmed") &&
+                (searchParams.get("code") || searchParams.get("token_hash"))
+              ) {
+                console.log(
+                  "🔄 Processing confirmation tokens - let page handle redirect"
+                );
+              }
+              return; // Always return here to let the confirmation page control navigation
+            }
+          }
+          return;
+        }
+
+        if (event === "TOKEN_REFRESHED") {
+          if (!session) {
+            console.log("❌ Token refresh failed - re-authentication required");
+            clearSessionTracking();
+            setUser(null);
+            setSupabaseUser(null);
+            setLoading(false);
+          } else {
+            updateLastActivity();
+            // Fetch profile asynchronously
+            fetchUserWithProfile(authUser).finally(() => {
+              setLoading(false);
+            });
+          }
+          return;
+        }
+
+        // For other events, just ensure loading is cleared
+        fetchUserWithProfile(authUser).finally(() => {
+          setLoading(false);
+        });
+      } catch (error: unknown) {
+        console.error("❌ Error in auth state change handler:", error);
+
+        // Ensure we don't leave the app in a loading state
+        setLoading(false);
+
+        // On critical auth errors, clear everything to prevent inconsistent state
+        const errorMessage =
+          error instanceof Error ? error.message : String(error);
+        if (
+          errorMessage.includes("timeout") ||
+          errorMessage.includes("network")
+        ) {
+          console.warn(
+            "🔄 Network/timeout error detected, clearing auth state for safety"
+          );
+          setSupabaseUser(null);
+          setUser(null);
+        }
       }
     });
 
@@ -340,101 +740,242 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     return () => authSubscription.unsubscribe();
   }, [supabase.auth, fetchUserWithProfile]);
 
-  // Real-time subscription for user profile changes (especially role changes)
+  // Role change detection using existing tables only
   useEffect(() => {
     if (!supabaseUser) return;
 
-    // Set up real-time monitoring for role changes
-    let subscription: ReturnType<typeof supabase.channel> | undefined;
-    let roleBroadcastChannel: ReturnType<typeof supabase.channel> | undefined;
+    let profileUpdateSubscription:
+      | ReturnType<typeof supabase.channel>
+      | undefined;
+    let rolePollingInterval: NodeJS.Timeout | undefined;
+    let lastKnownRoleId = user?.role_id || null;
+
+    // Automatic role change handler
+    const handleRoleChange = async (source: string) => {
+      console.log(
+        `🔄 Role change detected via ${source}! Refreshing application...`
+      );
+      // Force immediate page reload to apply new permissions
+      window.location.reload();
+    };
+
+    // Primary polling mechanism - optimized for production reliability
+    const startRolePolling = () => {
+      const isProduction =
+        process.env.NODE_ENV === "production" ||
+        window.location.hostname !== "localhost";
+      const pollInterval = isProduction ? 3000 : 4000; // Reasonable polling for production
+      let failureCount = 0;
+
+      console.log(
+        `🔍 Starting role polling (${isProduction ? "production" : "development"} mode - ${pollInterval}ms interval)...`
+      );
+
+      if (isProduction) {
+        console.log(
+          "🚀 Production mode detected - using robust role monitoring"
+        );
+      }
+
+      rolePollingInterval = setInterval(async () => {
+        try {
+          // Dynamic timeout based on environment and failure count
+          const baseTimeout = isProduction ? 8000 : 3000;
+          const timeout = Math.min(baseTimeout + failureCount * 2000, 15000);
+
+          console.log(
+            `🔍 Checking role... (attempt ${failureCount + 1}, timeout: ${timeout}ms)`
+          );
+
+          const queryPromise = supabase
+            .from("user_profiles")
+            .select("role_id")
+            .eq("id", supabaseUser.id)
+            .maybeSingle();
+
+          const timeoutPromise = new Promise((_, reject) => {
+            setTimeout(() => reject(new Error("Query timeout")), timeout);
+          });
+
+          const { data: currentProfile, error } = (await Promise.race([
+            queryPromise,
+            timeoutPromise,
+          ])) as any;
+
+          if (!error && currentProfile) {
+            // Reset failure count on success
+            if (failureCount > 0) {
+              console.log("✅ Database connection recovered");
+              failureCount = 0;
+            }
+
+            if (currentProfile.role_id !== lastKnownRoleId) {
+              console.log(
+                `📋 Role changed from ${lastKnownRoleId} to ${currentProfile.role_id}`
+              );
+              lastKnownRoleId = currentProfile.role_id;
+              await handleRoleChange("primary polling");
+            }
+          } else if (error) {
+            console.warn("Role query error:", error);
+            failureCount = Math.min(failureCount + 1, 5);
+          }
+        } catch (error: any) {
+          failureCount = Math.min(failureCount + 1, 5);
+          if (error.message === "Query timeout") {
+            console.warn(
+              `⚠️ Role polling timed out (${failureCount} failures) - will retry with longer timeout`
+            );
+          } else {
+            console.warn(
+              `⚠️ Role polling failed (${failureCount} failures):`,
+              error
+            );
+          }
+        }
+      }, pollInterval);
+    };
+
+    // Immediate role check on load with robust timeout
+    const checkRoleImmediately = async () => {
+      try {
+        console.log("🔍 Checking role immediately on load...");
+
+        const isProduction =
+          process.env.NODE_ENV === "production" ||
+          window.location.hostname !== "localhost";
+        const timeout = isProduction ? 10000 : 5000;
+
+        const queryPromise = supabase
+          .from("user_profiles")
+          .select("role_id")
+          .eq("id", supabaseUser.id)
+          .maybeSingle();
+
+        const timeoutPromise = new Promise((_, reject) => {
+          setTimeout(() => reject(new Error("Initial check timeout")), timeout);
+        });
+
+        const { data: currentProfile, error } = (await Promise.race([
+          queryPromise,
+          timeoutPromise,
+        ])) as any;
+
+        if (
+          !error &&
+          currentProfile &&
+          currentProfile.role_id !== lastKnownRoleId
+        ) {
+          console.log(
+            `📋 Role difference detected on load: ${lastKnownRoleId} -> ${currentProfile.role_id}`
+          );
+          lastKnownRoleId = currentProfile.role_id;
+          await handleRoleChange("immediate check");
+        } else if (!error) {
+          console.log("✅ Role is current");
+        } else {
+          console.warn("Role check returned error:", error);
+        }
+      } catch (error: any) {
+        if (error.message === "Initial check timeout") {
+          console.warn(
+            "⚠️ Initial role check timed out - will rely on polling"
+          );
+        } else {
+          console.warn("⚠️ Immediate role check failed:", error);
+        }
+      }
+    };
+
+    // Additional failsafe: Check role when user returns to page
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        console.log("📱 Page became visible - checking role for changes");
+        checkRoleImmediately();
+      }
+    };
+
+    // Add visibility change listener for extra reliability
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    // Check immediately then start polling
+    checkRoleImmediately();
+    startRolePolling();
 
     try {
-      // Subscribe to changes in user_profiles table for current user
-      subscription = supabase
-        .channel("user_profile_changes")
+      // Secondary method: Real-time subscription (works better in development)
+      profileUpdateSubscription = supabase
+        .channel("profile_updates")
         .on(
           "postgres_changes",
           {
-            event: "*",
+            event: "UPDATE",
             schema: "public",
             table: "user_profiles",
             filter: `id=eq.${supabaseUser.id}`,
           },
           async (payload) => {
-            if (payload.eventType === "UPDATE") {
-              console.log("🚀 Real-time profile update detected");
-              // Refresh user data when profile changes and refresh the router to re-run any server logic
-              await fetchUserWithProfile(supabaseUser);
-              try {
-                router.refresh();
-              } catch {}
-            } else if (payload.eventType === "INSERT") {
-              console.log("📡 New profile created via Supabase");
-              await fetchUserWithProfile(supabaseUser);
-              try {
-                router.refresh();
-              } catch {}
+            const oldRecord = payload.old as any;
+            const newRecord = payload.new as any;
+
+            if (oldRecord?.role_id !== newRecord?.role_id) {
+              console.log("🚀 Real-time role change detected (secondary)");
+              lastKnownRoleId = newRecord?.role_id;
+              await handleRoleChange("real-time update");
             } else {
-              // For other events, just refresh silently
+              // Non-role updates, just refresh user data
               await fetchUserWithProfile(supabaseUser);
-              try {
-                router.refresh();
-              } catch {}
             }
           }
         )
         .subscribe((status) => {
           if (status === "SUBSCRIBED") {
-            console.log("✅ Real-time role monitoring active");
-          } else if (status === "CHANNEL_ERROR") {
-            // Only log channel errors as actual errors
-            console.error("❌ Real-time subscription channel error:", status);
-          } else if (status === "TIMED_OUT") {
-            // Log timeout as warning, might retry automatically
-            console.warn("⚠️ Real-time subscription timed out, retrying...");
-          }
-          // Don't log "CLOSED" status as it's normal during navigation/unmount
-        });
-
-      // Also listen to a user-specific broadcast channel to react instantly to admin role changes
-      roleBroadcastChannel = supabase
-        .channel(`role_updates_${supabaseUser.id}`)
-        .on("broadcast", { event: "role-changed" }, async () => {
-          console.log("📣 Role change broadcast received");
-          await fetchUserWithProfile(supabaseUser);
-          try {
-            router.refresh();
-          } catch {}
-        })
-        .subscribe((status) => {
-          if (status === "SUBSCRIBED") {
-            console.log("✅ Listening for role change broadcasts");
+            console.log("✅ Real-time monitoring active (secondary method)");
+          } else {
+            console.log(
+              "ℹ️ Real-time subscription not available, relying on polling"
+            );
           }
         });
     } catch (error) {
-      console.error("Error setting up real-time subscription:", error);
+      console.log(
+        "ℹ️ Real-time setup failed, using polling only (this is normal in production):",
+        error
+      );
     }
 
     return () => {
-      if (subscription) {
-        try {
-          subscription.unsubscribe();
-        } catch (error) {
-          console.warn("Error unsubscribing from channel:", error);
-        }
+      // Clean up polling
+      if (rolePollingInterval) {
+        clearInterval(rolePollingInterval);
+        console.log("🛑 Stopped role polling");
       }
-      if (roleBroadcastChannel) {
+
+      // Remove visibility change listener
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+
+      if (profileUpdateSubscription) {
         try {
-          roleBroadcastChannel.unsubscribe();
+          profileUpdateSubscription.unsubscribe();
+          console.log("🛑 Stopped profile monitoring");
         } catch (error) {
-          console.warn("Error unsubscribing role broadcast channel:", error);
+          console.warn("Error unsubscribing profile updates:", error);
         }
       }
     };
-  }, [supabaseUser, fetchUserWithProfile, supabase, router]);
+  }, [supabaseUser, fetchUserWithProfile, supabase, user?.role_id]);
 
   return (
-    <UserContext.Provider value={{ user, supabaseUser, loading, refreshUser }}>
+    <UserContext.Provider
+      value={{
+        user,
+        supabaseUser,
+        loading,
+        refreshUser,
+        forceRefreshUserRole,
+        checkRoleNow,
+      }}
+    >
       {children}
     </UserContext.Provider>
   );

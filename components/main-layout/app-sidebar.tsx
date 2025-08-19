@@ -136,8 +136,12 @@ export default function SideBarLayout({
         <Sidebar>
           <SidebarHeader>
             <TeamSwitcher teams={data.teams} settings={settings} />
-            <hr className="border-t border-border mx-2 -mt-px" />
-            <SearchForm className="mt-3" navItems={navItems} />
+            {(roleName === "manager" || roleName === "admin") && (
+              <>
+                <hr className="border-t border-border mx-2 -mt-px" />
+                <SearchForm className="mt-3" navItems={navItems} />
+              </>
+            )}
           </SidebarHeader>
           <SidebarContent>
             <NavMain items={navItems} user={user || undefined} />

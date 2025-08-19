@@ -2,6 +2,9 @@
 
 import { useUser } from "@/components/auth/user-context";
 
+// Force dynamic rendering for dashboard that shows user-specific data
+export const dynamic = "force-dynamic";
+
 export default function DashboardPage() {
   const { user, loading } = useUser();
 

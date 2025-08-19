@@ -57,8 +57,8 @@ export function AppearanceSettings({ settings }: { settings?: Settings }) {
     },
     {
       name: "Rose Pink",
-      style: { backgroundColor: "#EC4899", borderColor: "#EC4899" },
-      value: "#EC4899",
+      style: { backgroundColor: "#be185d", borderColor: "#be185d" },
+      value: "#be185d",
     },
     {
       name: "Deep Indigo",

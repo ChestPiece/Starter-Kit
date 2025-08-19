@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 export type UserRole = 'admin' | 'manager' | 'user';
 
 /**
- * Get user role from server-side Supabase client
+ * Get user role from server-side Supabase client with fallback
  */
 export const getServerUserRole = async (): Promise<UserRole | null> => {
   try {
@@ -12,17 +12,56 @@ export const getServerUserRole = async (): Promise<UserRole | null> => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return null;
 
-    // Get role from user_profiles table using the database function
-    const { data, error } = await supabase
-      .rpc('get_user_role');
+    // Try using the database function first
+    try {
+      const { data, error } = await supabase.rpc('get_user_role');
+      
+      if (!error && data) {
+        return data as UserRole;
+      }
+    } catch (funcError) {
+      console.warn('RPC function failed, using direct query:', funcError);
+    }
 
-    if (error) {
-      console.error('Error fetching user role:', error);
+    // Fallback to direct query if function fails
+    const { data: profileData, error: profileError } = await supabase
+      .from('user_profiles')
+      .select(`
+        role_id,
+        roles:role_id!inner(name)
+      `)
+      .eq('id', user.id)
+      .maybeSingle();
+
+    if (profileError) {
+      console.error('Error fetching user role with fallback:', profileError);
+      
+      // Last resort: try basic query and separate role lookup
+      try {
+        const { data: basicData, error: basicError } = await supabase
+          .from('user_profiles')
+          .select('role_id')
+          .eq('id', user.id)
+          .maybeSingle();
+          
+        if (basicData && !basicError) {
+          const { data: roleData } = await supabase
+            .from('roles')
+            .select('name')
+            .eq('id', basicData.role_id)
+            .maybeSingle();
+            
+          return (roleData?.name as UserRole) || 'user';
+        }
+      } catch (lastResortError) {
+        console.error('Last resort role query failed:', lastResortError);
+      }
+      
       return 'user'; // Default role
     }
 
-    // The function returns the role name directly
-    const roleName = data || 'user';
+    // Extract role name from the response
+    const roleName = (profileData?.roles as any)?.name || 'user';
     return roleName as UserRole;
   } catch (error) {
     console.error('Error in getServerUserRole:', error);
@@ -52,7 +91,7 @@ export const canAccessServerRoute = (userRole: UserRole, route: string): boolean
     return true;
   }
 
-  // Settings page access (manager and admin)
+  // Settings page access: only managers and admins
   if (route.startsWith('/settings')) {
     return hasServerPermission(userRole, 'manager');
   }
@@ -62,7 +101,7 @@ export const canAccessServerRoute = (userRole: UserRole, route: string): boolean
     return hasServerPermission(userRole, 'admin');
   }
 
-  // By default, allow access (for other pages like profile, etc.)
+  // For all other routes, allow access by default (for basic pages)
   return true;
 };
 

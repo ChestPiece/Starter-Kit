@@ -42,11 +42,18 @@ const settingsService = {
                 query = query.order('created_at', { ascending: true }).limit(1);
             }
             
-            const { data, error } = await query.single();
+            // Add a timeout to prevent hanging
+            const queryPromise = query.single();
+            const timeoutPromise = new Promise((_, reject) => {
+                setTimeout(() => reject(new Error('Database query timeout')), 8000);
+            });
+            
+            const { data, error } = await Promise.race([queryPromise, timeoutPromise]) as any;
             
             if (error) {
-                if (error.code === 'PGRST116') {
-                    // No settings found, return default settings
+                if (error.code === 'PGRST116' || error.message?.includes('relation') || error.message?.includes('does not exist')) {
+                    // No settings found or table doesn't exist, return default settings
+                    console.warn("Settings table not found or empty, using default settings");
                     return {
                         site_name: "Starter Kit",
                         site_description: "A modern application starter kit",

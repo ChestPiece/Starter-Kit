@@ -2,17 +2,15 @@
 
 import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { LoginForm } from "@/components/auth/login-form";
+import { LoginForm } from "@/components/login-form";
 import { ForgotPassword } from "@/components/auth/forgot-password";
-import { EmailConfirmation } from "@/components/auth/email-waiting-screen";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
 
 function LoginPageInner() {
-  const [currentView, setCurrentView] = useState<
-    "login" | "forgot-password" | "email-sent"
-  >("login");
-  const [userEmail, setUserEmail] = useState("");
+  const [currentView, setCurrentView] = useState<"login" | "forgot-password">(
+    "login"
+  );
   const searchParams = useSearchParams();
   const router = useRouter();
   const [reasonMessage, setReasonMessage] = useState<string | null>(null);
@@ -68,12 +66,18 @@ function LoginPageInner() {
 
     const messageToText = (code: string): string => {
       switch (code) {
-        case "email_confirmed":
-          return "Your email has been confirmed! You can now sign in.";
         case "confirmation_failed":
           return "Email confirmation failed. Please try signing in or request a new confirmation email.";
         case "invalid_link":
           return "The confirmation link is invalid or expired. Please try signing in.";
+        case "invalid_confirmation_link":
+          return "The confirmation link is invalid. Please try signing in.";
+        case "confirmation_timeout":
+          return "Email confirmation timed out. Please try signing in.";
+        case "email_confirmed":
+          return "Email confirmed successfully! You can now sign in.";
+        case "please_login":
+          return "Please sign in to continue.";
         default:
           return code;
       }
@@ -96,44 +100,21 @@ function LoginPageInner() {
   }, [searchParams, router]);
 
   return (
-    <div className="min-h-screen bg-white flex items-center justify-center p-8">
-      <div className="w-full max-w-7xl space-y-3">
-        {reasonMessage && (
-          <Alert className="mb-4">
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>{reasonMessage}</AlertDescription>
-          </Alert>
-        )}
-        {/* Show network-related errors */}
-        {networkError && (
-          <Alert variant="destructive" className="mb-4">
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>
-              Connection failed. Please check your internet connection and try
-              again.
-            </AlertDescription>
-          </Alert>
-        )}
-
-        {currentView === "login" ? (
-          <LoginForm
-            onForgotPassword={() => setCurrentView("forgot-password")}
-          />
-        ) : currentView === "forgot-password" ? (
-          <ForgotPassword
-            onBack={() => setCurrentView("login")}
-            onEmailSent={(email) => {
-              setUserEmail(email);
-              setCurrentView("email-sent");
-            }}
-          />
-        ) : (
-          <EmailConfirmation
-            email={userEmail}
-            onBack={() => setCurrentView("login")}
-          />
-        )}
-      </div>
+    <div className="min-h-screen flex items-center justify-center p-8">
+      {currentView === "login" ? (
+        <LoginForm
+          onForgotPassword={() => setCurrentView("forgot-password")}
+          reasonMessage={reasonMessage}
+          networkError={networkError}
+        />
+      ) : (
+        <ForgotPassword
+          onBack={() => setCurrentView("login")}
+          onEmailSent={() => {
+            setCurrentView("login");
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -142,11 +123,9 @@ export default function LoginPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen bg-white flex items-center justify-center p-8">
-          <div className="w-full max-w-7xl space-y-3">
-            <div className="mb-4 text-center text-sm text-gray-600">
-              Loading...
-            </div>
+        <div className="min-h-screen flex items-center justify-center p-8">
+          <div className="mb-4 text-center text-sm text-gray-600">
+            Loading...
           </div>
         </div>
       }

@@ -124,10 +124,10 @@ function ResetPasswordInner() {
 
   if (!ready) {
     return (
-      <Card className="w-full max-w-md shadow-xl border-0 bg-white/80 backdrop-blur-sm">
+      <Card className="w-full max-w-md">
         <CardContent className="flex items-center justify-center p-8">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto"></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-pink-700 mx-auto"></div>
             <p className="mt-4 text-sm text-gray-600">
               Preparing reset form...
             </p>
@@ -139,7 +139,7 @@ function ResetPasswordInner() {
 
   if (!userEmail) {
     return (
-      <Card className="w-full max-w-md shadow-xl border-0 bg-white/80 backdrop-blur-sm">
+      <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl font-bold text-red-600">
             Link invalid
@@ -163,7 +163,7 @@ function ResetPasswordInner() {
 
   if (success) {
     return (
-      <Card className="w-full max-w-md shadow-xl border-0 bg-white/80 backdrop-blur-sm">
+      <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <CheckCircle className="w-16 h-16 text-green-600 mx-auto mb-4" />
           <CardTitle className="text-2xl font-bold text-green-600">
@@ -178,12 +178,10 @@ function ResetPasswordInner() {
   }
 
   return (
-    <Card className="w-full max-w-md shadow-xl border-0 bg-white/80 backdrop-blur-sm">
-      <CardHeader className="space-y-1 text-center">
-        <CardTitle className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
-          Set New Password
-        </CardTitle>
-        <CardDescription className="text-gray-600">
+    <Card className="w-full max-w-md">
+      <CardHeader>
+        <CardTitle>Set New Password</CardTitle>
+        <CardDescription>
           Enter your new password for {userEmail}
         </CardDescription>
       </CardHeader>
@@ -212,7 +210,7 @@ function ResetPasswordInner() {
                 type="button"
                 variant="ghost"
                 size="sm"
-                className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-gray-100"
                 onClick={() => setShowPassword(!showPassword)}
               >
                 {showPassword ? (
@@ -244,7 +242,7 @@ function ResetPasswordInner() {
                 type="button"
                 variant="ghost"
                 size="sm"
-                className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-gray-100"
                 onClick={() => setShowConfirmPassword(!showConfirmPassword)}
               >
                 {showConfirmPassword ? (
@@ -258,7 +256,7 @@ function ResetPasswordInner() {
 
           <Button
             type="submit"
-            className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+            className="w-full bg-pink-700 text-white hover:bg-pink-800 font-medium border-none shadow-sm"
             disabled={isLoading || !password || !confirmPassword}
           >
             {isLoading ? "Updating Password..." : "Update Password"}
@@ -283,11 +281,11 @@ function ResetPasswordInner() {
 
 export default function ResetPasswordPage() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-50 flex items-center justify-center p-4">
+    <div className="min-h-screen flex items-center justify-center p-4">
       <Suspense
         fallback={
           <div className="bg-white rounded-lg shadow-lg p-8 max-w-md w-full text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto mb-4"></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-pink-700 mx-auto mb-4"></div>
             <p className="text-sm text-gray-600">Loading reset form...</p>
           </div>
         }

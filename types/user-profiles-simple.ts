@@ -1,4 +1,4 @@
-// Simple user profiles types matching your exact table structure
+// User profiles types - consolidated from multiple type files
 
 export interface UserProfile {
   id: string;

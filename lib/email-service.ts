@@ -19,7 +19,7 @@ export const emailService = {
     try {
       const resend = getResendClient();
       const data = await resend.emails.send({
-        from: process.env.EMAIL_FROM || 'STARTER <probotic@browserautomations.com>',
+        from: process.env.EMAIL_FROM || 'noreply@example.com',
         to,
         subject,
         html,

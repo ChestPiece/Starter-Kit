@@ -141,7 +141,11 @@ export const setupSessionMonitoring = () => {
   supabase.auth.onAuthStateChange(async (event, session) => {
     // Get authenticated user data instead of using potentially insecure session.user
     const { data: { user: authUser } } = await supabase.auth.getUser();
-    console.log('Auth state changed:', event, authUser?.email);
+    
+    // Only log meaningful auth state changes with better formatting
+    if (event !== 'INITIAL_SESSION') {
+      console.log(`🔐 Auth event: ${event}${authUser?.email ? ` (${authUser.email})` : ''}`);
+    }
     
     // If user signs out or session becomes invalid
     if (event === 'SIGNED_OUT' || (event === 'TOKEN_REFRESHED' && !session)) {

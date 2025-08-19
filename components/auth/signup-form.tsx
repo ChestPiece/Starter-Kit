@@ -48,16 +48,15 @@ const signupSchema = z
 
 type SignupFormData = z.infer<typeof signupSchema>;
 
-interface SignupFormProps {
-  onSignupSuccess?: (email: string) => void;
-}
-
-export function SignupForm({ onSignupSuccess }: SignupFormProps) {
+export function SignupForm() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [resendLoading, setResendLoading] = useState(false);
+  const [resendError, setResendError] = useState<string | null>(null);
+  const [resendSuccess, setResendSuccess] = useState(false);
   const router = useRouter();
   const supabase = createClient();
 
@@ -81,7 +80,7 @@ export function SignupForm({ onSignupSuccess }: SignupFormProps) {
         email: data.email,
         password: data.password,
         options: {
-          emailRedirectTo: `${window.location.origin}/auth/confirm`,
+          emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || window.location.origin}/api/auth/confirm`,
           data: {
             first_name: data.firstName.trim(),
             last_name: data.lastName.trim(),
@@ -107,12 +106,8 @@ export function SignupForm({ onSignupSuccess }: SignupFormProps) {
         return;
       }
 
-      // Call the callback function if provided, otherwise show success inline
-      if (onSignupSuccess) {
-        onSignupSuccess(data.email);
-      } else {
-        setSuccess(true);
-      }
+      // Always show success message instead of email waiting screen
+      setSuccess(true);
     } catch (error) {
       console.error("Signup error:", error);
       setError("Connection failed. Please check your internet connection.");
@@ -120,12 +115,54 @@ export function SignupForm({ onSignupSuccess }: SignupFormProps) {
     }
   };
 
+  const handleResendEmail = async () => {
+    setResendLoading(true);
+    setResendError(null);
+    setResendSuccess(false);
+
+    try {
+      const email = form.getValues("email");
+      const firstName = form.getValues("firstName");
+      const lastName = form.getValues("lastName");
+
+      const { error } = await supabase.auth.signUp({
+        email: email,
+        password: form.getValues("password"),
+        options: {
+          emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || window.location.origin}/api/auth/confirm`,
+          data: {
+            first_name: firstName.trim(),
+            last_name: lastName.trim(),
+            full_name: `${firstName.trim()} ${lastName.trim()}`,
+          },
+        },
+      });
+
+      if (error) {
+        if (error.message.includes("already registered")) {
+          setResendError("Account already exists. Please try logging in.");
+        } else {
+          setResendError("Failed to resend email. Please try again.");
+        }
+      } else {
+        setResendSuccess(true);
+        // Clear success message after 3 seconds
+        setTimeout(() => setResendSuccess(false), 3000);
+      }
+    } catch (error) {
+      console.error("Resend email error:", error);
+      setResendError("Failed to resend email. Please try again.");
+    } finally {
+      setResendLoading(false);
+    }
+  };
+
   if (success) {
     return (
-      <Card className="w-full border bg-white">
+      <Card className="w-full max-w-md">
         <CardHeader className="text-center pb-3">
           <div className="mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-pink-100">
-            <CheckCircle className="h-5 w-5 text-pink-600" />
+            <CheckCircle className="h-5 w-5 text-pink-700" />
           </div>
           <CardTitle className="text-xl font-semibold text-gray-900">
             Account Created!
@@ -136,32 +173,66 @@ export function SignupForm({ onSignupSuccess }: SignupFormProps) {
         </CardHeader>
         <CardContent className="space-y-3">
           <Alert className="border-pink-200 bg-pink-50">
-            <CheckCircle className="h-4 w-4 text-pink-600" />
+            <CheckCircle className="h-4 w-4 text-pink-700" />
             <AlertDescription className="text-pink-800 text-sm">
-              We've sent a verification email to{" "}
+              Account created successfully! We've sent a verification email to{" "}
               <strong>{form.getValues("email")}</strong>. Please click the link
-              in the email to activate your account.
+              in the email to activate your account and you'll be redirected to
+              the dashboard.
             </AlertDescription>
           </Alert>
-          <Link href="/auth/login">
-            <Button className="w-full h-8 text-sm font-medium bg-pink-600 hover:bg-pink-700 focus:ring-1 focus:ring-pink-600/20">
-              Continue to Sign In
+
+          {resendError && (
+            <Alert variant="destructive" className="border-red-200 bg-red-50">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription className="text-red-800 text-sm">
+                {resendError}
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {resendSuccess && (
+            <Alert className="border-green-200 bg-green-50">
+              <CheckCircle className="h-4 w-4 text-green-600" />
+              <AlertDescription className="text-green-800 text-sm">
+                Verification email sent successfully! Please check your inbox.
+              </AlertDescription>
+            </Alert>
+          )}
+
+          <div className="space-y-2">
+            <Button
+              onClick={handleResendEmail}
+              disabled={resendLoading}
+              variant="outline"
+              className="w-full border-pink-200 text-pink-700 hover:bg-pink-50"
+            >
+              {resendLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin text-pink-700" />
+                  Resending...
+                </>
+              ) : (
+                "Resend Verification Email"
+              )}
             </Button>
-          </Link>
+
+            <Link href="/auth/login">
+              <Button className="w-full bg-pink-700 text-white hover:bg-pink-800 font-medium border-none shadow-sm">
+                Continue to Sign In
+              </Button>
+            </Link>
+          </div>
         </CardContent>
       </Card>
     );
   }
 
   return (
-    <Card className="w-full border bg-white">
-      <CardHeader className="text-center pb-3">
-        <CardTitle className="text-xl font-semibold text-gray-900">
-          Create Account
-        </CardTitle>
-        <CardDescription className="text-gray-600 text-sm">
-          Enter your information to get started
-        </CardDescription>
+    <Card className="w-full max-w-md">
+      <CardHeader>
+        <CardTitle>Create Account</CardTitle>
+        <CardDescription>Enter your information to get started</CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
         {error && (
@@ -188,7 +259,7 @@ export function SignupForm({ onSignupSuccess }: SignupFormProps) {
                       <Input
                         {...field}
                         placeholder="First name"
-                        className="h-8 border-gray-200 focus:border-pink-600 focus:ring-1 focus:ring-pink-600/20"
+                        className="h-8 border-gray-200 focus:border-pink-700 focus:ring-1 focus:ring-pink-700/20"
                         disabled={loading}
                       />
                     </FormControl>
@@ -208,7 +279,7 @@ export function SignupForm({ onSignupSuccess }: SignupFormProps) {
                       <Input
                         {...field}
                         placeholder="Last name"
-                        className="h-8 border-gray-200 focus:border-pink-600 focus:ring-1 focus:ring-pink-600/20"
+                        className="h-8 border-gray-200 focus:border-pink-700 focus:ring-1 focus:ring-pink-700/20"
                         disabled={loading}
                       />
                     </FormControl>
@@ -254,14 +325,14 @@ export function SignupForm({ onSignupSuccess }: SignupFormProps) {
                         {...field}
                         type={showPassword ? "text" : "password"}
                         placeholder="Create a password"
-                        className="h-8 pr-8 border-gray-200 focus:border-pink-600 focus:ring-1 focus:ring-pink-600/20"
+                        className="h-8 pr-8 border-gray-200 focus:border-pink-700 focus:ring-1 focus:ring-pink-700/20"
                         disabled={loading}
                       />
                       <Button
                         type="button"
                         variant="ghost"
                         size="sm"
-                        className="absolute right-0 top-0 h-full px-2 hover:bg-transparent"
+                        className="absolute right-0 top-0 h-full px-2 hover:bg-gray-100"
                         onClick={() => setShowPassword(!showPassword)}
                         disabled={loading}
                       >
@@ -292,14 +363,14 @@ export function SignupForm({ onSignupSuccess }: SignupFormProps) {
                         {...field}
                         type={showConfirmPassword ? "text" : "password"}
                         placeholder="Confirm your password"
-                        className="h-8 pr-8 border-gray-200 focus:border-pink-600 focus:ring-1 focus:ring-pink-600/20"
+                        className="h-8 pr-8 border-gray-200 focus:border-pink-700 focus:ring-1 focus:ring-pink-700/20"
                         disabled={loading}
                       />
                       <Button
                         type="button"
                         variant="ghost"
                         size="sm"
-                        className="absolute right-0 top-0 h-full px-2 hover:bg-transparent"
+                        className="absolute right-0 top-0 h-full px-2 hover:bg-gray-100"
                         onClick={() =>
                           setShowConfirmPassword(!showConfirmPassword)
                         }
@@ -327,7 +398,7 @@ export function SignupForm({ onSignupSuccess }: SignupFormProps) {
 
             <Button
               type="submit"
-              className="w-full h-8 text-sm font-medium bg-pink-600 hover:bg-pink-700 focus:ring-1 focus:ring-pink-600/20"
+              className="w-full bg-pink-700 text-white hover:bg-pink-800 font-medium border-none shadow-sm"
               disabled={
                 loading ||
                 form.watch("password") !== form.watch("confirmPassword")
@@ -335,7 +406,7 @@ export function SignupForm({ onSignupSuccess }: SignupFormProps) {
             >
               {loading ? (
                 <>
-                  <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+                  <Loader2 className="mr-2 h-3 w-3 animate-spin text-white" />
                   Creating Account...
                 </>
               ) : (
@@ -350,7 +421,8 @@ export function SignupForm({ onSignupSuccess }: SignupFormProps) {
             Already have an account?{" "}
             <Link
               href="/auth/login"
-              className="text-pink-600 hover:text-pink-700 font-medium transition-colors"
+              className="text-pink-700 underline underline-offset-4 hover:text-pink-800 transition-colors font-medium !opacity-100"
+              style={{ color: "#be185d" }}
             >
               Sign in here
             </Link>

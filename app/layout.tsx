@@ -1,16 +1,18 @@
 import { Inter } from "next/font/google";
-import "./layout.css";
+import "./globals.css";
 import { Toaster } from "sonner";
 import settingsServiceServer from "@/modules/settings/services/setting-service.server";
 import { ThemeProviderWrapper } from "@/context/theme-provider-wrapper";
 import PointerEventsFix from "@/utils/pointer-events";
 import { ClientProviders } from "@/components/providers/client-providers";
+import { ErrorBoundary } from "@/components/error-boundary";
 
 const fontSans = Inter({
   subsets: ["latin"],
   variable: "--font-sans",
 });
 
+// Force dynamic for root layout due to settings service using cookies
 export const dynamic = "force-dynamic";
 
 export default async function RootLayout({
@@ -21,13 +23,18 @@ export default async function RootLayout({
   return (
     <html lang="en" className={`${fontSans.variable} font-sans antialiased`}>
       <body>
-        <ThemeProviderWrapper>
-          <ClientProviders>
-            {children}
-            <Toaster position="top-center" duration={3000} richColors />
-            <PointerEventsFix />
-          </ClientProviders>
-        </ThemeProviderWrapper>
+        <ErrorBoundary
+          fallbackTitle="Application Error"
+          fallbackDescription="Something went wrong with the application. Please refresh the page to continue."
+        >
+          <ThemeProviderWrapper>
+            <ClientProviders>
+              {children}
+              <Toaster position="top-center" duration={3000} richColors />
+              <PointerEventsFix />
+            </ClientProviders>
+          </ThemeProviderWrapper>
+        </ErrorBoundary>
       </body>
     </html>
   );

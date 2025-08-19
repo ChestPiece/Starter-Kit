@@ -36,7 +36,7 @@ export async function middleware(request: NextRequest) {
     return supabaseResponse
   }
 
-  // Redirect unauthenticated users to the login page (allow auth routes)
+  // Redirect unauthenticated users to the login page (allow auth routes and confirmation)
   if (
     !user &&
     !pathname.startsWith('/auth') &&
@@ -51,8 +51,12 @@ export async function middleware(request: NextRequest) {
     return response
   }
 
-  // Allow auth/confirm pages to always work (needed for email confirmation)
-  if (pathname.includes('/auth/confirm')) {
+  // Allow auth/confirm and reset-password pages and confirmation API route to always work
+  if (
+    pathname.startsWith('/auth/confirm') || 
+    pathname.startsWith('/auth/reset-password') ||
+    pathname.startsWith('/api/auth/confirm')
+  ) {
     return supabaseResponse
   }
 
@@ -99,6 +103,6 @@ export const config = {
      * - favicon.ico (favicon file)
      * - public files with extensions
      */
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|manifest.json|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };

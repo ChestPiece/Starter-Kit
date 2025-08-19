@@ -65,7 +65,7 @@ export const usersService = {
       // Transform the data to match expected format
       const transformedUsers = users?.map(user => ({
         ...user,
-        roles: user.roles ? [{ name: user.roles.name }] : [{ name: 'user' }]
+        roles: user.roles ? { name: user.roles.name } : { name: 'user' }
       })) || [];
 
       return transformedUsers;
@@ -120,7 +120,7 @@ export const usersService = {
       // Transform the data to match expected format
       const transformedUsers = users?.map(user => ({
         ...user,
-        roles: user.roles ? [{ name: user.roles.name }] : [{ name: 'user' }]
+        roles: user.roles ? { name: user.roles.name } : { name: 'user' }
       })) || [];
 
       return {
@@ -211,7 +211,7 @@ export const usersService = {
       if (user) {
         return {
           ...user,
-          roles: user.roles ? [{ name: user.roles.name }] : [{ name: 'user' }]
+          roles: user.roles ? { name: user.roles.name } : { name: 'user' }
         };
       }
 

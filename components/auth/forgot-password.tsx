@@ -18,7 +18,7 @@ import { ArrowLeft, Mail, Send, AlertCircle, CheckCircle } from "lucide-react";
 
 interface ForgotPasswordProps {
   onBack: () => void;
-  onEmailSent: (email: string) => void;
+  onEmailSent: () => void;
 }
 
 export function ForgotPassword({ onBack, onEmailSent }: ForgotPasswordProps) {
@@ -50,7 +50,7 @@ export function ForgotPassword({ onBack, onEmailSent }: ForgotPasswordProps) {
 
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/auth/confirm`,
+        redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || window.location.origin}/auth/reset-password`,
       });
 
       if (error) {
@@ -59,7 +59,7 @@ export function ForgotPassword({ onBack, onEmailSent }: ForgotPasswordProps) {
           "If an account with that email exists, you will receive a password reset link."
         );
       } else {
-        onEmailSent(email);
+        onEmailSent();
       }
     } catch (err) {
       setError(
@@ -88,12 +88,10 @@ export function ForgotPassword({ onBack, onEmailSent }: ForgotPasswordProps) {
   const isValid = !validateEmail(email);
 
   return (
-    <Card className="w-full shadow-xl border-0 bg-white/80 backdrop-blur-sm">
-      <CardHeader className="space-y-1 text-center">
-        <CardTitle className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
-          Reset Password
-        </CardTitle>
-        <CardDescription className="text-gray-600">
+    <Card className="w-full max-w-md">
+      <CardHeader>
+        <CardTitle>Reset Password</CardTitle>
+        <CardDescription>
           Enter your email address and we'll send you a link to reset your
           password
         </CardDescription>
@@ -106,7 +104,7 @@ export function ForgotPassword({ onBack, onEmailSent }: ForgotPasswordProps) {
               Email Address
             </Label>
             <div className="relative">
-              <Mail className="absolute left-3 top-3 h-4 w-4 text-purple-400" />
+              <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
               <Input
                 id="reset-email"
                 type="email"
@@ -117,7 +115,7 @@ export function ForgotPassword({ onBack, onEmailSent }: ForgotPasswordProps) {
                 className={`pl-10 ${
                   error && touched
                     ? "border-red-300 focus:border-red-400 focus:ring-red-400"
-                    : "border-purple-200 focus:border-purple-400 focus:ring-purple-400"
+                    : "border-gray-200 focus:border-pink-700 focus:ring-1 focus:ring-pink-700/20"
                 }`}
                 required
               />
@@ -136,7 +134,7 @@ export function ForgotPassword({ onBack, onEmailSent }: ForgotPasswordProps) {
           <Button
             type="submit"
             disabled={isLoading || !isValid}
-            className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-semibold py-2.5 transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50"
+            className="w-full bg-pink-700 text-white hover:bg-pink-800 font-medium border-none shadow-sm disabled:opacity-50"
           >
             {isLoading ? (
               <div className="flex items-center">
@@ -156,7 +154,7 @@ export function ForgotPassword({ onBack, onEmailSent }: ForgotPasswordProps) {
       <CardFooter className="flex justify-center">
         <button
           onClick={onBack}
-          className="flex items-center text-sm text-purple-600 hover:text-purple-800 font-medium"
+          className="flex items-center text-sm text-pink-700 hover:text-pink-800 font-medium"
         >
           <ArrowLeft className="mr-1 h-4 w-4" />
           Back to Sign In

@@ -31,9 +31,10 @@ export default function UserManagementPage({ type }: { type: string }) {
   const [isRefetching, setIsRefetching] = useState<boolean>(false);
   const debouncedSearchTerm = useDebounce(searchQuery, 500);
 
-  // Give all users full access - no role checking needed
-  const isAdmin = true; // All users have admin access
-  const isManager = true; // All users have manager access
+  // Proper role checking using current user's role
+  const userRole = currentUser?.roles?.name || 'user';
+  const isAdmin = userRole === 'admin';
+  const isManager = userRole === 'manager' || userRole === 'admin';
 
   const fetchUsers = useCallback(async () => {
     setIsRefetching(true);

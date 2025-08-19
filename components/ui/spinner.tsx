@@ -4,10 +4,7 @@ interface SpinnerProps extends React.HTMLAttributes<HTMLDivElement> {}
 
 export function Spinner({ className, ...props }: SpinnerProps) {
   return (
-    <div
-      className={cn("animate-spin text-muted-foreground", className)}
-      {...props}
-    >
+    <div className={cn("animate-spin text-pink-700", className)} {...props}>
       <svg
         xmlns="http://www.w3.org/2000/svg"
         width="24"
