@@ -493,7 +493,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
           timeoutPromise,
         ])) as any;
 
-        clearTimeout(initTimeout);
+        // Remove timeout clearing since we removed the timeout
 
         const supaUser = userRes.data?.user;
         const session = sessionRes.data?.session;

@@ -9,8 +9,8 @@ export const SESSION_CONFIG = {
   // Warning time before session expires (5 minutes before timeout)
   SESSION_WARNING_TIME: 1 * 60 * 1000,
   
-  // Check session validity every 60 seconds
-  SESSION_CHECK_INTERVAL: 60 * 1000,
+  // Check session validity every 2 minutes (reduced frequency to prevent loops)
+  SESSION_CHECK_INTERVAL: 2 * 60 * 1000,
   
   // Force logout on app start (set to true to always require fresh login)
   // Note: Setting this to true can cause redirect loops, use with caution
@@ -19,7 +19,7 @@ export const SESSION_CONFIG = {
   // Maximum session duration (24 hours) - after this, force re-authentication
   MAX_SESSION_DURATION: 24 * 60 * 60 * 1000,
   
-  // Toggle session warning UI (set to false to disable the warning overlay)
+  // Toggle session warning UI (DISABLED by default to prevent counter loops)
   SHOW_WARNING: false,
   
   // Local storage keys for session tracking

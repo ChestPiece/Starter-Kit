@@ -57,13 +57,17 @@ export const validateUserSession = async (): Promise<boolean> => {
   const supabase = createClient();
   
   try {
-    // Check both user and session
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    // Check both user and session efficiently in parallel
+    const [userResult, sessionResult] = await Promise.all([
+      supabase.auth.getUser(),
+      supabase.auth.getSession()
+    ]);
+    
+    const { data: { user }, error: userError } = userResult;
+    const { data: { session }, error: sessionError } = sessionResult;
     
     // User must exist, no errors, and have a valid session
     if (userError || sessionError || !user || !session) {
-
       return false;
     }
     
@@ -180,33 +184,46 @@ export const setupSessionMonitoring = () => {
     }
   });
   
-  // Set up periodic session validation
+  // Set up periodic session validation with safeguards
   if (typeof window !== 'undefined') {
+    let sessionCheckCount = 0;
+    const MAX_SESSION_CHECKS = 100; // Prevent infinite session checking
+    
     const sessionCheckInterval = setInterval(async () => {
+      // Safety counter to prevent infinite loops
+      sessionCheckCount++;
+      if (sessionCheckCount > MAX_SESSION_CHECKS) {
+        console.warn('🛑 Session check limit reached, clearing interval');
+        clearInterval(sessionCheckInterval);
+        return;
+      }
+      
       // Skip validation if already on auth pages to prevent loops
       const currentPath = window.location.pathname;
       if (currentPath.startsWith('/auth') || currentPath.startsWith('/login')) {
         return;
       }
       
-      const isValid = await validateUserSession();
-      
-      if (!isValid) {
-        console.log('Session validation failed during periodic check, logging out');
-        clearInterval(sessionCheckInterval);
-        await forceLogoutAndRedirect('session_timeout');
-        return;
-      }
-      
-      // Check if warning should be shown
-      if (shouldShowSessionWarning()) {
-        markSessionWarningShown();
-        // Only show if explicitly enabled
-        if (SESSION_CONFIG.SHOW_WARNING) {
+      try {
+        const isValid = await validateUserSession();
+        
+        if (!isValid) {
+          console.log('Session validation failed during periodic check, logging out');
+          clearInterval(sessionCheckInterval);
+          await forceLogoutAndRedirect('session_timeout');
+          return;
+        }
+        
+        // Check if warning should be shown (only if enabled)
+        if (SESSION_CONFIG.SHOW_WARNING && shouldShowSessionWarning()) {
+          markSessionWarningShown();
           window.dispatchEvent(new CustomEvent('sessionWarning', {
             detail: { timeRemaining: SESSION_CONFIG.SESSION_WARNING_TIME }
           }));
         }
+      } catch (error) {
+        console.error('Session check error:', error);
+        // Don't logout on session check errors, just log them
       }
     }, SESSION_CONFIG.SESSION_CHECK_INTERVAL);
     

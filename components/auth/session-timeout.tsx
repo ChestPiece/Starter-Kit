@@ -57,7 +57,7 @@ export function SessionTimeout({
 
   useEffect(() => {
     // Update countdown timer
-    if (!showWarning || timeRemaining <= 0) return;
+    if (!showWarning) return;
 
     const timer = setInterval(() => {
       setTimeRemaining((prev) => {
@@ -66,13 +66,14 @@ export function SessionTimeout({
           setShowWarning(false);
           // Auto logout when time expires
           forceLogoutAndRedirect("session_timeout");
+          return 0;
         }
         return newTime;
       });
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [showWarning, timeRemaining]);
+  }, [showWarning]); // Only depend on showWarning to prevent unnecessary timer recreation
 
   const handleExtendSession = async () => {
     setIsExtending(true);
