@@ -1,16 +1,6 @@
 "use client";
 
 import { createClient } from "@/lib/supabase/client";
-import { 
-  SESSION_CONFIG,
-  isSessionExpiredByDuration,
-  isSessionExpiredByInactivity,
-  updateLastActivity,
-  initializeSessionTracking,
-  clearSessionTracking,
-  shouldShowSessionWarning,
-  markSessionWarningShown
-} from './session-config';
 
 /**
  * Utility functions for authentication handling
@@ -50,67 +40,25 @@ export const forceLogoutAndRedirect = async (reason?: string) => {
 };
 
 /**
- * Check if user session is valid with enhanced timeout validation
+ * Check if user session is valid using Supabase native validation only
  * Returns true if valid, false if invalid
  */
 export const validateUserSession = async (): Promise<boolean> => {
   const supabase = createClient();
   
   try {
-    // Check both user and session efficiently in parallel
-    const [userResult, sessionResult] = await Promise.all([
-      supabase.auth.getUser(),
-      supabase.auth.getSession()
-    ]);
-    
-    const { data: { user }, error: userError } = userResult;
-    const { data: { session }, error: sessionError } = sessionResult;
+    // Use Supabase's built-in session validation
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
     
     // User must exist, no errors, and have a valid session
     if (userError || sessionError || !user || !session) {
       return false;
     }
     
-    // Check if session is not expired (Supabase session expiry)
+    // Check if session is not expired (Supabase handles this automatically)
     if (session.expires_at && new Date(session.expires_at * 1000) < new Date()) {
-
       return false;
-    }
-    
-    // Skip timeout checks if we're on auth pages (user might be in the process of logging in)
-    if (typeof window !== 'undefined') {
-      const currentPath = window.location.pathname;
-      if (currentPath.startsWith('/auth') || currentPath.startsWith('/login')) {
-
-        return true;
-      }
-    }
-    
-    // Check if session has exceeded maximum duration (disabled in production to reduce noise)
-    if (typeof window !== 'undefined') {
-      try {
-        const disabled = localStorage.getItem('disableMaxDurationCheck') === 'true';
-        if (!disabled && isSessionExpiredByDuration()) {
-
-          return false;
-        }
-      } catch {}
-    }
-    
-    // Check if session has exceeded inactivity timeout (less aggressive)
-    if (typeof window !== 'undefined') {
-      try {
-        const disabled = localStorage.getItem('disableInactivityCheck') === 'true';
-        if (!disabled && isSessionExpiredByInactivity()) {
-          console.log('Session expired by inactivity');
-          return false;
-        }
-      } catch {}
-    }
-    
-    // Update last activity if session is valid
-    if (typeof window !== 'undefined') {
-      updateLastActivity();
     }
     
     return true;
@@ -136,25 +84,21 @@ export const redirectToLoginIfUnauthenticated = async () => {
 };
 
 /**
- * Set up enhanced session monitoring with timeout tracking
+ * Set up Supabase-native auth state monitoring (no custom polling)
  */
 export const setupSessionMonitoring = () => {
   const supabase = createClient();
   
-  // Listen for auth state changes
+  // Listen for Supabase auth state changes only
   supabase.auth.onAuthStateChange(async (event, session) => {
-    // Get authenticated user data instead of using potentially insecure session.user
-    const { data: { user: authUser } } = await supabase.auth.getUser();
-    
-    // Only log meaningful auth state changes with better formatting
+    // Only log significant auth events
     if (event !== 'INITIAL_SESSION') {
-      console.log(`🔐 Auth event: ${event}${authUser?.email ? ` (${authUser.email})` : ''}`);
+      console.log(`🔐 Auth event: ${event}`);
     }
     
-    // If user signs out or session becomes invalid
+    // Handle sign out or invalid session
     if (event === 'SIGNED_OUT' || (event === 'TOKEN_REFRESHED' && !session)) {
-      console.log('Session invalid, redirecting to login');
-      clearSessionTracking();
+      console.log('Session ended, redirecting to login');
       
       // Only redirect if not already on auth pages
       if (typeof window !== 'undefined') {
@@ -165,11 +109,9 @@ export const setupSessionMonitoring = () => {
       }
     }
     
-    // If user signs in successfully, initialize session tracking
-    if (event === 'SIGNED_IN' && session && authUser) {
-      console.log('User signed in successfully, initializing session tracking');
-      initializeSessionTracking();
-      updateLastActivity();
+    // Handle successful sign in
+    if (event === 'SIGNED_IN' && session) {
+      console.log('User signed in successfully');
       
       // Redirect to main app if on auth page
       if (typeof window !== 'undefined') {
@@ -178,90 +120,15 @@ export const setupSessionMonitoring = () => {
           console.log('Redirecting to main app after successful login');
           setTimeout(() => {
             window.location.href = '/';
-          }, 100); // Small delay to ensure session is fully established
+          }, 100);
         }
       }
     }
   });
-  
-  // Set up periodic session validation with safeguards
-  if (typeof window !== 'undefined') {
-    let sessionCheckCount = 0;
-    const MAX_SESSION_CHECKS = 100; // Prevent infinite session checking
-    
-    const sessionCheckInterval = setInterval(async () => {
-      // Safety counter to prevent infinite loops
-      sessionCheckCount++;
-      if (sessionCheckCount > MAX_SESSION_CHECKS) {
-        console.warn('🛑 Session check limit reached, clearing interval');
-        clearInterval(sessionCheckInterval);
-        return;
-      }
-      
-      // Skip validation if already on auth pages to prevent loops
-      const currentPath = window.location.pathname;
-      if (currentPath.startsWith('/auth') || currentPath.startsWith('/login')) {
-        return;
-      }
-      
-      try {
-        const isValid = await validateUserSession();
-        
-        if (!isValid) {
-          console.log('Session validation failed during periodic check, logging out');
-          clearInterval(sessionCheckInterval);
-          await forceLogoutAndRedirect('session_timeout');
-          return;
-        }
-        
-        // Check if warning should be shown (only if enabled)
-        if (SESSION_CONFIG.SHOW_WARNING && shouldShowSessionWarning()) {
-          markSessionWarningShown();
-          window.dispatchEvent(new CustomEvent('sessionWarning', {
-            detail: { timeRemaining: SESSION_CONFIG.SESSION_WARNING_TIME }
-          }));
-        }
-      } catch (error) {
-        console.error('Session check error:', error);
-        // Don't logout on session check errors, just log them
-      }
-    }, SESSION_CONFIG.SESSION_CHECK_INTERVAL);
-    
-    // Track user activity
-    const activityEvents = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'];
-    const activityHandler = () => {
-      updateLastActivity();
-    };
-    
-    activityEvents.forEach(event => {
-      window.addEventListener(event, activityHandler);
-    });
-    
-    // Clean up on window unload
-    window.addEventListener('beforeunload', () => {
-      clearInterval(sessionCheckInterval);
-      activityEvents.forEach(event => {
-        window.removeEventListener(event, activityHandler);
-      });
-  });
-  }
 };
 
 /**
- * Force logout on app start if configured to do so
- * This ensures users always start as unauthenticated
- */
-export const forceLogoutOnAppStart = async (): Promise<void> => {
-  if (!SESSION_CONFIG.FORCE_LOGOUT_ON_START) {
-    return;
-  }
-  
-  console.log('Force logout on app start enabled, clearing session');
-  await forceLogoutAndRedirect('app_start_logout');
-};
-
-/**
- * Initialize authentication system with session expiry
+ * Initialize authentication system using Supabase native methods
  * Call this when the app starts
  */
 export const initializeAuth = async (): Promise<void> => {
@@ -269,42 +136,8 @@ export const initializeAuth = async (): Promise<void> => {
     return; // Skip on server side
   }
   
-  // Force logout on app start if configured
-  if (SESSION_CONFIG.FORCE_LOGOUT_ON_START) {
-    clearSessionTracking();
-    await forceLogoutOnAppStart();
-    return;
-  }
-  
-  // Validate existing session
-  const isValid = await validateUserSession();
-  
-  if (!isValid) {
-    console.log('Invalid session detected on app start, logging out');
-    await forceLogoutAndRedirect('invalid_session_on_start');
-    return;
-  }
-  
-  // Set up session monitoring
+  // Set up Supabase auth state monitoring
   setupSessionMonitoring();
 };
 
-/**
- * Check if user should be logged out due to session expiry
- * Returns reason for logout or null if session is valid
- */
-export const checkSessionExpiry = (): string | null => {
-  if (typeof window === 'undefined') {
-    return null;
-  }
-  
-  if (isSessionExpiredByDuration()) {
-    return 'Session expired - maximum duration exceeded';
-  }
-  
-  if (isSessionExpiredByInactivity()) {
-    return 'Session expired - inactivity timeout';
-  }
-  
-  return null;
-};
+

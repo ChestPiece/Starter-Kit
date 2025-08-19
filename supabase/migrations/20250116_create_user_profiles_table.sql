@@ -1,14 +1,14 @@
--- Update existing user_profile table to include missing columns
-ALTER TABLE public.user_profile ADD COLUMN IF NOT EXISTS full_name TEXT;
-ALTER TABLE public.user_profile ADD COLUMN IF NOT EXISTS avatar_url TEXT;
-ALTER TABLE public.user_profile ADD COLUMN IF NOT EXISTS phone TEXT;
-ALTER TABLE public.user_profile ADD COLUMN IF NOT EXISTS bio TEXT;
-ALTER TABLE public.user_profile ADD COLUMN IF NOT EXISTS website TEXT;
-ALTER TABLE public.user_profile ADD COLUMN IF NOT EXISTS location TEXT;
-ALTER TABLE public.user_profile ADD COLUMN IF NOT EXISTS date_of_birth DATE;
-ALTER TABLE public.user_profile ADD COLUMN IF NOT EXISTS profile TEXT;
+-- Update existing user_profiles table to include missing columns
+ALTER TABLE public.user_profiles ADD COLUMN IF NOT EXISTS full_name TEXT;
+ALTER TABLE public.user_profiles ADD COLUMN IF NOT EXISTS avatar_url TEXT;
+ALTER TABLE public.user_profiles ADD COLUMN IF NOT EXISTS phone TEXT;
+ALTER TABLE public.user_profiles ADD COLUMN IF NOT EXISTS bio TEXT;
+ALTER TABLE public.user_profiles ADD COLUMN IF NOT EXISTS website TEXT;
+ALTER TABLE public.user_profiles ADD COLUMN IF NOT EXISTS location TEXT;
+ALTER TABLE public.user_profiles ADD COLUMN IF NOT EXISTS date_of_birth DATE;
+ALTER TABLE public.user_profiles ADD COLUMN IF NOT EXISTS profile TEXT;
 
--- RLS is already enabled on user_profile table
+-- RLS is already enabled on user_profiles table
 -- Add missing policies if they don't exist
 DO $$ 
 BEGIN
@@ -16,20 +16,20 @@ BEGIN
     IF NOT EXISTS (
         SELECT 1 FROM pg_policies 
         WHERE schemaname = 'public' 
-        AND tablename = 'user_profile' 
+        AND tablename = 'user_profiles' 
         AND policyname = 'Users can insert their own profile.'
     ) THEN
-        CREATE POLICY "Users can insert their own profile." ON public.user_profile
+        CREATE POLICY "Users can insert their own profile." ON public.user_profiles
             FOR INSERT WITH CHECK (auth.uid() = id);
     END IF;
 
     IF NOT EXISTS (
         SELECT 1 FROM pg_policies 
         WHERE schemaname = 'public' 
-        AND tablename = 'user_profile' 
+        AND tablename = 'user_profiles' 
         AND policyname = 'Users can update own profile.'
     ) THEN
-        CREATE POLICY "Users can update own profile." ON public.user_profile
+        CREATE POLICY "Users can update own profile." ON public.user_profiles
             FOR UPDATE USING (auth.uid() = id);
     END IF;
 END $$;
@@ -41,7 +41,7 @@ language plpgsql
 security definer set search_path = public
 as $$
 begin
-    insert into public.user_profile (
+    insert into public.user_profiles (
         id,
         first_name,
         last_name,
@@ -83,10 +83,10 @@ BEGIN
     IF NOT EXISTS (
         SELECT 1 FROM pg_trigger 
         WHERE tgname = 'handle_updated_at' 
-        AND tgrelid = 'public.user_profile'::regclass
+        AND tgrelid = 'public.user_profiles'::regclass
     ) THEN
         CREATE TRIGGER handle_updated_at 
-        BEFORE UPDATE ON public.user_profile
+        BEFORE UPDATE ON public.user_profiles
         FOR EACH ROW EXECUTE PROCEDURE public.handle_updated_at();
     END IF;
 END $$;

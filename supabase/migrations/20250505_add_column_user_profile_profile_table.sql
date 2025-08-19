@@ -8,11 +8,11 @@ BEGIN
         AND status = 'success'
     ) THEN
 
-        ALTER TABLE public.user_profile ADD COLUMN profile TEXT;
+        ALTER TABLE public.user_profiles ADD COLUMN IF NOT EXISTS profile TEXT;
 
        
   -- Log the successful migration
         INSERT INTO public.migration_logs (migration_name, status, message)
-        VALUES ('20250505_add_column_user_profile_profile_table.sql', 'success', 'user_profile table migration ran successfully.');
+        VALUES ('20250505_add_column_user_profile_profile_table.sql', 'success', 'user_profiles table migration ran successfully.');
     END IF;
 END $$; 

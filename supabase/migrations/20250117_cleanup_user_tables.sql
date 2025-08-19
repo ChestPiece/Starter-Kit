@@ -32,16 +32,44 @@ ALTER TABLE public.user_profiles ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Public profiles are viewable by everyone." ON public.user_profiles;
 DROP POLICY IF EXISTS "Users can insert their own profile." ON public.user_profiles;
 DROP POLICY IF EXISTS "Users can update own profile." ON public.user_profiles;
+DROP POLICY IF EXISTS "Users can view own profile and admins can view all" ON public.user_profiles;
+DROP POLICY IF EXISTS "Users can update own profile and admins can update all" ON public.user_profiles;
+DROP POLICY IF EXISTS "Only admins can delete user profiles" ON public.user_profiles;
 
--- Create fresh policies for user_profiles table
-CREATE POLICY "Public profiles are viewable by everyone." ON public.user_profiles
-    FOR SELECT USING (true);
+-- Create secure policies for user_profiles table
+-- Only allow users to see their own profile data, unless they are admin
+CREATE POLICY "Users can view own profile and admins can view all" ON public.user_profiles
+    FOR SELECT USING (
+        auth.uid() = id OR 
+        EXISTS (
+            SELECT 1 FROM public.user_profiles admin_profile 
+            WHERE admin_profile.id = auth.uid() 
+            AND admin_profile.role_id = 'a0eeb1f4-6b6e-4d1a-b1f7-72e1bb78c8d4'
+        )
+    );
 
 CREATE POLICY "Users can insert their own profile." ON public.user_profiles
     FOR INSERT WITH CHECK (auth.uid() = id);
 
-CREATE POLICY "Users can update own profile." ON public.user_profiles
-    FOR UPDATE USING (auth.uid() = id);
+CREATE POLICY "Users can update own profile and admins can update all" ON public.user_profiles
+    FOR UPDATE USING (
+        auth.uid() = id OR 
+        EXISTS (
+            SELECT 1 FROM public.user_profiles admin_profile 
+            WHERE admin_profile.id = auth.uid() 
+            AND admin_profile.role_id = 'a0eeb1f4-6b6e-4d1a-b1f7-72e1bb78c8d4'
+        )
+    );
+
+-- Only admins can delete user profiles
+CREATE POLICY "Only admins can delete user profiles" ON public.user_profiles
+    FOR DELETE USING (
+        EXISTS (
+            SELECT 1 FROM public.user_profiles admin_profile 
+            WHERE admin_profile.id = auth.uid() 
+            AND admin_profile.role_id = 'a0eeb1f4-6b6e-4d1a-b1f7-72e1bb78c8d4'
+        )
+    );
 
 -- Function to handle new user profile creation
 CREATE OR REPLACE FUNCTION public.handle_new_user_profile()

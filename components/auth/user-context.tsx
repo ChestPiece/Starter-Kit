@@ -17,14 +17,7 @@ import {
   initializeAuth,
   forceLogoutAndRedirect,
   validateUserSession,
-  checkSessionExpiry,
 } from "@/lib/auth-utils";
-import {
-  SESSION_CONFIG,
-  initializeSessionTracking,
-  clearSessionTracking,
-  updateLastActivity,
-} from "@/lib/session-config";
 import {
   handleForceLogoutOnStart,
   getEffectiveSessionTimeout,
@@ -508,13 +501,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         if (supaUser && session && !userRes.error && !sessionRes.error) {
           console.log("✅ Valid user session found, setting up user context");
 
-          // Initialize session tracking for valid sessions
-          try {
-            initializeSessionTracking();
-            updateLastActivity();
-          } catch (e) {
-            console.warn("Could not initialize session tracking:", e);
-          }
+          // Session tracking is handled by Supabase natively
 
           setSupabaseUser(supaUser);
 
@@ -545,7 +532,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
         // No valid user/session - clear everything and set loading to false
         console.log("❌ No valid user session found");
-        clearSessionTracking();
         setSupabaseUser(null);
         setUser(null);
         setLoading(false);
@@ -577,7 +563,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
               setUser(basicUser);
             }
           } else {
-            clearSessionTracking();
             setSupabaseUser(null);
             setUser(null);
           }
@@ -586,7 +571,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             "Final fallback auth check also failed:",
             fallbackError
           );
-          clearSessionTracking();
           setSupabaseUser(null);
           setUser(null);
         } finally {
@@ -647,9 +631,8 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
         setSupabaseUser(authUser);
 
-        // Handle specific auth events with session tracking
+        // Handle specific auth events
         if (event === "SIGNED_OUT") {
-          clearSessionTracking();
           setUser(null);
           setSupabaseUser(null);
           setLoading(false);
@@ -659,12 +642,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         if (event === "SIGNED_IN" && authUser) {
           console.log(`🔐 Processing sign-in for: ${authUser.email}`);
 
-          try {
-            initializeSessionTracking();
-            updateLastActivity();
-          } catch (e) {
-            console.warn("Could not initialize session tracking:", e);
-          }
+          // Session tracking is handled by Supabase natively
 
           // Fetch profile asynchronously without blocking
           fetchUserWithProfile(authUser).finally(() => {
@@ -694,12 +672,10 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         if (event === "TOKEN_REFRESHED") {
           if (!session) {
             console.log("❌ Token refresh failed - re-authentication required");
-            clearSessionTracking();
             setUser(null);
             setSupabaseUser(null);
             setLoading(false);
           } else {
-            updateLastActivity();
             // Fetch profile asynchronously
             fetchUserWithProfile(authUser).finally(() => {
               setLoading(false);
@@ -740,15 +716,13 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     return () => authSubscription.unsubscribe();
   }, [supabase.auth, fetchUserWithProfile]);
 
-  // Role change detection using existing tables only
+  // Role change detection using Supabase real-time subscriptions only
   useEffect(() => {
     if (!supabaseUser) return;
 
     let profileUpdateSubscription:
       | ReturnType<typeof supabase.channel>
       | undefined;
-    let rolePollingInterval: NodeJS.Timeout | undefined;
-    let lastKnownRoleId = user?.role_id || null;
 
     // Automatic role change handler
     const handleRoleChange = async (source: string) => {
@@ -757,182 +731,19 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       );
       try {
         if (supabaseUser) {
-          // Refresh the user profile in-place so UI updates without a hard reload
           await fetchUserWithProfile(supabaseUser);
         }
-        // Also nudge any server components that depend on role
-        try {
-          // Use router.refresh if available in this scope (guarded below to avoid reference errors)
-          // We cannot import the router here; rely on soft state update primarily
-          if (typeof window !== "undefined") {
-            // Trigger a soft navigation to the same path to refresh RSC boundaries
-            const url = new URL(window.location.href);
-            window.history.replaceState(
-              window.history.state,
-              "",
-              url.toString()
-            );
-          }
-        } catch (e) {
-          console.warn("Router soft refresh failed:", e);
-        }
       } catch (e) {
-        console.warn(
-          "Context refresh after role change failed, falling back to reload",
-          e
-        );
-        // As a fallback, ensure the app picks up the new role
+        console.warn("Context refresh after role change failed:", e);
+        // Fallback: refresh the page to ensure role updates are picked up
         window.location.reload();
       }
     };
 
-    // Primary polling mechanism - optimized for production reliability
-    const startRolePolling = () => {
-      const isProduction =
-        process.env.NODE_ENV === "production" ||
-        window.location.hostname !== "localhost";
-      const pollInterval = isProduction ? 3000 : 4000; // Reasonable polling for production
-      let failureCount = 0;
-
-      console.log(
-        `🔍 Starting role polling (${isProduction ? "production" : "development"} mode - ${pollInterval}ms interval)...`
-      );
-
-      if (isProduction) {
-        console.log(
-          "🚀 Production mode detected - using robust role monitoring"
-        );
-      }
-
-      rolePollingInterval = setInterval(async () => {
-        try {
-          // Dynamic timeout based on environment and failure count
-          const baseTimeout = isProduction ? 8000 : 3000;
-          const timeout = Math.min(baseTimeout + failureCount * 2000, 15000);
-
-          console.log(
-            `🔍 Checking role... (attempt ${failureCount + 1}, timeout: ${timeout}ms)`
-          );
-
-          const queryPromise = supabase
-            .from("user_profiles")
-            .select("role_id")
-            .eq("id", supabaseUser.id)
-            .maybeSingle();
-
-          const timeoutPromise = new Promise((_, reject) => {
-            setTimeout(() => reject(new Error("Query timeout")), timeout);
-          });
-
-          const { data: currentProfile, error } = (await Promise.race([
-            queryPromise,
-            timeoutPromise,
-          ])) as any;
-
-          if (!error && currentProfile) {
-            // Reset failure count on success
-            if (failureCount > 0) {
-              console.log("✅ Database connection recovered");
-              failureCount = 0;
-            }
-
-            if (currentProfile.role_id !== lastKnownRoleId) {
-              console.log(
-                `📋 Role changed from ${lastKnownRoleId} to ${currentProfile.role_id}`
-              );
-              lastKnownRoleId = currentProfile.role_id;
-              await handleRoleChange("primary polling");
-            }
-          } else if (error) {
-            console.warn("Role query error:", error);
-            failureCount = Math.min(failureCount + 1, 5);
-          }
-        } catch (error: any) {
-          failureCount = Math.min(failureCount + 1, 5);
-          if (error.message === "Query timeout") {
-            console.warn(
-              `⚠️ Role polling timed out (${failureCount} failures) - will retry with longer timeout`
-            );
-          } else {
-            console.warn(
-              `⚠️ Role polling failed (${failureCount} failures):`,
-              error
-            );
-          }
-        }
-      }, pollInterval);
-    };
-
-    // Immediate role check on load with robust timeout
-    const checkRoleImmediately = async () => {
-      try {
-        console.log("🔍 Checking role immediately on load...");
-
-        const isProduction =
-          process.env.NODE_ENV === "production" ||
-          window.location.hostname !== "localhost";
-        const timeout = isProduction ? 10000 : 5000;
-
-        const queryPromise = supabase
-          .from("user_profiles")
-          .select("role_id")
-          .eq("id", supabaseUser.id)
-          .maybeSingle();
-
-        const timeoutPromise = new Promise((_, reject) => {
-          setTimeout(() => reject(new Error("Initial check timeout")), timeout);
-        });
-
-        const { data: currentProfile, error } = (await Promise.race([
-          queryPromise,
-          timeoutPromise,
-        ])) as any;
-
-        if (
-          !error &&
-          currentProfile &&
-          currentProfile.role_id !== lastKnownRoleId
-        ) {
-          console.log(
-            `📋 Role difference detected on load: ${lastKnownRoleId} -> ${currentProfile.role_id}`
-          );
-          lastKnownRoleId = currentProfile.role_id;
-          await handleRoleChange("immediate check");
-        } else if (!error) {
-          console.log("✅ Role is current");
-        } else {
-          console.warn("Role check returned error:", error);
-        }
-      } catch (error: any) {
-        if (error.message === "Initial check timeout") {
-          console.warn(
-            "⚠️ Initial role check timed out - will rely on polling"
-          );
-        } else {
-          console.warn("⚠️ Immediate role check failed:", error);
-        }
-      }
-    };
-
-    // Additional failsafe: Check role when user returns to page
-    const handleVisibilityChange = () => {
-      if (!document.hidden) {
-        console.log("📱 Page became visible - checking role for changes");
-        checkRoleImmediately();
-      }
-    };
-
-    // Add visibility change listener for extra reliability
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-
-    // Check immediately then start polling
-    checkRoleImmediately();
-    startRolePolling();
-
+    // Use Supabase real-time subscriptions for role changes
     try {
-      // Secondary method: Real-time subscription (works better in development)
       profileUpdateSubscription = supabase
-        .channel("profile_updates")
+        .channel(`profile_updates_${supabaseUser.id}`)
         .on(
           "postgres_changes",
           {
@@ -945,52 +756,43 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             const oldRecord = payload.old as any;
             const newRecord = payload.new as any;
 
+            console.log("📡 Real-time profile update received");
+
             if (oldRecord?.role_id !== newRecord?.role_id) {
-              console.log("🚀 Real-time role change detected (secondary)");
-              lastKnownRoleId = newRecord?.role_id;
-              await handleRoleChange("real-time update");
+              console.log(
+                `📋 Role changed from ${oldRecord?.role_id} to ${newRecord?.role_id}`
+              );
+              await handleRoleChange("real-time subscription");
             } else {
-              // Non-role updates, just refresh user data
+              // Non-role updates, just refresh user data silently
               await fetchUserWithProfile(supabaseUser);
             }
           }
         )
         .subscribe((status) => {
           if (status === "SUBSCRIBED") {
-            console.log("✅ Real-time monitoring active (secondary method)");
-          } else {
-            console.log(
-              "ℹ️ Real-time subscription not available, relying on polling"
+            console.log("✅ Real-time role monitoring active");
+          } else if (status === "CHANNEL_ERROR") {
+            console.warn(
+              "❌ Real-time subscription failed - role changes may not be detected immediately"
             );
           }
         });
     } catch (error) {
-      console.log(
-        "ℹ️ Real-time setup failed, using polling only (this is normal in production):",
-        error
-      );
+      console.warn("Failed to set up real-time role monitoring:", error);
     }
 
     return () => {
-      // Clean up polling
-      if (rolePollingInterval) {
-        clearInterval(rolePollingInterval);
-        console.log("🛑 Stopped role polling");
-      }
-
-      // Remove visibility change listener
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-
       if (profileUpdateSubscription) {
         try {
           profileUpdateSubscription.unsubscribe();
-          console.log("🛑 Stopped profile monitoring");
+          console.log("🛑 Stopped real-time profile monitoring");
         } catch (error) {
-          console.warn("Error unsubscribing profile updates:", error);
+          console.warn("Error unsubscribing from profile updates:", error);
         }
       }
     };
-  }, [supabaseUser, fetchUserWithProfile, supabase, user?.role_id]);
+  }, [supabaseUser, fetchUserWithProfile, supabase]);
 
   return (
     <UserContext.Provider

@@ -9,7 +9,8 @@ export const usersService = {
     const supabase = createClient();
     
     try {
-      const { data: newUser, error } = await supabase
+      // Add timeout protection for database operations
+      const insertPromise = supabase
         .from('user_profiles')
         .insert([
           {
@@ -24,7 +25,22 @@ export const usersService = {
         .select('*, roles(name)')
         .single();
 
-      if (error) throw error;
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Database insert timeout')), 15000);
+      });
+
+      const { data: newUser, error } = await Promise.race([insertPromise, timeoutPromise]) as any;
+
+      if (error) {
+        // Handle specific error types
+        if (error.code === '23505') { // Unique constraint violation
+          throw new Error(`User with email ${data.email} already exists`);
+        }
+        if (error.code === '23503') { // Foreign key constraint violation
+          throw new Error('Invalid role_id provided');
+        }
+        throw error;
+      }
       return newUser;
     } catch (error) {
       console.error("Error inserting user:", error);
@@ -46,7 +62,8 @@ export const usersService = {
     const supabase = createClient();
     
     try {
-      const { data: users, error } = await supabase
+      // Add timeout protection for database queries
+      const queryPromise = supabase
         .from('user_profiles')
         .select(`
           *,
@@ -57,8 +74,31 @@ export const usersService = {
         `)
         .order('created_at', { ascending: false });
 
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Database query timeout')), 10000);
+      });
+
+      const { data: users, error } = await Promise.race([queryPromise, timeoutPromise]) as any;
+
       if (error) {
         console.error("Error fetching users:", error);
+        
+        // Try fallback query without role join if join fails
+        if (error.message?.includes('roles') || error.message?.includes('relation')) {
+          console.log("Retrying query without role join...");
+          const { data: basicUsers, error: basicError } = await supabase
+            .from('user_profiles')
+            .select('*')
+            .order('created_at', { ascending: false });
+          
+          if (!basicError && basicUsers) {
+            return basicUsers.map(user => ({
+              ...user,
+              roles: { name: 'user' } // Default role for fallback
+            }));
+          }
+        }
+        
         throw error;
       }
 
@@ -144,7 +184,8 @@ export const usersService = {
     const supabase = createClient();
     
     try {
-      const { error } = await supabase
+      // Add timeout protection for database operations
+      const updatePromise = supabase
         .from('user_profiles')
         .update({
           first_name: data.first_name,
@@ -157,7 +198,25 @@ export const usersService = {
         })
         .eq('id', data.id);
 
-      if (error) throw error;
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Database update timeout')), 10000);
+      });
+
+      const { error } = await Promise.race([updatePromise, timeoutPromise]) as any;
+
+      if (error) {
+        // Handle specific error types
+        if (error.code === '23505') { // Unique constraint violation
+          throw new Error(`User with email ${data.email} already exists`);
+        }
+        if (error.code === '23503') { // Foreign key constraint violation
+          throw new Error('Invalid role_id provided');
+        }
+        if (error.code === 'PGRST116') { // No rows found
+          throw new Error(`User with id ${data.id} not found`);
+        }
+        throw error;
+      }
     } catch (error) {
       console.error("Error updating user:", error);
       throw error;

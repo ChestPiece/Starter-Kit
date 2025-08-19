@@ -1,7 +1,7 @@
-// GraphQL mutation to insert user into users table
+// GraphQL mutation to insert user into user_profiles table
 export const INSERT_USER = `
-  mutation InsertUser($objects: [user_profileInsertInput!]!) {
-    insertIntouser_profileCollection(objects: $objects) {
+  mutation InsertUser($objects: [user_profilesInsertInput!]!) {
+    insertIntouser_profilesCollection(objects: $objects) {
       affectedCount
       records {
         id
@@ -16,11 +16,16 @@ export const INSERT_USER = `
     }
   }
 `;
+
 export const GET_USERS_PAGINATION = `
 query GetUsers($search: String, $limit: Int = 10, $offset: Int = 0) {
-  user_profileCollection(
+  user_profilesCollection(
     filter: {
-      email: { ilike: $search }
+      or: [
+        { email: { ilike: $search } },
+        { first_name: { ilike: $search } },
+        { last_name: { ilike: $search } }
+      ]
     }
     first: $limit
     offset: $offset
@@ -55,10 +60,17 @@ query GetUsers($search: String, $limit: Int = 10, $offset: Int = 0) {
   }
 }
 `;
+
 export const GET_USERS_COUNT = `
 query CountUsers($search: String) {
-  user_profileCollection(
-    filter: { email: { ilike: $search } }
+  user_profilesCollection(
+    filter: {
+      or: [
+        { email: { ilike: $search } },
+        { first_name: { ilike: $search } },
+        { last_name: { ilike: $search } }
+      ]
+    }
   ) {
     edges{
       node{
