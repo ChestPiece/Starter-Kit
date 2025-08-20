@@ -62,9 +62,17 @@ export function isAuthTab(): boolean {
 export function shouldAllowAuth(): boolean {
   if (typeof window === 'undefined') return true;
   
-  // Allow if this is the auth tab or if no auth tab is set
+  const currentTabId = getCurrentTabId();
   const authTabId = localStorage.getItem(AUTH_TAB_KEY);
-  return !authTabId || isAuthTab();
+  
+  // Allow if no auth tab is set (first login)
+  if (!authTabId) return true;
+  
+  // Allow if this is the auth tab
+  if (currentTabId === authTabId) return true;
+  
+  // Don't allow for other tabs
+  return false;
 }
 
 /**
@@ -178,6 +186,55 @@ export function initializeTabIsolation(): void {
       localStorage.setItem(TAB_SESSION_KEY, JSON.stringify(cleanSessions));
     } catch (error) {
       console.warn('Failed to clean old sessions:', error);
+    }
+  }
+}
+
+/**
+ * Check if auth state change should be blocked for this tab
+ */
+export function shouldBlockAuthStateChange(event: string): boolean {
+  if (typeof window === 'undefined') return false;
+  
+  // Always allow sign out events
+  if (event === 'SIGNED_OUT') return false;
+  
+  // For sign in events, only allow in the auth tab or refreshed tabs
+  if (event === 'SIGNED_IN') {
+    return !shouldAllowAuth() && !wasTabRefreshed();
+  }
+  
+  // Allow token refresh for authenticated tabs
+  if (event === 'TOKEN_REFRESHED') {
+    return !isAuthTab() && !wasTabRefreshed();
+  }
+  
+  return false;
+}
+
+/**
+ * Force sign out in non-auth tabs to prevent cross-tab authentication
+ */
+export function enforceTabIsolation(supabaseClient: any): void {
+  if (typeof window === 'undefined') return;
+  
+  if (!shouldAllowAuth() && !wasTabRefreshed()) {
+    const tabId = getCurrentTabId();
+    
+    // Prevent multiple signout calls for the same tab
+    const lastSignoutKey = `last_signout_${tabId}`;
+    const lastSignout = sessionStorage.getItem(lastSignoutKey);
+    const now = Date.now();
+    
+    // Only sign out if we haven't done so in the last 5 seconds
+    if (!lastSignout || (now - parseInt(lastSignout)) > 5000) {
+      console.log(`🚫 Enforcing tab isolation - signing out tab ${tabId}`);
+      sessionStorage.setItem(lastSignoutKey, now.toString());
+      
+      // Use silent signout to prevent triggering more auth events
+      supabaseClient.auth.signOut({ scope: 'local' }).catch((error: any) => {
+        console.warn('Silent signout failed:', error);
+      });
     }
   }
 }

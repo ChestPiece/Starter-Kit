@@ -84,6 +84,8 @@ function LoginPageInner() {
           return "Email confirmation timed out. Please try signing in.";
         case "email_confirmed":
           return "Email confirmed successfully! You can now sign in.";
+        case "password_reset_success":
+          return "Password updated successfully! You can now sign in with your new password.";
         case "please_login":
           return "Please sign in to continue.";
         default:
@@ -145,6 +147,9 @@ function LoginPageInner() {
           onBack={() => setCurrentView("login")}
           onEmailSent={() => {
             setCurrentView("login");
+            setReasonMessage(
+              "Password reset email sent! Please check your inbox and follow the instructions."
+            );
           }}
         />
       )}

@@ -145,12 +145,5 @@
     @apply bg-background text-foreground;
   }
 
-  /* Global text selection styling - neutral colors */
-  ::selection {
-    @apply bg-gray-200 text-gray-900;
-  }
-
-  .dark ::selection {
-    @apply bg-gray-700 text-gray-100;
-  }
+  /* Use browser default text selection colors */
 }

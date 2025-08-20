@@ -92,11 +92,14 @@ export function SignupForm() {
     setError(null);
 
     try {
+      // Get the current origin for proper redirect URL
+      const origin = window.location.origin;
+
       const { error } = await supabase.auth.signUp({
         email: data.email,
         password: data.password,
         options: {
-          emailRedirectTo: `${window.location.origin}/api/auth/confirm`,
+          emailRedirectTo: `${origin}/api/auth/confirm`,
           data: {
             first_name: data.firstName.trim(),
             last_name: data.lastName.trim(),
@@ -115,12 +118,27 @@ export function SignupForm() {
           error.message.includes("connection")
         ) {
           setError("Connection failed. Please check your internet connection.");
-        } else if (error.message.includes("User already registered")) {
-          setError("Account already exists. Please try logging in.");
+        } else if (
+          error.message.includes("User already registered") ||
+          error.message.includes("already been registered")
+        ) {
+          setError(
+            "An account with this email already exists. Please try logging in instead."
+          );
         } else if (error.message.includes("Invalid email")) {
           setError("Please enter a valid email address.");
-        } else if (error.message.includes("Password")) {
+        } else if (
+          error.message.includes("Password") ||
+          error.message.includes("password")
+        ) {
           setError("Password must be at least 6 characters long.");
+        } else if (
+          error.message.includes("rate limit") ||
+          error.message.includes("security purposes")
+        ) {
+          setError(
+            "Too many signup attempts. Please wait a moment before trying again."
+          );
         } else if (
           error.message.includes("email") &&
           error.message.includes("confirm")
@@ -128,13 +146,16 @@ export function SignupForm() {
           setError(
             "Email confirmation is required. Please check your email after signing up."
           );
+        } else if (error.message.includes("signup disabled")) {
+          setError(
+            "Account creation is temporarily disabled. Please contact support."
+          );
         } else {
-          // Show the actual error message for debugging if it's not sensitive
-          const errorMessage =
-            error.message.length < 100
-              ? error.message
-              : "Unable to create account. Please try again.";
-          setError(errorMessage);
+          // Show a helpful error message for debugging
+          console.error("Full signup error:", error);
+          setError(
+            "Unable to create account. Please check your information and try again."
+          );
         }
         setLoading(false);
         return;

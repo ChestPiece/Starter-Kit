@@ -23,6 +23,8 @@ import {
   getTabSession,
   clearTabSession,
   resetTabIsolation,
+  shouldBlockAuthStateChange,
+  enforceTabIsolation,
 } from "@/lib/auth/tab-isolation";
 import {
   setupSessionMonitoring,
@@ -111,9 +113,16 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       userService.clearCache();
       await refreshUser();
 
-      // Also refresh the router to update any server-side role checks
+      // Also refresh the router to update any server-side role checks (rate limited)
       try {
-        router.refresh();
+        const lastRefresh = sessionStorage.getItem("last_router_refresh");
+        const now = Date.now();
+
+        // Only refresh if it's been more than 2 seconds since last refresh
+        if (!lastRefresh || now - parseInt(lastRefresh) > 2000) {
+          router.refresh();
+          sessionStorage.setItem("last_router_refresh", now.toString());
+        }
       } catch (e) {
         console.warn("Router refresh failed:", e);
       }
@@ -124,6 +133,11 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   const checkRoleNow = useCallback(async () => {
     if (!supabaseUser) return;
 
+    // Capture current user values to avoid dependency issues
+    const currentUser = user;
+    const storedRoleId = currentUser?.role_id;
+    const storedRoleName = (currentUser?.roles as any)?.name;
+
     try {
       const { data: currentProfile, error } = await supabase
         .from("user_profiles")
@@ -133,9 +147,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
       if (!error && currentProfile) {
         const currentRoleId = currentProfile.role_id;
-        const storedRoleId = user?.role_id;
         const currentRoleName = (currentProfile.roles as any)?.name;
-        const storedRoleName = (user?.roles as any)?.name;
 
         // Check if role has actually changed
         if (
@@ -158,7 +170,8 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     } catch (error) {
       console.error("Error checking role:", error);
     }
-  }, [supabaseUser, supabase, user, refreshUser]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [supabaseUser, supabase, refreshUser]);
 
   useEffect(() => {
     // Initialize tab isolation system
@@ -176,8 +189,20 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         const supaUser = userRes.data?.user;
         const session = sessionRes.data?.session;
 
-        // If we have a user and session, set them up
+        // If we have a user and session, check if this tab should be authenticated
         if (supaUser && session && !userRes.error && !sessionRes.error) {
+          // Enforce tab isolation - only allow auth in proper tabs
+          if (!shouldAllowAuth() && !wasTabRefreshed()) {
+            console.log(
+              `🚫 Initial auth blocked for tab ${getCurrentTabId()} - not the auth tab`
+            );
+            enforceTabIsolation(supabase);
+            setSupabaseUser(null);
+            setUser(null);
+            setLoading(false);
+            return;
+          }
+
           setSupabaseUser(supaUser);
 
           // Fetch user profile asynchronously
@@ -224,13 +249,35 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       data: { subscription: authSubscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
       try {
-        // Only log significant auth state changes
+        // Only log significant auth state changes (rate limited to prevent spam)
+        const logKey = `auth_log_${event}`;
+        const lastLog = sessionStorage.getItem(logKey);
+        const now = Date.now();
+
         if (
-          event === "SIGNED_IN" ||
-          event === "SIGNED_OUT" ||
-          event === "TOKEN_REFRESHED"
+          (event === "SIGNED_IN" ||
+            event === "SIGNED_OUT" ||
+            event === "TOKEN_REFRESHED") &&
+          (!lastLog || now - parseInt(lastLog) > 1000)
         ) {
-          console.log(`🔐 Auth event: ${event}`);
+          console.log(`🔐 Auth event: ${event} in tab: ${getCurrentTabId()}`);
+          sessionStorage.setItem(logKey, now.toString());
+        }
+
+        // Check if this auth state change should be blocked
+        if (shouldBlockAuthStateChange(event)) {
+          console.log(
+            `🚫 Blocking auth state change ${event} in tab ${getCurrentTabId()}`
+          );
+
+          // Force sign out and keep user signed out in this tab
+          setSupabaseUser(null);
+          setUser(null);
+          setLoading(false);
+
+          // Enforce tab isolation at Supabase level
+          enforceTabIsolation(supabase);
+          return;
         }
 
         // Use session user directly - Supabase handles auth state efficiently
@@ -258,22 +305,20 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             `🔐 Processing sign-in for: ${authUser.email} in tab: ${tabId}`
           );
 
-          // Tab isolation: Only allow auth in the tab that performed login or if refreshed
-          if (!shouldAllowAuth() && !wasTabRefreshed()) {
-            console.log(
-              `🚫 Tab isolation: Sign-in blocked for tab ${tabId} - not the auth tab`
-            );
-            // Keep user signed out in this tab
-            setSupabaseUser(null);
-            setUser(null);
-            setLoading(false);
-            return;
-          }
-
           if (wasTabRefreshed()) {
             console.log(
               `🔄 Tab ${tabId} was refreshed - allowing auth state sync`
             );
+          } else if (!shouldAllowAuth()) {
+            console.log(
+              `🚫 Tab isolation: Sign-in blocked for tab ${tabId} - not the auth tab`
+            );
+            // This should not happen as it's already handled above, but double-check
+            setSupabaseUser(null);
+            setUser(null);
+            setLoading(false);
+            enforceTabIsolation(supabase);
+            return;
           }
 
           // Session tracking is handled by Supabase natively
@@ -340,7 +385,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     setupSessionMonitoring();
 
     return () => authSubscription.unsubscribe();
-  }, [supabase.auth, fetchUserWithProfile]);
+  }, [supabase.auth, supabase, fetchUserWithProfile]);
 
   // Real-time user updates using centralized service
   useEffect(() => {

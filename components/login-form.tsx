@@ -26,7 +26,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Eye, EyeOff, Loader2, AlertCircle, Check } from "lucide-react";
+import { Eye, EyeOff, Loader2, AlertCircle } from "lucide-react";
 import Link from "next/link";
 import {
   markAsAuthTab,
@@ -54,7 +54,6 @@ export function LoginForm({
 }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const router = useRouter();
   const supabase = createClient();
@@ -79,7 +78,6 @@ export function LoginForm({
   const onSubmit = async (data: LoginFormData) => {
     setLoading(true);
     setError(null);
-    setSuccessMessage(null);
 
     try {
       const { data: authData, error } = await supabase.auth.signInWithPassword({
@@ -125,17 +123,13 @@ export function LoginForm({
           console.warn("Failed to initialize session tracking:", e);
         }
 
-        // Wait a bit for auth state to propagate, then redirect
-        console.log("🔄 Login successful, redirecting to dashboard...");
+        // Login successful - redirect directly to dashboard
+        console.log("✅ Login successful - redirecting to dashboard");
 
-        // Use Next.js router for clean navigation
-        setTimeout(() => {
-          router.push("/");
-          // Clear loading state after successful navigation
-          setTimeout(() => setLoading(false), 500);
-        }, 1000);
+        // Redirect immediately without showing success message
+        router.push("/");
 
-        // Keep loading state during redirect
+        setLoading(false);
       }
     } catch (error) {
       console.error("Login error:", error);
@@ -176,15 +170,6 @@ export function LoginForm({
             <AlertCircle className="h-4 w-4" />
             <AlertDescription className="text-red-800">
               {error}
-            </AlertDescription>
-          </Alert>
-        )}
-
-        {successMessage && (
-          <Alert className="mb-4 border-green-200 bg-green-50">
-            <Check className="h-4 w-4 text-green-600" />
-            <AlertDescription className="text-green-800">
-              {successMessage}
             </AlertDescription>
           </Alert>
         )}
@@ -238,20 +223,19 @@ export function LoginForm({
                             className="pr-10"
                             disabled={loading}
                           />
-                          <Button
+                          <button
                             type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="absolute right-0 top-0 h-full px-3 hover:bg-gray-100"
+                            className="absolute right-2 top-1/2 transform -translate-y-1/2 p-1 rounded-md hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:ring-offset-2 disabled:opacity-50"
                             onClick={() => setShowPassword(!showPassword)}
                             disabled={loading}
+                            tabIndex={-1}
                           >
                             {showPassword ? (
                               <EyeOff className="h-4 w-4 text-gray-400 hover:text-gray-600" />
                             ) : (
                               <Eye className="h-4 w-4 text-gray-400 hover:text-gray-600" />
                             )}
-                          </Button>
+                          </button>
                         </div>
                       </FormControl>
                       <FormMessage />

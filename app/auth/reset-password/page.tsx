@@ -109,8 +109,10 @@ function ResetPasswordInner() {
         );
       } else {
         setSuccess(true);
+        // Sign out the user after successful password reset
+        await supabase.auth.signOut();
         setTimeout(() => {
-          router.replace("/");
+          router.replace("/auth/login?message=password_reset_success");
         }, 2000);
       }
     } catch (err) {
@@ -167,10 +169,10 @@ function ResetPasswordInner() {
         <CardHeader className="text-center">
           <CheckCircle className="w-16 h-16 text-green-600 mx-auto mb-4" />
           <CardTitle className="text-2xl font-bold text-green-600">
-            Password Updated
+            Password Updated Successfully
           </CardTitle>
           <CardDescription className="text-gray-600">
-            Redirecting you to the app...
+            Taking you to the login page to sign in with your new password...
           </CardDescription>
         </CardHeader>
       </Card>
@@ -206,19 +208,18 @@ function ResetPasswordInner() {
                 className="pr-10"
                 required
               />
-              <Button
+              <button
                 type="button"
-                variant="ghost"
-                size="sm"
-                className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-gray-100"
+                className="absolute right-2 top-1/2 transform -translate-y-1/2 p-1 rounded-md hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:ring-offset-2"
                 onClick={() => setShowPassword(!showPassword)}
+                tabIndex={-1}
               >
                 {showPassword ? (
                   <EyeOff className="h-4 w-4 text-gray-500" />
                 ) : (
                   <Eye className="h-4 w-4 text-gray-500" />
                 )}
-              </Button>
+              </button>
             </div>
             <p className="text-xs text-gray-500">
               Password must be at least 8 characters with uppercase, lowercase,
@@ -238,19 +239,18 @@ function ResetPasswordInner() {
                 className="pr-10"
                 required
               />
-              <Button
+              <button
                 type="button"
-                variant="ghost"
-                size="sm"
-                className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-gray-100"
+                className="absolute right-2 top-1/2 transform -translate-y-1/2 p-1 rounded-md hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:ring-offset-2"
                 onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                tabIndex={-1}
               >
                 {showConfirmPassword ? (
                   <EyeOff className="h-4 w-4 text-gray-500" />
                 ) : (
                   <Eye className="h-4 w-4 text-gray-500" />
                 )}
-              </Button>
+              </button>
             </div>
           </div>
 

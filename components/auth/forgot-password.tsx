@@ -49,21 +49,65 @@ export function ForgotPassword({ onBack, onEmailSent }: ForgotPasswordProps) {
     setError("");
 
     try {
+      // Get the current origin for proper redirect URL
+      const origin = window.location.origin;
+
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || window.location.origin}/auth/reset-password`,
+        redirectTo: `${origin}/auth/reset-password`,
       });
 
       if (error) {
-        // Show generic message to avoid enumeration
-        setError(
-          "If an account with that email exists, you will receive a password reset link."
-        );
+        console.error("Password reset error:", error);
+
+        // Handle specific error types
+        if (
+          error.message?.includes("rate limit") ||
+          error.message?.includes("security purposes") ||
+          error.message?.includes("send rate limit")
+        ) {
+          // Extract wait time from error message if available
+          const waitTimeMatch = error.message?.match(/(\d+)\s*seconds?/);
+          const waitSeconds = waitTimeMatch ? parseInt(waitTimeMatch[1]) : 60;
+
+          if (waitSeconds < 60) {
+            setError(
+              `Too many reset requests. Please wait ${waitSeconds} seconds before trying again.`
+            );
+          } else {
+            const waitMinutes = Math.ceil(waitSeconds / 60);
+            setError(
+              `Too many reset requests. Please wait ${waitMinutes} minute${waitMinutes > 1 ? "s" : ""} before trying again.`
+            );
+          }
+        } else if (
+          error.message?.includes("User not found") ||
+          error.message?.includes("email not found")
+        ) {
+          // Generic message to avoid email enumeration attacks
+          setError(
+            "If an account with that email exists, you will receive a password reset link."
+          );
+          // Still call onEmailSent to show success UI (security practice)
+          setTimeout(() => onEmailSent(), 1000);
+        } else if (error.message?.includes("Invalid email")) {
+          setError("Please enter a valid email address.");
+        } else {
+          // Generic error message for other failures
+          setError(
+            "Unable to send reset email at this time. Please try again later."
+          );
+          console.error("Unexpected password reset error:", error);
+        }
       } else {
+        // Success - always show success message
+        console.log(`✅ Password reset email sent to ${email}`);
+        setError("");
         onEmailSent();
       }
     } catch (err) {
+      console.error("Password reset request failed:", err);
       setError(
-        err instanceof Error ? err.message : "An unexpected error occurred"
+        "Connection failed. Please check your internet connection and try again."
       );
     } finally {
       setIsLoading(false);
