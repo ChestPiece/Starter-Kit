@@ -3,16 +3,30 @@ import { createClient } from '@/lib/supabase/server';
 import { rateLimiter, rateLimitConfigs, getClientIP } from '@/lib/utils/rate-limiter';
 import { errorLogger } from '@/lib/services/error-logger';
 import { developmentLogger } from '@/lib/middleware/api-logger';
+import { auditLogger, extractAuditContext } from '@/lib/services/audit-logger';
 
 // Apply API logging middleware
 const loggedPOST = developmentLogger(async (req: NextRequest) => {
   try {
     // Check rate limiting first
     const clientIP = getClientIP(req);
-    if (rateLimiter.isRateLimited(clientIP, rateLimitConfigs.graphql)) {
+    const rateLimitInfo = rateLimiter.getRateLimitInfo(clientIP, rateLimitConfigs.graphql);
+    
+    if (rateLimitInfo.isLimited) {
       return NextResponse.json(
-        { error: rateLimitConfigs.graphql.message },
-        { status: 429 }
+        { 
+          error: rateLimitInfo.message,
+          retryAfter: rateLimitInfo.retryAfter,
+          remaining: rateLimitInfo.remaining
+        },
+        { 
+          status: 429,
+          headers: {
+            'Retry-After': rateLimitInfo.retryAfter?.toString() || '60',
+            'X-RateLimit-Remaining': rateLimitInfo.remaining.toString(),
+            'X-RateLimit-Reset': rateLimitInfo.resetTime?.toString() || ''
+          }
+        }
       );
     }
 
@@ -34,6 +48,57 @@ const loggedPOST = developmentLogger(async (req: NextRequest) => {
       return NextResponse.json(
         { error: 'Query is required' },
         { status: 400 }
+      );
+    }
+
+    // Extract audit context
+    const auditContext = extractAuditContext(req, {
+      id: user.id,
+      email: user.email || 'unknown@example.com'
+    });
+
+    // Detect if this is a sensitive mutation that needs auditing
+    const isMutation = query.trim().toLowerCase().startsWith('mutation');
+    const sensitiveOperations = [
+      'insertintouser_profilescollection',
+      'updateuser_profilecollection', 
+      'deletefromuser_profilecollection',
+      'insertuuser',
+      'updateuser',
+      'deleteuser',
+      'updatesettingscollection',
+      'insertintosettingscollection'
+    ];
+
+    const queryLower = query.toLowerCase().replace(/\s+/g, '');
+    const isSensitiveOperation = sensitiveOperations.some(op => 
+      queryLower.includes(op.toLowerCase())
+    );
+
+    // Log sensitive operations before execution
+    if (isMutation && isSensitiveOperation) {
+      const operationType = queryLower.includes('user') ? 'user' : 
+                           queryLower.includes('role') ? 'role' : 
+                           queryLower.includes('settings') ? 'settings' : 'unknown';
+      
+      const action = queryLower.includes('insert') ? 'CREATE' :
+                    queryLower.includes('update') ? 'UPDATE' :
+                    queryLower.includes('delete') ? 'DELETE' : 'READ';
+
+      // Pre-execution audit log
+      await auditLogger.log(
+        `GraphQL ${action} ${operationType}`,
+        operationType,
+        action,
+        auditContext,
+        { 
+          query: query.substring(0, 200) + (query.length > 200 ? '...' : ''),
+          variables: variables || {}
+        },
+        variables?.id || null,
+        true, // Will update this after execution
+        undefined,
+        { preExecution: true }
       );
     }
 
@@ -64,6 +129,37 @@ const loggedPOST = developmentLogger(async (req: NextRequest) => {
     }
 
     const result = await response.json();
+    
+    // Post-execution audit log for sensitive operations
+    if (isMutation && isSensitiveOperation) {
+      const operationType = queryLower.includes('user') ? 'user' : 
+                           queryLower.includes('role') ? 'role' : 
+                           queryLower.includes('settings') ? 'settings' : 'unknown';
+      
+      const action = queryLower.includes('insert') ? 'CREATE' :
+                    queryLower.includes('update') ? 'UPDATE' :
+                    queryLower.includes('delete') ? 'DELETE' : 'READ';
+
+      const success = !result.errors && result.data;
+      const errorMessage = result.errors ? 
+        result.errors.map((e: any) => e.message).join(', ') : undefined;
+
+      await auditLogger.log(
+        `GraphQL ${action} ${operationType} - Completed`,
+        operationType,
+        action,
+        auditContext,
+        { 
+          affectedCount: result.data ? (Object.values(result.data)[0] as any)?.affectedCount || 0 : 0,
+          hasErrors: !!result.errors
+        },
+        variables?.id || null,
+        success,
+        errorMessage,
+        { postExecution: true }
+      );
+    }
+    
     return NextResponse.json({ data: result.data });
   } catch (error: any) {
     errorLogger.error(error, { 

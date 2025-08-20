@@ -1,0 +1,405 @@
+[
+  {
+    "id": "TC001",
+    "title": "Magic Link Login Success",
+    "description": "Verify that a user can successfully login using a valid magic link sent to their email.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to the login page."
+      },
+      {
+        "type": "action",
+        "description": "Enter a registered email address in the login form."
+      },
+      {
+        "type": "action",
+        "description": "Submit the form to request a magic link."
+      },
+      {
+        "type": "assertion",
+        "description": "Check that a success message is displayed indicating the magic link has been sent."
+      },
+      {
+        "type": "action",
+        "description": "Simulate clicking the magic link received by email."
+      },
+      {
+        "type": "action",
+        "description": "Authenticate the user session via the auth callback page."
+      },
+      {
+        "type": "assertion",
+        "description": "Ensure the user is redirected to the protected account page and session is established."
+      }
+    ]
+  },
+  {
+    "id": "TC002",
+    "title": "Magic Link Login with Invalid Email",
+    "description": "Verify that submitting an invalid or unregistered email in the magic link login shows appropriate error.",
+    "category": "error handling",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to the login page."
+      },
+      {
+        "type": "action",
+        "description": "Enter an unregistered or invalid email address."
+      },
+      {
+        "type": "action",
+        "description": "Submit the form to request a magic link."
+      },
+      {
+        "type": "assertion",
+        "description": "Check that an error message is displayed indicating the email is invalid or not found."
+      }
+    ]
+  },
+  {
+    "id": "TC003",
+    "title": "Signup and Email Confirmation Flow",
+    "description": "Verify that new user can sign up, receive confirmation email, and confirm email leading to account activation.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to the signup page."
+      },
+      {
+        "type": "action",
+        "description": "Fill in the signup form with valid email and password."
+      },
+      {
+        "type": "action",
+        "description": "Submit the signup form."
+      },
+      {
+        "type": "assertion",
+        "description": "Check that the app notifies user that a confirmation email has been sent."
+      },
+      {
+        "type": "action",
+        "description": "Simulate visiting the email confirmation link with valid query parameters code, token_hash, and type."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the backend API processes the confirmation and redirects to the login or confirmation success page."
+      },
+      {
+        "type": "action",
+        "description": "Attempt login with newly confirmed account."
+      },
+      {
+        "type": "assertion",
+        "description": "Check that login succeeds and user is redirected to the protected area."
+      }
+    ]
+  },
+  {
+    "id": "TC004",
+    "title": "Email Confirmation with Invalid or Expired Token",
+    "description": "Verify that email confirmation fails with invalid, missing, or expired tokens and gives user appropriate feedback.",
+    "category": "error handling",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to email confirmation API endpoint with invalid or missing code/token_hash parameters."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify server returns redirect to login page with error indication or displays error page."
+      }
+    ]
+  },
+  {
+    "id": "TC005",
+    "title": "Password Reset Flow Success",
+    "description": "Verify that users can request and complete a password reset via email link successfully.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to the reset password page."
+      },
+      {
+        "type": "action",
+        "description": "Submit a registered email to request password reset link."
+      },
+      {
+        "type": "assertion",
+        "description": "Check that message confirms password reset email sent."
+      },
+      {
+        "type": "action",
+        "description": "Simulate clicking password reset link from email."
+      },
+      {
+        "type": "action",
+        "description": "Enter new valid password and submit."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify password gets updated and user can log in successfully with the new password."
+      }
+    ]
+  },
+  {
+    "id": "TC006",
+    "title": "Password Reset with Invalid Email",
+    "description": "Verify that submitting an unregistered email to password reset flow shows meaningful error.",
+    "category": "error handling",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to the reset password page."
+      },
+      {
+        "type": "action",
+        "description": "Enter an unregistered email and submit request."
+      },
+      {
+        "type": "assertion",
+        "description": "Check that an error message displays indicating the email is not found."
+      }
+    ]
+  },
+  {
+    "id": "TC007",
+    "title": "Protected Route Redirects Unauthenticated Users",
+    "description": "Verify that users navigating to protected SSR routes without a valid session are redirected to login page.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Attempt to directly access protected account or user management page without authentication."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify user is redirected to the login page."
+      }
+    ]
+  },
+  {
+    "id": "TC008",
+    "title": "Session Cookie Synchronization in Middleware",
+    "description": "Verify that middleware reads session cookies from request and synchronizes cookies in response correctly to maintain session without flicker.",
+    "category": "security",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Simulate a SSR request to a protected route with valid session cookies."
+      },
+      {
+        "type": "assertion",
+        "description": "Ensure middleware refreshes tokens if needed and updates response cookies with getAll and setAll methods only, no other cookie adapter methods are used."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify that the response cookie state remains consistent with the request cookie state."
+      }
+    ]
+  },
+  {
+    "id": "TC009",
+    "title": "Service Role Key Access Restriction",
+    "description": "Verify that Supabase Service Role key is used exclusively in server-only code and never exposed via environment variables prefixed NEXT_PUBLIC_ or imported on client side.",
+    "category": "security",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Review usage of Service Role key in codebase and check no client import or NEXT_PUBLIC_ exposure."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify admin operations requiring Service Role key occur only in server-only routes or server actions."
+      }
+    ]
+  },
+  {
+    "id": "TC010",
+    "title": "Logout Flow",
+    "description": "Verify that user can securely log out from client-side using the Logout button and is redirected to login page.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Log in successfully using magic link login."
+      },
+      {
+        "type": "action",
+        "description": "Click the Logout button component."
+      },
+      {
+        "type": "assertion",
+        "description": "Ensure Supabase client signOut is called."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify user session is cleared and redirected to login page."
+      }
+    ]
+  },
+  {
+    "id": "TC011",
+    "title": "Middleware Role-Based Route Protection",
+    "description": "Verify that middleware correctly enforces role-based access control, allowing access according to assigned roles and redirecting unauthorized users.",
+    "category": "security",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Attempt to access role-protected route as authenticated user with insufficient role."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the middleware redirects the user to login or unauthorized page."
+      },
+      {
+        "type": "action",
+        "description": "Attempt to access the same route as authenticated user with required matching role."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify access is granted to protected content."
+      }
+    ]
+  },
+  {
+    "id": "TC012",
+    "title": "Login Page UX States for Magic Link",
+    "description": "Verify the login page displays proper UX states including loading, error on invalid email submission, and success message after submitting valid email.",
+    "category": "ui",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to login page."
+      },
+      {
+        "type": "action",
+        "description": "Enter invalid email and submit."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify that an error message is displayed."
+      },
+      {
+        "type": "action",
+        "description": "Enter valid email and submit."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify loading spinner or state is shown during request."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify success message appears after request."
+      }
+    ]
+  },
+  {
+    "id": "TC013",
+    "title": "API Endpoint: Confirm Email via GET",
+    "description": "Test the GET /api/auth/confirm endpoint with valid, missing, and invalid query parameters.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Send GET request to /api/auth/confirm with valid code, token_hash, and type."
+      },
+      {
+        "type": "assertion",
+        "description": "Expect HTTP 302 redirect to confirmation or login page."
+      },
+      {
+        "type": "action",
+        "description": "Send GET request with missing or invalid parameters."
+      },
+      {
+        "type": "assertion",
+        "description": "Expect HTTP 302 redirect to login page or error message."
+      }
+    ]
+  },
+  {
+    "id": "TC014",
+    "title": "API Endpoint: Resend Confirmation Email",
+    "description": "Test POST /api/auth/resend-confirmation with various input scenarios including missing email, already confirmed, and rate limited.",
+    "category": "error handling",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "POST to /api/auth/resend-confirmation with valid unconfirmed email."
+      },
+      {
+        "type": "assertion",
+        "description": "Expect HTTP 200 response confirming email sent."
+      },
+      {
+        "type": "action",
+        "description": "POST with missing email field."
+      },
+      {
+        "type": "assertion",
+        "description": "Expect HTTP 400 error."
+      },
+      {
+        "type": "action",
+        "description": "POST with already confirmed email."
+      },
+      {
+        "type": "assertion",
+        "description": "Expect HTTP 400 error indicating email is already confirmed."
+      },
+      {
+        "type": "action",
+        "description": "Simulate many rapid requests causing rate limit."
+      },
+      {
+        "type": "assertion",
+        "description": "Expect HTTP 429 rate limit error."
+      }
+    ]
+  },
+  {
+    "id": "TC015",
+    "title": "Server-Side Component Session Fetch",
+    "description": "Verify that server-side rendered components fetch user session securely using Supabase SSR helpers and redirect unauthenticated users.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Access server-side protected component with valid authenticated session cookie."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify component loads properly with user session data."
+      },
+      {
+        "type": "action",
+        "description": "Access the component without authentication cookies."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify server-side redirects to login page."
+      }
+    ]
+  }
+]

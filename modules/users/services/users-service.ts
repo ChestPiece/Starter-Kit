@@ -1,16 +1,16 @@
 // Real users service fetching from Supabase database
-import { createClient } from '@/lib/supabase/client';
+import { getSupabaseClient } from '@/lib/supabase/singleton-client';
 
 export const usersService = {
   /**
    * Insert a user into the database
    */
   insertUser: async (data: any) => {
-    const supabase = createClient();
+    const supabase = getSupabaseClient();
     
     try {
-      // Add timeout protection for database operations
-      const insertPromise = supabase
+      // Simplified insert using Supabase's built-in optimizations
+      const { data: newUser, error } = await supabase
         .from('user_profiles')
         .insert([
           {
@@ -24,12 +24,6 @@ export const usersService = {
         ])
         .select('*, roles(name)')
         .single();
-
-      const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('Database insert timeout')), 15000);
-      });
-
-      const { data: newUser, error } = await Promise.race([insertPromise, timeoutPromise]) as any;
 
       if (error) {
         // Handle specific error types
@@ -59,7 +53,7 @@ export const usersService = {
    * Get all users from the database
    */
   getUsers: async () => {
-    const supabase = createClient();
+    const supabase = getSupabaseClient();
     
     try {
       // Add timeout protection for database queries
@@ -92,7 +86,7 @@ export const usersService = {
             .order('created_at', { ascending: false });
           
           if (!basicError && basicUsers) {
-            return basicUsers.map(user => ({
+            return basicUsers.map((user: any) => ({
               ...user,
               roles: { name: 'user' } // Default role for fallback
             }));
@@ -103,7 +97,7 @@ export const usersService = {
       }
 
       // Transform the data to match expected format
-      const transformedUsers = users?.map(user => ({
+      const transformedUsers = users?.map((user: any) => ({
         ...user,
         roles: user.roles ? { name: user.roles.name } : { name: 'user' }
       })) || [];
@@ -119,7 +113,7 @@ export const usersService = {
    * Get users with pagination and search
    */
   getUsersPagination: async (search: string, limit: number, offset: number) => {
-    const supabase = createClient();
+    const supabase = getSupabaseClient();
     
     try {
       // Build the base query with proper role join
@@ -158,7 +152,7 @@ export const usersService = {
       console.log("Users fetched successfully:", users?.length || 0, "total:", count);
 
       // Transform the data to match expected format
-      const transformedUsers = users?.map(user => ({
+      const transformedUsers = users?.map((user: any) => ({
         ...user,
         roles: user.roles ? { name: user.roles.name } : { name: 'user' }
       })) || [];
@@ -181,7 +175,7 @@ export const usersService = {
    * Update a user in the database
    */
   updateUser: async (data: any): Promise<void> => {
-    const supabase = createClient();
+    const supabase = getSupabaseClient();
     
     try {
       // Add timeout protection for database operations
@@ -227,7 +221,7 @@ export const usersService = {
    * Delete a user from the database
    */
   deleteUser: async (id: string): Promise<void> => {
-    const supabase = createClient();
+    const supabase = getSupabaseClient();
     
     try {
       const { error } = await supabase
@@ -246,7 +240,7 @@ export const usersService = {
    * Get a user by id from the database
    */
   getUserById: async (id: string) => {
-    const supabase = createClient();
+    const supabase = getSupabaseClient();
     
     try {
       const { data: user, error } = await supabase

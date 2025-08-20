@@ -1,8 +1,8 @@
+"use client";
+
 import UserComponent from "@/components/(main)/user";
 import { DashboardErrorBoundary } from "@/components/error-boundary";
-
-// Force dynamic rendering for users page that loads user-specific data
-export const dynamic = "force-dynamic";
+import { withRoleAccess } from "@/hooks/use-role-access";
 
 function UsersContent() {
   return (
@@ -12,6 +12,9 @@ function UsersContent() {
   );
 }
 
-export default function UsersPage() {
+function UsersPage() {
   return <UsersContent />;
 }
+
+// Only admin users can access the Users page
+export default withRoleAccess(UsersPage, "admin");

@@ -145,12 +145,12 @@
     @apply bg-background text-foreground;
   }
 
-  /* Global text selection styling */
+  /* Global text selection styling - neutral colors */
   ::selection {
-    @apply bg-pink-100 text-pink-900;
+    @apply bg-gray-200 text-gray-900;
   }
 
   .dark ::selection {
-    @apply bg-pink-900 text-pink-100;
+    @apply bg-gray-700 text-gray-100;
   }
 }

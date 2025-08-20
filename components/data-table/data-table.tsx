@@ -1,4 +1,5 @@
 import * as React from "react";
+import { useCallback } from "react";
 import {
   ColumnDef,
   ColumnFiltersState,
@@ -111,14 +112,14 @@ export function DataTable<TData, TValue>({
     table.setPageIndex(currentPage);
   }, [currentPage, table]);
 
-  const getRowClass = (row: any) => {
+  const getRowClass = useCallback((row: any) => {
     const isUnderLegal = row.original?.under_legal;
     return isUnderLegal ? "bg-red-200 hover:bg-red-200" : "";
-  };
+  }, []);
 
-  const handleRefresh = () => {
+  const handleRefresh = useCallback(() => {
     onGlobalFilterChange("");
-  };
+  }, [onGlobalFilterChange]);
 
   const exportToCSV = (data: any[]) => {
     const headers = Object.keys(data[0] || {}).join(",");

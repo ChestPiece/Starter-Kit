@@ -17,8 +17,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { useUser } from "@/components/auth/user-context";
-import { usersService } from "@/modules/users/services/users-service";
-import { createClient } from "@/lib/supabase/client";
+import { userService } from "@/lib/services/user-service";
 import { Button } from "@/components/ui/button";
 import { saveFile } from "@/supabase/actions/save-file";
 import { toast } from "sonner";
@@ -64,53 +63,26 @@ export function ProfileSettings() {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [profileLoading, setProfileLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchUserData = async () => {
-      if (!supabaseUser?.id) {
-        return; // wait for auth to load
-      }
+  const fetchUserData = useCallback(async () => {
+    if (!supabaseUser?.id) {
+      return; // wait for auth to load
+    }
 
-      setProfileLoading(true);
-      try {
-        const supabase = createClient();
-        const { data, error } = await supabase
-          .from("user_profiles")
-          .select(
-            `
-            id,
-            first_name,
-            last_name,
-            email,
-            profile,
-            roles:role_id (name)
-          `
-          )
-          .eq("id", supabaseUser.id)
-          .single();
+    setProfileLoading(true);
+    try {
+      const userData = await userService.getUserProfile(supabaseUser.id);
 
-        if (error) {
-          console.error("Error fetching user profile:", error);
-          throw error;
-        }
-
-        if (data) {
-          setUserProfile({
-            id: data.id,
-            first_name: data.first_name || "",
-            last_name: data.last_name || "",
-            email: data.email,
-            roles:
-              data.roles &&
-              typeof data.roles === "object" &&
-              "name" in data.roles
-                ? { name: String((data.roles as any).name) }
-                : { name: "user" },
-            avatar_url: data.profile || undefined,
-            profile: data.profile || undefined,
-          });
-        }
-      } catch (error) {
-        console.error("Error loading user profile:", error);
+      if (userData) {
+        setUserProfile({
+          id: userData.id,
+          first_name: userData.first_name || "",
+          last_name: userData.last_name || "",
+          email: userData.email || "",
+          roles: userData.roles || { name: "user" },
+          avatar_url: userData.profile || undefined,
+          profile: userData.profile || undefined,
+        });
+      } else {
         // Fallback
         setUserProfile({
           id: supabaseUser?.id || "fallback-id",
@@ -121,18 +93,32 @@ export function ProfileSettings() {
           avatar_url: undefined,
           profile: undefined,
         });
-      } finally {
-        setProfileLoading(false);
       }
-    };
-
-    fetchUserData();
+    } catch (error) {
+      console.error("Error loading user profile:", error);
+      // Fallback
+      setUserProfile({
+        id: supabaseUser?.id || "fallback-id",
+        first_name: supabaseUser?.user_metadata?.first_name || "User",
+        last_name: supabaseUser?.user_metadata?.last_name || "",
+        email: supabaseUser?.email || "user@example.com",
+        roles: { name: "user" },
+        avatar_url: undefined,
+        profile: undefined,
+      });
+    } finally {
+      setProfileLoading(false);
+    }
   }, [
     supabaseUser?.id,
     supabaseUser?.email,
     supabaseUser?.user_metadata?.first_name,
     supabaseUser?.user_metadata?.last_name,
   ]);
+
+  useEffect(() => {
+    fetchUserData();
+  }, [fetchUserData]);
 
   const [isLoading, setIsLoading] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -223,11 +209,11 @@ export function ProfileSettings() {
 
     setIsLoading(true);
     try {
-      await usersService.updateUser({
+      await userService.updateUserProfile(supabaseUser?.id || "", {
         id: supabaseUser?.id || "",
         first_name: userProfile.first_name,
         last_name: userProfile.last_name,
-        profile: userProfile.profile ?? null,
+        profile: userProfile.profile || undefined,
       });
       // Mock profile update (authentication removed)
       console.log("Mock profile update:", {

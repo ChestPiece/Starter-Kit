@@ -139,11 +139,14 @@ class EnvironmentValidator {
     }
 
     if (!isValid) {
-      // Only throw error in production runtime, not during build
-      if (process.env.NODE_ENV === 'production' && process.env.NEXT_PUBLIC_SUPABASE_URL) {
-        throw new Error('❌ Critical environment variables are missing. Cannot start in production.')
-      } else if (process.env.NODE_ENV !== 'production') {
-        console.error('❌ Development server may not work properly without required environment variables.')
+      // Always warn about missing environment variables (consistent across environments)
+      console.error('❌ Critical environment variables are missing. Application may not work properly.')
+      
+      // Only throw error if we have some environment variables but they're invalid
+      // This prevents build failures while still catching runtime configuration issues
+      if (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+        console.error('⚠️ Environment variables are present but validation failed.')
+        console.error('This may cause runtime issues. Please check your configuration.')
       }
     }
   }

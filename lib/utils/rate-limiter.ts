@@ -60,6 +60,52 @@ class RateLimiter {
     return false;
   }
 
+  getRateLimitInfo(identifier: string, options: Partial<RateLimitOptions> = {}): {
+    isLimited: boolean;
+    remaining: number;
+    resetTime: number | null;
+    retryAfter: number | null;
+    message: string;
+  } {
+    const opts = { ...this.defaultOptions, ...options };
+    const key = opts.keyGenerator ? opts.keyGenerator(identifier) : identifier;
+    const now = Date.now();
+    const entry = this.store.get(key);
+    
+    if (!entry || now >= entry.resetTime) {
+      return {
+        isLimited: false,
+        remaining: opts.maxRequests - 1,
+        resetTime: now + opts.windowMs,
+        retryAfter: null,
+        message: 'Request allowed'
+      };
+    }
+    
+    const remaining = Math.max(0, opts.maxRequests - entry.count);
+    const isLimited = entry.count >= opts.maxRequests;
+    const retryAfter = isLimited ? Math.ceil((entry.resetTime - now) / 1000) : null;
+    
+    let message = opts.message || this.defaultOptions.message!;
+    if (isLimited && retryAfter) {
+      const minutes = Math.floor(retryAfter / 60);
+      const seconds = retryAfter % 60;
+      if (minutes > 0) {
+        message += ` Please wait ${minutes} minute${minutes > 1 ? 's' : ''} and ${seconds} second${seconds !== 1 ? 's' : ''}.`;
+      } else {
+        message += ` Please wait ${seconds} second${seconds !== 1 ? 's' : ''}.`;
+      }
+    }
+    
+    return {
+      isLimited,
+      remaining,
+      resetTime: entry.resetTime,
+      retryAfter,
+      message
+    };
+  }
+
   getRemainingRequests(identifier: string, options: Partial<RateLimitOptions> = {}): number {
     const opts = { ...this.defaultOptions, ...options };
     const key = opts.keyGenerator ? opts.keyGenerator(identifier) : identifier;
@@ -118,6 +164,20 @@ export const rateLimitConfigs = {
     windowMs: 60 * 60 * 1000, // 1 hour
     maxRequests: 3, // 3 attempts per hour
     message: 'Too many password reset attempts, please try again later.',
+  },
+
+  // Extremely strict for failed auth attempts
+  authFailures: {
+    windowMs: 60 * 60 * 1000, // 1 hour
+    maxRequests: 3, // 3 failed attempts per hour
+    message: 'Too many failed authentication attempts. Account temporarily locked.',
+  },
+
+  // Strict for invalid tokens
+  invalidTokens: {
+    windowMs: 30 * 60 * 1000, // 30 minutes
+    maxRequests: 5, // 5 invalid token attempts per 30 minutes
+    message: 'Too many invalid token attempts, please try again later.',
   },
 
   // GraphQL specific

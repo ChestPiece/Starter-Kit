@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -71,6 +71,22 @@ export function SignupForm() {
     },
   });
 
+  // Watch all form values
+  const formValues = form.watch();
+
+  // Check if all required fields are filled
+  const isFormDisabled = useMemo(() => {
+    return (
+      loading ||
+      !formValues.firstName?.trim() ||
+      !formValues.lastName?.trim() ||
+      !formValues.email?.trim() ||
+      !formValues.password ||
+      !formValues.confirmPassword ||
+      formValues.password !== formValues.confirmPassword
+    );
+  }, [formValues, loading]);
+
   const onSubmit = async (data: SignupFormData) => {
     setLoading(true);
     setError(null);
@@ -80,7 +96,7 @@ export function SignupForm() {
         email: data.email,
         password: data.password,
         options: {
-          emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || window.location.origin}/api/auth/confirm`,
+          emailRedirectTo: `${window.location.origin}/api/auth/confirm`,
           data: {
             first_name: data.firstName.trim(),
             last_name: data.lastName.trim(),
@@ -90,7 +106,9 @@ export function SignupForm() {
       });
 
       if (error) {
-        // Only show network-related errors or simple messages
+        console.error("Signup error details:", error);
+
+        // Handle specific Supabase errors
         if (
           error.message.includes("Network") ||
           error.message.includes("fetch") ||
@@ -99,8 +117,24 @@ export function SignupForm() {
           setError("Connection failed. Please check your internet connection.");
         } else if (error.message.includes("User already registered")) {
           setError("Account already exists. Please try logging in.");
+        } else if (error.message.includes("Invalid email")) {
+          setError("Please enter a valid email address.");
+        } else if (error.message.includes("Password")) {
+          setError("Password must be at least 6 characters long.");
+        } else if (
+          error.message.includes("email") &&
+          error.message.includes("confirm")
+        ) {
+          setError(
+            "Email confirmation is required. Please check your email after signing up."
+          );
         } else {
-          setError("Unable to create account. Please try again.");
+          // Show the actual error message for debugging if it's not sensitive
+          const errorMessage =
+            error.message.length < 100
+              ? error.message
+              : "Unable to create account. Please try again.";
+          setError(errorMessage);
         }
         setLoading(false);
         return;
@@ -116,42 +150,73 @@ export function SignupForm() {
   };
 
   const handleResendEmail = async () => {
+    if (resendLoading) return; // Prevent double-clicks
+
     setResendLoading(true);
     setResendError(null);
     setResendSuccess(false);
 
     try {
       const email = form.getValues("email");
-      const firstName = form.getValues("firstName");
-      const lastName = form.getValues("lastName");
 
-      const { error } = await supabase.auth.signUp({
-        email: email,
-        password: form.getValues("password"),
-        options: {
-          emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || window.location.origin}/api/auth/confirm`,
-          data: {
-            first_name: firstName.trim(),
-            last_name: lastName.trim(),
-            full_name: `${firstName.trim()} ${lastName.trim()}`,
-          },
+      const response = await fetch("/api/auth/resend-confirmation", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
         },
+        body: JSON.stringify({ email }),
       });
 
-      if (error) {
-        if (error.message.includes("already registered")) {
-          setResendError("Account already exists. Please try logging in.");
+      const result = await response.json();
+
+      if (!response.ok) {
+        if (result.code === "VALIDATION_EMAIL_ALREADY_CONFIRMED") {
+          setResendError(
+            "This email is already confirmed. You can sign in now."
+          );
+        } else if (result.code === "VALIDATION_EMAIL_NOT_FOUND") {
+          setResendError(
+            "No account found with this email address. Please check your email or create a new account."
+          );
+        } else if (result.code === "AUTH_RATE_LIMITED") {
+          // Extract wait time from the message if available
+          const waitTimeMatch = result.message?.match(/(\d+) seconds?/);
+          const waitSeconds = waitTimeMatch ? parseInt(waitTimeMatch[1]) : 60;
+
+          if (waitSeconds < 60) {
+            setResendError(
+              `Too many attempts. Please wait ${waitSeconds} seconds before trying again.`
+            );
+          } else {
+            const waitMinutes = Math.ceil(waitSeconds / 60);
+            setResendError(
+              `Too many attempts. Please wait ${waitMinutes} minute${waitMinutes > 1 ? "s" : ""} before trying again.`
+            );
+          }
+        } else if (
+          result.message?.includes("rate limit") ||
+          result.message?.includes("security purposes")
+        ) {
+          // Handle Supabase native rate limiting
+          setResendError(
+            "Too many confirmation emails sent recently. Please wait 60 seconds before trying again."
+          );
         } else {
-          setResendError("Failed to resend email. Please try again.");
+          setResendError(
+            result.message ||
+              "Failed to resend email. Please try again in a moment."
+          );
         }
       } else {
         setResendSuccess(true);
-        // Clear success message after 3 seconds
-        setTimeout(() => setResendSuccess(false), 3000);
+        // Clear success message after 5 seconds
+        setTimeout(() => setResendSuccess(false), 5000);
       }
     } catch (error) {
       console.error("Resend email error:", error);
-      setResendError("Failed to resend email. Please try again.");
+      setResendError(
+        "Connection failed. Please check your internet connection and try again."
+      );
     } finally {
       setResendLoading(false);
     }
@@ -177,8 +242,7 @@ export function SignupForm() {
             <AlertDescription className="text-pink-800 text-sm">
               Account created successfully! We've sent a verification email to{" "}
               <strong>{form.getValues("email")}</strong>. Please click the link
-              in the email to activate your account and you'll be redirected to
-              the dashboard.
+              in the email to verify your account, then return here to sign in.
             </AlertDescription>
           </Alert>
 
@@ -219,7 +283,7 @@ export function SignupForm() {
 
             <Link href="/auth/login">
               <Button className="w-full bg-pink-700 text-white hover:bg-pink-800 font-medium border-none shadow-sm">
-                Continue to Sign In
+                Go to Sign In
               </Button>
             </Link>
           </div>
@@ -398,15 +462,27 @@ export function SignupForm() {
 
             <Button
               type="submit"
-              className="w-full bg-pink-700 text-white hover:bg-pink-800 font-medium border-none shadow-sm"
-              disabled={
-                loading ||
-                form.watch("password") !== form.watch("confirmPassword")
-              }
+              className="w-full font-medium border-none shadow-sm transition-all duration-200"
+              disabled={isFormDisabled}
+              style={{
+                backgroundColor: isFormDisabled ? "#d1d5db" : "#be185d",
+                color: isFormDisabled ? "#6b7280" : "white",
+                cursor: isFormDisabled ? "not-allowed" : "pointer",
+              }}
+              onMouseEnter={(e) => {
+                if (!isFormDisabled) {
+                  e.currentTarget.style.backgroundColor = "#be1d6e";
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (!isFormDisabled) {
+                  e.currentTarget.style.backgroundColor = "#be185d";
+                }
+              }}
             >
               {loading ? (
                 <>
-                  <Loader2 className="mr-2 h-3 w-3 animate-spin text-white" />
+                  <Loader2 className="mr-2 h-3 w-3 animate-spin text-current" />
                   Creating Account...
                 </>
               ) : (

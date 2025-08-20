@@ -36,3 +36,7 @@ BEGIN
   RAISE NOTICE 'The app will detect role changes automatically.';
   RAISE NOTICE '==========================================';
 END $$;
+
+
+
+

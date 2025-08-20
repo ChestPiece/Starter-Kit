@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { getUserColumns } from "@/components/data-table/columns/column-user";
 import { UserDataTableToolbar } from "@/components/data-table/toolbars/user-toolbar";
 import { DataTable } from "@/components/data-table/data-table";
-import { usersService } from "@/modules/users/services/users-service";
+import { userService } from "@/lib/services/user-service";
 import { User, UserRoles } from "@/types/types";
 import { rolesService } from "@/modules/roles/services/roles-service";
 import { Role } from "@/modules/roles/models/role";
@@ -32,14 +32,14 @@ export default function UserManagementPage({ type }: { type: string }) {
   const debouncedSearchTerm = useDebounce(searchQuery, 500);
 
   // Proper role checking using current user's role
-  const userRole = currentUser?.roles?.name || 'user';
-  const isAdmin = userRole === 'admin';
-  const isManager = userRole === 'manager' || userRole === 'admin';
+  const userRole = currentUser?.roles?.name || "user";
+  const isAdmin = userRole === "admin";
+  const isManager = userRole === "manager" || userRole === "admin";
 
   const fetchUsers = useCallback(async () => {
     setIsRefetching(true);
     try {
-      const usersResponse: any = await usersService.getUsersPagination(
+      const usersResponse = await userService.getUsersPagination(
         debouncedSearchTerm || "",
         pageSize,
         currentPage
@@ -49,38 +49,53 @@ export default function UserManagementPage({ type }: { type: string }) {
       setRecordCount(usersResponse.totalCount);
     } catch (error) {
       console.error("Error fetching users:", error);
+      // Set empty state on error
+      setListUsers([]);
+      setRecordCount(0);
     } finally {
       setIsRefetching(false);
     }
   }, [debouncedSearchTerm, pageSize, currentPage]);
-  const fetchRoles = async () => {
-    const rolesResponse: Role[] = await rolesService.getAllRoles();
-    setListRoles(rolesResponse);
-  };
+
+  const fetchRoles = useCallback(async () => {
+    try {
+      const rolesResponse: Role[] = await rolesService.getAllRoles();
+      setListRoles(rolesResponse);
+    } catch (error) {
+      console.error("Error fetching roles:", error);
+      setListRoles([]);
+    }
+  }, []);
 
   useEffect(() => {
     fetchUsers();
-    fetchRoles();
   }, [fetchUsers]);
 
-  const handleGlobalFilterChange = (filter: string) => {
-    if (!searchQuery && !filter) {
-      setIsRefetching(true);
-      fetchUsers();
-    } else {
-      setSearchQuery(filter);
-    }
-    setCurrentPage(0);
-  };
+  useEffect(() => {
+    fetchRoles();
+  }, [fetchRoles]);
 
-  const handlePageChange = (pageIndex: number) => {
+  const handleGlobalFilterChange = useCallback(
+    (filter: string) => {
+      if (!searchQuery && !filter) {
+        setIsRefetching(true);
+        fetchUsers();
+      } else {
+        setSearchQuery(filter);
+      }
+      setCurrentPage(0);
+    },
+    [searchQuery, fetchUsers]
+  );
+
+  const handlePageChange = useCallback((pageIndex: number) => {
     setCurrentPage(pageIndex);
-  };
+  }, []);
 
-  const handlePageSizeChange = (size: number) => {
+  const handlePageSizeChange = useCallback((size: number) => {
     setPageSize(size);
     setCurrentPage(0);
-  };
+  }, []);
 
   // Access control - check after all hooks are called
   if (!isManager) {

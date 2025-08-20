@@ -1,0 +1,52 @@
+[
+  {
+    "id": "TC001",
+    "title": "email confirmation api get method",
+    "description": "Test the GET method of /api/auth/confirm endpoint to confirm email via magic link with valid and invalid query parameters, and verify proper redirection or error handling."
+  },
+  {
+    "id": "TC002",
+    "title": "email confirmation api post method",
+    "description": "Test the POST method of /api/auth/confirm endpoint to set session from access and refresh tokens, including valid tokens, invalid tokens, and missing parameters scenarios."
+  },
+  {
+    "id": "TC003",
+    "title": "resend confirmation email api post method",
+    "description": "Test the POST method of /api/auth/resend-confirmation endpoint to resend email confirmation with valid email, invalid email format, already confirmed email, and rate limit exceeded cases."
+  },
+  {
+    "id": "TC004",
+    "title": "graphql api post method authentication and operations",
+    "description": "Test the POST method of /api/graphql endpoint for authenticated GraphQL queries and mutations on user, role, and settings management, including valid authentication, unauthorized access, and rate limiting."
+  },
+  {
+    "id": "TC005",
+    "title": "client side error logging api post method",
+    "description": "Test the POST method of /api/logs endpoint to log client-side errors with required fields, missing fields, and rate limit enforcement."
+  },
+  {
+    "id": "TC006",
+    "title": "proxy download api get method",
+    "description": "Test the GET method of /api/proxy-download endpoint to proxy external file downloads with valid URL, missing URL parameter, timeout handling, and connection failure scenarios."
+  },
+  {
+    "id": "TC007",
+    "title": "proxy view api get method",
+    "description": "Test the GET method of /api/proxy-view endpoint to proxy external file viewing with valid URL, missing URL parameter, request timeout, and connection failure cases."
+  },
+  {
+    "id": "TC008",
+    "title": "user management graphql operations",
+    "description": "Test user management GraphQL operations via /api/graphql endpoint including queries (GetUsers, GetUsersById, CountUsers) and mutations (InsertUser, UpdateUser, DeleteUser) with valid authentication."
+  },
+  {
+    "id": "TC009",
+    "title": "role management graphql operations",
+    "description": "Test role management GraphQL operations via /api/graphql endpoint including queries (GetAllRoles, GetRoleById, GetRolesWithAccess, SearchRoles) with valid authentication."
+  },
+  {
+    "id": "TC010",
+    "title": "settings management graphql operations",
+    "description": "Test settings management GraphQL operations via /api/graphql endpoint including queries (getSettingsById) and mutations (updateSettingsById, insertSettings) with valid authentication."
+  }
+]

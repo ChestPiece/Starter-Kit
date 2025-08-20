@@ -6,6 +6,10 @@ import { LoginForm } from "@/components/login-form";
 import { ForgotPassword } from "@/components/auth/forgot-password";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
+import { AuthErrorBoundary } from "@/components/error-boundary";
+import { initializeAutoRedirectPrevention } from "@/lib/auth/prevent-auto-redirect";
+import { initializeTabIsolation } from "@/lib/auth/tab-isolation";
+import { ConfirmationErrorHelper } from "@/components/auth/confirmation-error-helper";
 
 function LoginPageInner() {
   const [currentView, setCurrentView] = useState<"login" | "forgot-password">(
@@ -34,9 +38,11 @@ function LoginPageInner() {
   // Only show network-related error messages
   const networkError = searchParams.get("network_error") === "true";
 
-  // Set page title dynamically
+  // Set page title dynamically and prevent auto-redirects
   useEffect(() => {
     document.title = "Login - Your App";
+    initializeAutoRedirectPrevention();
+    initializeTabIsolation();
   }, []);
 
   // Handle session reason messages and clear from URL to prevent sticky state
@@ -70,6 +76,8 @@ function LoginPageInner() {
           return "Email confirmation failed. Please try signing in or request a new confirmation email.";
         case "invalid_link":
           return "The confirmation link is invalid or expired. Please try signing in.";
+        case "link_expired":
+          return "The confirmation link has expired. Please sign in or request a new confirmation email.";
         case "invalid_confirmation_link":
           return "The confirmation link is invalid. Please try signing in.";
         case "confirmation_timeout":
@@ -99,14 +107,39 @@ function LoginPageInner() {
     router.replace(next, { scroll: false });
   }, [searchParams, router]);
 
+  // Check if we should show the confirmation error helper
+  const message = searchParams.get("message");
+  const isConfirmationError =
+    message &&
+    [
+      "link_expired",
+      "confirmation_failed",
+      "invalid_confirmation_link",
+      "invalid_link",
+    ].includes(message);
+
   return (
     <div className="min-h-screen flex items-center justify-center p-8">
       {currentView === "login" ? (
-        <LoginForm
-          onForgotPassword={() => setCurrentView("forgot-password")}
-          reasonMessage={reasonMessage}
-          networkError={networkError}
-        />
+        <div className="w-full max-w-md space-y-4">
+          <LoginForm
+            onForgotPassword={() => setCurrentView("forgot-password")}
+            reasonMessage={reasonMessage}
+            networkError={networkError}
+          />
+
+          {isConfirmationError && (
+            <ConfirmationErrorHelper
+              errorType={
+                message as
+                  | "link_expired"
+                  | "confirmation_failed"
+                  | "invalid_confirmation_link"
+                  | "invalid_link"
+              }
+            />
+          )}
+        </div>
       ) : (
         <ForgotPassword
           onBack={() => setCurrentView("login")}
@@ -130,7 +163,9 @@ export default function LoginPage() {
         </div>
       }
     >
-      <LoginPageInner />
+      <AuthErrorBoundary>
+        <LoginPageInner />
+      </AuthErrorBoundary>
     </Suspense>
   );
 }

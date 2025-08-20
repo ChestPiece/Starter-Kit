@@ -1,14 +1,28 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { rateLimiter, rateLimitConfigs, getClientIP } from '@/lib/utils/rate-limiter';
+import { errorLogger } from '@/lib/services/error-logger';
 
 export async function POST(request: NextRequest) {
   try {
     // Check rate limiting
     const clientIP = getClientIP(request);
-    if (rateLimiter.isRateLimited(clientIP, rateLimitConfigs.api)) {
+    const rateLimitInfo = rateLimiter.getRateLimitInfo(clientIP, rateLimitConfigs.api);
+    
+    if (rateLimitInfo.isLimited) {
       return NextResponse.json(
-        { error: rateLimitConfigs.api.message },
-        { status: 429 }
+        { 
+          error: rateLimitInfo.message,
+          retryAfter: rateLimitInfo.retryAfter,
+          remaining: rateLimitInfo.remaining
+        },
+        { 
+          status: 429,
+          headers: {
+            'Retry-After': rateLimitInfo.retryAfter?.toString() || '900',
+            'X-RateLimit-Remaining': rateLimitInfo.remaining.toString(),
+            'X-RateLimit-Reset': rateLimitInfo.resetTime?.toString() || ''
+          }
+        }
       );
     }
 
@@ -22,26 +36,32 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // In development, just log to console
-    if (process.env.NODE_ENV === 'development') {
-      console.log('Client Error Log:', logData);
-      return NextResponse.json({ success: true });
-    }
-
-    // In production, you can send to your preferred logging service
-    // Examples:
-    // - Send to Sentry
-    // - Send to LogRocket
-    // - Send to your own logging database
-    // - Send to external logging service (DataDog, New Relic, etc.)
+    // Always log client errors (consistent behavior across environments)
+    console.log('Client Error Log:', logData);
     
-    // For now, we'll just acknowledge the log
-    // You can implement your preferred logging solution here
+    // Always try to send to external logging service if configured
+    // This works in both development and production
+    try {
+      // Example integrations:
+      // - Send to Sentry: Sentry.captureException(new Error(logData.message))
+      // - Send to LogRocket: LogRocket.captureException(new Error(logData.message))
+      // - Send to your own logging database
+      // - Send to external logging service (DataDog, New Relic, etc.)
+      
+      // For now, we just acknowledge - you can add your preferred service here
+    } catch (externalError) {
+      // Don't fail the request if external logging fails
+      console.error('Failed to send to external logging service:', externalError);
+    }
     
     return NextResponse.json({ success: true });
 
-  } catch (error) {
-    console.error('Error logging API error:', error);
+  } catch (error: any) {
+    errorLogger.error(error, { 
+      context: 'Client Error Logging API',
+      clientIP: getClientIP(request),
+    });
+    
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

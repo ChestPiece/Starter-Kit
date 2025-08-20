@@ -30,7 +30,7 @@ interface ApiLoggerConfig {
 }
 
 const defaultConfig: ApiLoggerConfig = {
-  enabled: process.env.NODE_ENV === 'development' || process.env.API_LOGGING === 'true',
+  enabled: process.env.API_LOGGING !== 'false', // Enabled by default, can be disabled with API_LOGGING=false
   logLevel: 'detailed',
   excludeRoutes: ['/api/health', '/api/_next'],
   excludeHeaders: [

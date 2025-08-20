@@ -1,0 +1,619 @@
+{
+  "meta": {
+    "project": "User Management and Proxy Services Platform",
+    "date": "2025-08-17",
+    "prepared_by": "Software Development Manager"
+  },
+  "product_overview": "A comprehensive platform offering user management, role and settings control via GraphQL APIs, combined with secure email confirmation workflows, client error logging, and proxy services for file downloads and viewing. Built using modern web technologies including TypeScript, Next.js 15, React 18, Supabase, and GraphQL.",
+  "core_goals": [
+    "Enable secure and reliable user authentication with email confirmation and session management.",
+    "Provide a flexible and extensible user, role, and settings management system via GraphQL APIs.",
+    "Ensure secure and efficient proxying of external files for downloads and on-site viewing.",
+    "Implement robust error logging for client-side issues with rate limiting to maintain system integrity.",
+    "Offer real-time dashboard statistics to monitor user, roles, and system health metrics."
+  ],
+  "key_features": [
+    "Email Confirmation API supporting magic links and token validation with session establishment.",
+    "Resend Confirmation Email API with validation and rate limiting to prevent abuse.",
+    "Authenticated GraphQL API covering user management, role management, and settings management functionalities.",
+    "Client-Side Error Logging API capturing detailed error events from users' browsers.",
+    "Proxy Download API to facilitate secure external file downloads with timeout handling.",
+    "Proxy View API to enable safe external file viewing within the platform.",
+    "Dashboard Statistics Service providing real-time metrics including user counts, role distribution, and system health indicators."
+  ],
+  "user_flow_summary": [
+    "User registers and receives a confirmation email with a magic link or token.",
+    "User confirms their email via the confirmation API, establishing a session.",
+    "If needed, the user requests to resend the confirmation email, subject to rate limiting.",
+    "Authenticated users perform CRUD operations on their profiles, roles, and application settings through the GraphQL interface.",
+    "Client-side errors encountered by users are logged via the error logging API for monitoring and debugging.",
+    "Users download or view external files safely using the proxy APIs, which handle connection issues and timeouts.",
+    "Administrators and stakeholders monitor dashboard statistics to gauge real-time platform health and user metrics."
+  ],
+  "validation_criteria": [
+    "Email confirmation links must validate tokens and respond with proper redirections or error messages.",
+    "Resend confirmation emails enforce correct email formats and prevent resending to already confirmed addresses with rate limit checks.",
+    "GraphQL API requests require valid authentication tokens and must respond correctly to queries or mutations for users, roles, and settings.",
+    "Client error logs must include mandatory fields and respect rate limits to avoid flooding.",
+    "Proxy APIs must correctly handle valid URLs, enforce timeouts, and return appropriate HTTP status codes on failures.",
+    "Dashboard statistics must accurately aggregate and deliver current user and system health data."
+  ],
+  "code_summary": {
+    "tech_stack": [
+      "TypeScript",
+      "Next.js 15",
+      "React 18",
+      "Supabase",
+      "GraphQL",
+      "Tailwind CSS",
+      "Radix UI",
+      "Zod validation",
+      "React Hook Form"
+    ],
+    "features": [
+      {
+        "name": "Email Confirmation API",
+        "description": "API endpoint for confirming user email addresses via magic links or tokens, handles both GET and POST methods for session establishment",
+        "files": [
+          "app/api/auth/confirm/route.ts"
+        ],
+        "api_doc": {
+          "openapi": "3.0.0",
+          "info": {
+            "title": "Email Confirmation API",
+            "version": "1.0.0"
+          },
+          "paths": {
+            "/api/auth/confirm": {
+              "get": {
+                "summary": "Confirm email via magic link",
+                "parameters": [
+                  {
+                    "name": "code",
+                    "in": "query",
+                    "schema": {
+                      "type": "string"
+                    }
+                  },
+                  {
+                    "name": "token_hash",
+                    "in": "query",
+                    "schema": {
+                      "type": "string"
+                    }
+                  },
+                  {
+                    "name": "type",
+                    "in": "query",
+                    "schema": {
+                      "type": "string"
+                    }
+                  }
+                ],
+                "responses": {
+                  "302": {
+                    "description": "Redirect to confirmation success or login page"
+                  }
+                }
+              },
+              "post": {
+                "summary": "Set session from access/refresh tokens",
+                "requestBody": {
+                  "required": true,
+                  "content": {
+                    "application/json": {
+                      "schema": {
+                        "type": "object",
+                        "properties": {
+                          "access_token": {
+                            "type": "string"
+                          },
+                          "refresh_token": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "responses": {
+                  "200": {
+                    "description": "Session established successfully"
+                  },
+                  "400": {
+                    "description": "Invalid tokens or missing parameters"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        "name": "Resend Confirmation Email API",
+        "description": "API endpoint for resending email confirmation links to users with rate limiting and validation",
+        "files": [
+          "app/api/auth/resend-confirmation/route.ts"
+        ],
+        "api_doc": {
+          "openapi": "3.0.0",
+          "info": {
+            "title": "Resend Confirmation API",
+            "version": "1.0.0"
+          },
+          "paths": {
+            "/api/auth/resend-confirmation": {
+              "post": {
+                "summary": "Resend email confirmation",
+                "requestBody": {
+                  "required": true,
+                  "content": {
+                    "application/json": {
+                      "schema": {
+                        "type": "object",
+                        "properties": {
+                          "email": {
+                            "type": "string",
+                            "format": "email"
+                          }
+                        },
+                        "required": [
+                          "email"
+                        ]
+                      }
+                    }
+                  }
+                },
+                "responses": {
+                  "200": {
+                    "description": "Confirmation email sent successfully"
+                  },
+                  "400": {
+                    "description": "Invalid email or already confirmed"
+                  },
+                  "429": {
+                    "description": "Rate limit exceeded"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        "name": "GraphQL API",
+        "description": "Authenticated GraphQL endpoint for executing queries and mutations on user profiles, roles, and settings",
+        "files": [
+          "app/api/graphql/route.ts",
+          "modules/users/services/users-graphql.ts",
+          "modules/roles/services/roles-graphql.ts",
+          "modules/settings/services/setting-graphql.ts"
+        ],
+        "api_doc": {
+          "openapi": "3.0.0",
+          "info": {
+            "title": "GraphQL API",
+            "version": "1.0.0"
+          },
+          "paths": {
+            "/api/graphql": {
+              "post": {
+                "summary": "Execute GraphQL queries and mutations",
+                "security": [
+                  {
+                    "bearerAuth": []
+                  }
+                ],
+                "requestBody": {
+                  "required": true,
+                  "content": {
+                    "application/json": {
+                      "schema": {
+                        "type": "object",
+                        "properties": {
+                          "query": {
+                            "type": "string"
+                          },
+                          "variables": {
+                            "type": "object"
+                          }
+                        },
+                        "required": [
+                          "query"
+                        ]
+                      }
+                    }
+                  }
+                },
+                "responses": {
+                  "200": {
+                    "description": "GraphQL response with data"
+                  },
+                  "401": {
+                    "description": "Unauthorized - authentication required"
+                  },
+                  "429": {
+                    "description": "Rate limit exceeded"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        "name": "Client-Side Error Logging API",
+        "description": "API endpoint for logging client-side errors and events with rate limiting",
+        "files": [
+          "app/api/logs/route.ts"
+        ],
+        "api_doc": {
+          "openapi": "3.0.0",
+          "info": {
+            "title": "Client Error Logging API",
+            "version": "1.0.0"
+          },
+          "paths": {
+            "/api/logs": {
+              "post": {
+                "summary": "Log client-side errors",
+                "requestBody": {
+                  "required": true,
+                  "content": {
+                    "application/json": {
+                      "schema": {
+                        "type": "object",
+                        "properties": {
+                          "message": {
+                            "type": "string"
+                          },
+                          "timestamp": {
+                            "type": "string"
+                          },
+                          "level": {
+                            "type": "string"
+                          },
+                          "userAgent": {
+                            "type": "string"
+                          },
+                          "url": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "message",
+                          "timestamp"
+                        ]
+                      }
+                    }
+                  }
+                },
+                "responses": {
+                  "200": {
+                    "description": "Log recorded successfully"
+                  },
+                  "400": {
+                    "description": "Missing required fields"
+                  },
+                  "429": {
+                    "description": "Rate limit exceeded"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        "name": "Proxy Download API",
+        "description": "API endpoint for proxying external file downloads with timeout handling",
+        "files": [
+          "app/api/proxy-download/route.ts"
+        ],
+        "api_doc": {
+          "openapi": "3.0.0",
+          "info": {
+            "title": "Proxy Download API",
+            "version": "1.0.0"
+          },
+          "paths": {
+            "/api/proxy-download": {
+              "get": {
+                "summary": "Proxy external file for download",
+                "parameters": [
+                  {
+                    "name": "url",
+                    "in": "query",
+                    "required": true,
+                    "schema": {
+                      "type": "string",
+                      "format": "uri"
+                    }
+                  }
+                ],
+                "responses": {
+                  "200": {
+                    "description": "File content with attachment headers"
+                  },
+                  "400": {
+                    "description": "URL parameter required"
+                  },
+                  "408": {
+                    "description": "Download timeout"
+                  },
+                  "503": {
+                    "description": "Connection failed"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        "name": "Proxy View API",
+        "description": "API endpoint for proxying external files for viewing without forcing download",
+        "files": [
+          "app/api/proxy-view/route.ts"
+        ],
+        "api_doc": {
+          "openapi": "3.0.0",
+          "info": {
+            "title": "Proxy View API",
+            "version": "1.0.0"
+          },
+          "paths": {
+            "/api/proxy-view": {
+              "get": {
+                "summary": "Proxy external file for viewing",
+                "parameters": [
+                  {
+                    "name": "url",
+                    "in": "query",
+                    "required": true,
+                    "schema": {
+                      "type": "string",
+                      "format": "uri"
+                    }
+                  }
+                ],
+                "responses": {
+                  "200": {
+                    "description": "File content for viewing"
+                  },
+                  "400": {
+                    "description": "URL parameter required"
+                  },
+                  "408": {
+                    "description": "Request timeout"
+                  },
+                  "503": {
+                    "description": "Connection failed"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        "name": "User Management System",
+        "description": "Complete user management system with GraphQL operations for CRUD operations on user profiles, role assignments, and user authentication",
+        "files": [
+          "modules/users/services/users-graphql.ts",
+          "modules/users/services/users-service.ts",
+          "components/(main)/user/"
+        ],
+        "api_doc": {
+          "openapi": "3.0.0",
+          "info": {
+            "title": "User Management GraphQL Operations",
+            "version": "1.0.0"
+          },
+          "paths": {
+            "/api/graphql": {
+              "post": {
+                "summary": "User management operations",
+                "description": "Supports queries: GetUsers, GetUsersById, CountUsers and mutations: InsertUser, UpdateUser, DeleteUser",
+                "security": [
+                  {
+                    "bearerAuth": []
+                  }
+                ],
+                "requestBody": {
+                  "required": true,
+                  "content": {
+                    "application/json": {
+                      "schema": {
+                        "type": "object",
+                        "properties": {
+                          "query": {
+                            "type": "string",
+                            "description": "GraphQL query for user operations"
+                          },
+                          "variables": {
+                            "type": "object",
+                            "description": "Variables for user queries"
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "responses": {
+                  "200": {
+                    "description": "User data or operation result"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        "name": "Role Management System",
+        "description": "Role and permission management system with GraphQL operations for managing user roles and access control",
+        "files": [
+          "modules/roles/services/roles-graphql.ts",
+          "modules/roles/services/roles-service.ts"
+        ],
+        "api_doc": {
+          "openapi": "3.0.0",
+          "info": {
+            "title": "Role Management GraphQL Operations",
+            "version": "1.0.0"
+          },
+          "paths": {
+            "/api/graphql": {
+              "post": {
+                "summary": "Role management operations",
+                "description": "Supports queries: GetAllRoles, GetRoleById, GetRolesWithAccess, SearchRoles",
+                "security": [
+                  {
+                    "bearerAuth": []
+                  }
+                ],
+                "requestBody": {
+                  "required": true,
+                  "content": {
+                    "application/json": {
+                      "schema": {
+                        "type": "object",
+                        "properties": {
+                          "query": {
+                            "type": "string",
+                            "description": "GraphQL query for role operations"
+                          },
+                          "variables": {
+                            "type": "object"
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "responses": {
+                  "200": {
+                    "description": "Role data and permissions"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        "name": "Settings Management System",
+        "description": "Application settings management with GraphQL operations for site configuration, appearance, and meta data",
+        "files": [
+          "modules/settings/services/setting-graphql.ts",
+          "modules/settings/services/setting-service.ts",
+          "components/module/settings/"
+        ],
+        "api_doc": {
+          "openapi": "3.0.0",
+          "info": {
+            "title": "Settings Management GraphQL Operations",
+            "version": "1.0.0"
+          },
+          "paths": {
+            "/api/graphql": {
+              "post": {
+                "summary": "Settings management operations",
+                "description": "Supports queries: getSettingsById and mutations: updateSettingsById, insertSettings",
+                "security": [
+                  {
+                    "bearerAuth": []
+                  }
+                ],
+                "requestBody": {
+                  "required": true,
+                  "content": {
+                    "application/json": {
+                      "schema": {
+                        "type": "object",
+                        "properties": {
+                          "query": {
+                            "type": "string",
+                            "description": "GraphQL query for settings operations"
+                          },
+                          "variables": {
+                            "type": "object"
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "responses": {
+                  "200": {
+                    "description": "Settings data"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        "name": "Dashboard Statistics Service",
+        "description": "Real-time dashboard statistics service providing user metrics, role distribution, user growth, and system health data",
+        "files": [
+          "lib/services/dashboard-stats-service.ts"
+        ],
+        "api_doc": {
+          "openapi": "3.0.0",
+          "info": {
+            "title": "Dashboard Statistics API",
+            "version": "1.0.0"
+          },
+          "paths": {
+            "/api/graphql": {
+              "post": {
+                "summary": "Dashboard statistics operations",
+                "description": "Provides dashboard metrics including user counts, role distribution, growth data, and system health",
+                "security": [
+                  {
+                    "bearerAuth": []
+                  }
+                ],
+                "responses": {
+                  "200": {
+                    "description": "Dashboard statistics",
+                    "content": {
+                      "application/json": {
+                        "schema": {
+                          "type": "object",
+                          "properties": {
+                            "totalUsers": {
+                              "type": "number"
+                            },
+                            "activeUsers": {
+                              "type": "number"
+                            },
+                            "adminUsers": {
+                              "type": "number"
+                            },
+                            "recentSignups": {
+                              "type": "number"
+                            },
+                            "totalRoles": {
+                              "type": "number"
+                            },
+                            "pendingPasswordResets": {
+                              "type": "number"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    ]
+  }
+}

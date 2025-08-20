@@ -1,3 +1,5 @@
+import { getLoggingConfig } from '@/lib/config/app-config';
+
 interface ErrorLogData {
   message: string;
   stack?: string;
@@ -10,7 +12,7 @@ interface ErrorLogData {
 }
 
 class ErrorLogger {
-  private isDevelopment = process.env.NODE_ENV === 'development';
+  private config = getLoggingConfig();
 
   log(error: Error | string, context?: Record<string, any>, level: 'error' | 'warning' | 'info' = 'error') {
     const errorData: ErrorLogData = {
@@ -23,24 +25,24 @@ class ErrorLogger {
       context,
     };
 
-    // Always log to console in development
-    if (this.isDevelopment) {
+    // Log to console if enabled (consistent across environments)
+    if (this.config.console && this.config.enabled) {
       const logMethod = level === 'error' ? console.error : level === 'warning' ? console.warn : console.info;
       logMethod.call(console, 'Error Logger:', errorData);
     }
 
-    // Send to external service in production (implement based on your needs)
-    if (!this.isDevelopment) {
+    // Send to external service if configured
+    if (this.config.external && this.config.enabled) {
       this.sendToExternalService(errorData);
     }
 
-    // Store in local storage for debugging (keep last 50 errors)
+    // Always store locally for debugging (environment-agnostic)
     this.storeLocally(errorData);
   }
 
   private async sendToExternalService(errorData: ErrorLogData) {
     try {
-      // Example: Send to your logging service
+      // Simple approach - just send to logs API
       await fetch('/api/logs', {
         method: 'POST',
         headers: {

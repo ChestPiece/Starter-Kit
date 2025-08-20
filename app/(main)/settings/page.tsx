@@ -1,13 +1,16 @@
+"use client";
+
 import { ComprehensiveSettings } from "@/components/module/settings/comprehensive-settings";
 import { AuthErrorBoundary } from "@/components/error-boundary";
+import { withRoleAccess } from "@/hooks/use-role-access";
 
-// Force dynamic rendering for settings page that loads user-specific data
-export const dynamic = "force-dynamic";
-
-export default function SettingsPage() {
+function SettingsPage() {
   return (
     <AuthErrorBoundary>
       <ComprehensiveSettings />
     </AuthErrorBoundary>
   );
 }
+
+// Only admin and manager users can access the Settings page
+export default withRoleAccess(SettingsPage, ["admin", "manager"]);

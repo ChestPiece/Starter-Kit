@@ -1,12 +1,56 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
+import { rateLimiter, rateLimitConfigs, getClientIP } from '@/lib/utils/rate-limiter'
+import { auditLogger, extractAuditContext } from '@/lib/services/audit-logger'
 
 export async function GET(request: NextRequest) {
+  const clientIP = getClientIP(request);
+  const auditContext = extractAuditContext(request);
+  
   try {
     const { searchParams, origin } = new URL(request.url)
     const code = searchParams.get('code')
     const token_hash = searchParams.get('token_hash')
     const type = searchParams.get('type')
+    const error = searchParams.get('error')
+    const errorCode = searchParams.get('error_code')
+    const errorDescription = searchParams.get('error_description')
+    
+    console.log('Confirmation attempt:', { 
+      hasCode: !!code, 
+      hasTokenHash: !!token_hash, 
+      type, 
+      error,
+      errorCode,
+      origin,
+      fullUrl: request.url 
+    })
+
+    // Handle explicit error parameters from Supabase (e.g., expired links)
+    if (error || errorCode) {
+      console.log('Confirmation error detected:', { error, errorCode, errorDescription })
+      
+      // Log the failed confirmation attempt
+      await auditLogger.logAuthOperation(
+        'Email confirmation failed - URL contains error parameters',
+        auditContext,
+        { error, errorCode, errorDescription },
+        false,
+        errorDescription || error || undefined
+      );
+      
+      // Handle specific error codes
+      if (errorCode === 'otp_expired' || error === 'access_denied') {
+        return NextResponse.redirect(`${origin}/auth/login?message=link_expired`)
+      }
+      
+      if (errorCode === 'invalid_otp' || error === 'invalid_request') {
+        return NextResponse.redirect(`${origin}/auth/login?message=invalid_confirmation_link`)
+      }
+      
+      // Generic error handling
+      return NextResponse.redirect(`${origin}/auth/login?message=confirmation_failed`)
+    }
 
     // Prepare a response object that will be mutated by Supabase cookie setter
     let supabaseResponse = NextResponse.next({ request })
@@ -31,25 +75,53 @@ export async function GET(request: NextRequest) {
     )
 
     if (code) {
-      // Exchange the code for a session
+      // Verify email confirmation WITHOUT creating/maintaining a session
+      // We'll exchange the code but then immediately sign out to avoid auto-login
       const { data, error } = await supabase.auth.exchangeCodeForSession(code)
 
       if (error) {
         console.error('Email confirmation failed:', error)
-        const redirectResponse = NextResponse.redirect(`${origin}/auth/login?message=confirmation_failed`)
-        supabaseResponse.cookies.getAll().forEach(({ name, value, ...options }) => {
-          redirectResponse.cookies.set(name, value, options)
-        })
-        return redirectResponse
+        
+        // Check rate limit for failed auth attempts
+        const rateLimitInfo = rateLimiter.getRateLimitInfo(clientIP, rateLimitConfigs.authFailures);
+        if (rateLimitInfo.isLimited) {
+          await auditLogger.logAuthOperation(
+            'Email confirmation failed - Rate limited',
+            auditContext,
+            { code: code ? '[PRESENT]' : null, reason: 'rate_limited' },
+            false,
+            'Too many failed authentication attempts'
+          );
+          return NextResponse.redirect(`${origin}/auth/login?message=rate_limited`);
+        }
+
+        // Log failed authentication attempt
+        await auditLogger.logAuthOperation(
+          'Email confirmation failed',
+          auditContext,
+          { code: code ? '[PRESENT]' : null, error: error.message },
+          false,
+          error.message
+        );
+
+        return NextResponse.redirect(`${origin}/auth/login?message=confirmation_failed`)
       }
 
-      // Success - redirect to confirmation success page with proper session cookies
-      console.log('✅ Email confirmed successfully for:', data?.user?.email)
-      const redirectResponse = NextResponse.redirect(`${origin}/auth/confirm?confirmed=true`)
-      supabaseResponse.cookies.getAll().forEach(({ name, value, ...options }) => {
-        redirectResponse.cookies.set(name, value, options)
-      })
-      return redirectResponse
+      // Email confirmed successfully - now sign out to prevent auto-login
+      await supabase.auth.signOut()
+      
+      console.log('✅ Email confirmed successfully for:', data?.user?.email, '(user signed out)')
+      
+      // Log successful email confirmation (but user not logged in)
+      await auditLogger.logAuthOperation(
+        'Email confirmation successful - user signed out',
+        { ...auditContext, userId: data?.user?.id, userEmail: data?.user?.email },
+        { code: '[PRESENT]', userEmail: data?.user?.email },
+        true
+      );
+
+      // Redirect to login with success message (no session cookies)
+      return NextResponse.redirect(`${origin}/auth/login?message=email_confirmed`)
     }
 
     // Handle token-based confirmation (fallback)
@@ -61,23 +133,51 @@ export async function GET(request: NextRequest) {
 
       if (error) {
         console.error('Token verification failed:', error)
-        const redirectResponse = NextResponse.redirect(`${origin}/auth/login?message=invalid_confirmation_link`)
-        supabaseResponse.cookies.getAll().forEach(({ name, value, ...options }) => {
-          redirectResponse.cookies.set(name, value, options)
-        })
-        return redirectResponse
+        
+        // Check rate limit for invalid token attempts
+        const rateLimitInfo = rateLimiter.getRateLimitInfo(clientIP, rateLimitConfigs.invalidTokens);
+        if (rateLimitInfo.isLimited) {
+          await auditLogger.logAuthOperation(
+            'Token verification failed - Rate limited',
+            auditContext,
+            { token_hash: '[PRESENT]', type, reason: 'rate_limited' },
+            false,
+            'Too many invalid token attempts'
+          );
+          return NextResponse.redirect(`${origin}/auth/login?message=rate_limited`);
+        }
+
+        // Log failed token verification
+        await auditLogger.logAuthOperation(
+          'Token verification failed',
+          auditContext,
+          { token_hash: '[PRESENT]', type, error: error.message },
+          false,
+          error.message
+        );
+
+        return NextResponse.redirect(`${origin}/auth/login?message=invalid_confirmation_link`)
       }
 
-      // Success - redirect to confirmation success page
-      console.log('✅ Token verified successfully')
-      const redirectResponse = NextResponse.redirect(`${origin}/auth/confirm?confirmed=true`)
-      supabaseResponse.cookies.getAll().forEach(({ name, value, ...options }) => {
-        redirectResponse.cookies.set(name, value, options)
-      })
-      return redirectResponse
+      // Token verified successfully - sign out to prevent auto-login
+      await supabase.auth.signOut()
+      
+      console.log('✅ Token verified successfully (user signed out)')
+      
+      // Log successful token verification
+      await auditLogger.logAuthOperation(
+        'Token verification successful - user signed out',
+        auditContext,
+        { token_hash: '[PRESENT]', type },
+        true
+      );
+
+      // Redirect to login with success message (no session cookies)
+      return NextResponse.redirect(`${origin}/auth/login?message=email_confirmed`)
     }
 
     // No valid confirmation parameters
+    console.log('No confirmation parameters found, redirecting to login with invalid_link message');
     return NextResponse.redirect(`${origin}/auth/login?message=invalid_link`)
 
   } catch (error: any) {
@@ -87,47 +187,5 @@ export async function GET(request: NextRequest) {
   }
 }
 
-export async function POST(request: NextRequest) {
-  try {
-    const body = await request.json().catch(() => ({})) as {
-      access_token?: string
-      refresh_token?: string
-    }
-
-    const { access_token, refresh_token } = body
-    if (!access_token || !refresh_token) {
-      return NextResponse.json({ ok: false, error: 'missing_tokens' }, { status: 400 })
-    }
-
-    let supabaseResponse = NextResponse.json({ ok: true })
-
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          getAll() {
-            return request.cookies.getAll()
-          },
-          setAll(cookiesToSet) {
-            supabaseResponse = NextResponse.json({ ok: true })
-            cookiesToSet.forEach(({ name, value, options }) =>
-              supabaseResponse.cookies.set(name, value, options)
-            )
-          },
-        },
-      }
-    )
-
-    const { error } = await supabase.auth.setSession({ access_token, refresh_token })
-    if (error) {
-      console.error('Failed to persist session:', error)
-      return NextResponse.json({ ok: false, error: 'persist_failed' }, { status: 400 })
-    }
-
-    return supabaseResponse
-  } catch (error) {
-    console.error('POST /api/auth/confirm error:', error)
-    return NextResponse.json({ ok: false, error: 'server_error' }, { status: 500 })
-  }
-}
+// POST endpoint removed - email confirmation no longer creates sessions
+// Users must log in manually after email verification

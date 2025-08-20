@@ -1,4 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
+import { defaultContentValidator } from "@/lib/security/content-validator";
+import { errorLogger } from '@/lib/services/error-logger';
+import { getClientIP } from '@/lib/utils/rate-limiter';
 
 export const GET = async (request: NextRequest) => {
   try {
@@ -8,6 +11,15 @@ export const GET = async (request: NextRequest) => {
     if (!url) {
       return NextResponse.json(
         { error: "URL parameter is required" },
+        { status: 400 }
+      );
+    }
+
+    // Validate URL before making request
+    const urlValidation = defaultContentValidator.validateUrl(url);
+    if (!urlValidation.isValid) {
+      return NextResponse.json(
+        { error: `URL validation failed: ${urlValidation.reason}` },
         { status: 400 }
       );
     }
@@ -24,8 +36,29 @@ export const GET = async (request: NextRequest) => {
       );
     }
 
+    // Validate response headers and content type
+    const responseValidation = defaultContentValidator.validateResponse(response);
+    if (!responseValidation.isValid) {
+      return NextResponse.json(
+        { error: `Content validation failed: ${responseValidation.reason}` },
+        { status: 403 }
+      );
+    }
+
     // Get the file content as an array buffer
     const arrayBuffer = await response.arrayBuffer();
+    
+    // Validate content buffer
+    const contentValidation = defaultContentValidator.validateContent(
+      arrayBuffer, 
+      responseValidation.contentType || "application/octet-stream"
+    );
+    if (!contentValidation.isValid) {
+      return NextResponse.json(
+        { error: `Content security check failed: ${contentValidation.reason}` },
+        { status: 403 }
+      );
+    }
     
     // Get the content type from the response
     const contentType = response.headers.get("content-type") || "application/octet-stream";
@@ -41,7 +74,11 @@ export const GET = async (request: NextRequest) => {
 
     return newResponse;
   } catch (error: any) {
-    console.error("Proxy download error:", error);
+    errorLogger.error(error, { 
+      context: 'Proxy Download API',
+      clientIP: getClientIP(request),
+      url: request.nextUrl.searchParams.get("url")
+    });
     
     // Handle timeout errors
     if (error instanceof Error && error.name === 'AbortError') {

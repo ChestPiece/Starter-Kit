@@ -1,6 +1,6 @@
 "use client";
 
-import { createClient } from "@/lib/supabase/client";
+import { getSupabaseClient } from "@/lib/supabase/singleton-client";
 
 /**
  * Utility functions for authentication handling
@@ -12,8 +12,10 @@ import { createClient } from "@/lib/supabase/client";
  */
 export const forceLogoutAndRedirect = async (reason?: string) => {
   try {
-    // Clear session tracking first
-    clearSessionTracking();
+    // Clear any session storage
+    if (typeof window !== 'undefined') {
+      sessionStorage.clear();
+    }
     
     // Try server action first (preferred method)
     try {
@@ -44,7 +46,7 @@ export const forceLogoutAndRedirect = async (reason?: string) => {
  * Returns true if valid, false if invalid
  */
 export const validateUserSession = async (): Promise<boolean> => {
-  const supabase = createClient();
+  const supabase = getSupabaseClient();
   
   try {
     // Use Supabase's built-in session validation
@@ -87,7 +89,7 @@ export const redirectToLoginIfUnauthenticated = async () => {
  * Set up Supabase-native auth state monitoring (no custom polling)
  */
 export const setupSessionMonitoring = () => {
-  const supabase = createClient();
+  const supabase = getSupabaseClient();
   
   // Listen for Supabase auth state changes only
   supabase.auth.onAuthStateChange(async (event, session) => {

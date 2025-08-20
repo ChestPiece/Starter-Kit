@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -28,6 +28,11 @@ import {
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Eye, EyeOff, Loader2, AlertCircle, Check } from "lucide-react";
 import Link from "next/link";
+import {
+  markAsAuthTab,
+  setTabSession,
+  getCurrentTabId,
+} from "@/lib/auth/tab-isolation";
 
 const loginSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
@@ -63,6 +68,14 @@ export function LoginForm({
     },
   });
 
+  // Watch all form values
+  const formValues = form.watch();
+
+  // Check if all required fields are filled
+  const isFormDisabled = useMemo(() => {
+    return loading || !formValues.email?.trim() || !formValues.password;
+  }, [formValues, loading]);
+
   const onSubmit = async (data: LoginFormData) => {
     setLoading(true);
     setError(null);
@@ -96,21 +109,12 @@ export function LoginForm({
       if (authData.user) {
         console.log("✅ Login successful, processing authentication...");
 
-        // Persist session to HttpOnly cookies on server and start local tracking
-        try {
-          const { data: sessionData } = await supabase.auth.getSession();
-          const access_token = sessionData.session?.access_token;
-          const refresh_token = sessionData.session?.refresh_token;
-          if (access_token && refresh_token) {
-            await fetch("/api/auth/confirm", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ access_token, refresh_token }),
-            });
-          }
-        } catch (e) {
-          console.warn("Failed to confirm session:", e);
-        }
+        // Mark this tab as the authentication tab for isolation
+        markAsAuthTab();
+        setTabSession(true);
+        console.log(`🏷️ Tab ${getCurrentTabId()} marked as authenticated`);
+
+        // Session is already handled by Supabase auth - no need for additional confirmation
 
         try {
           const { initializeSessionTracking, updateLastActivity } =
@@ -258,12 +262,27 @@ export function LoginForm({
 
               <Button
                 type="submit"
-                className="w-full bg-pink-700 text-white hover:bg-pink-800 font-medium border-none shadow-sm"
-                disabled={loading}
+                className="w-full font-medium border-none shadow-sm transition-all duration-200"
+                disabled={isFormDisabled}
+                style={{
+                  backgroundColor: isFormDisabled ? "#d1d5db" : "#be185d",
+                  color: isFormDisabled ? "#6b7280" : "white",
+                  cursor: isFormDisabled ? "not-allowed" : "pointer",
+                }}
+                onMouseEnter={(e) => {
+                  if (!isFormDisabled) {
+                    e.currentTarget.style.backgroundColor = "#be1d6e";
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!isFormDisabled) {
+                    e.currentTarget.style.backgroundColor = "#be185d";
+                  }
+                }}
               >
                 {loading ? (
                   <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin text-white" />
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin text-current" />
                     Signing in...
                   </>
                 ) : (

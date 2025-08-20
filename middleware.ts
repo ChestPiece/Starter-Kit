@@ -1,6 +1,32 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
+// Role-based access mapping
+const ROLE_ACCESS_MAP: Record<string, string[]> = {
+  admin: ['/', '/settings', '/users'],
+  manager: ['/', '/settings'], 
+  user: ['/']
+};
+
+function hasRouteAccess(role: string | undefined, route: string): boolean {
+  if (!role) return false;
+  
+  const allowedRoutes = ROLE_ACCESS_MAP[role] || [];
+  
+  // Check exact match first
+  if (allowedRoutes.includes(route)) {
+    return true;
+  }
+  
+  // Check if route starts with any allowed route (for sub-routes)
+  return allowedRoutes.some(allowedRoute => {
+    if (allowedRoute === '/') {
+      return route === '/';
+    }
+    return route.startsWith(allowedRoute);
+  });
+}
+
 export async function middleware(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request })
 
@@ -60,25 +86,8 @@ export async function middleware(request: NextRequest) {
     return supabaseResponse
   }
 
-  // Redirect authenticated users away from auth pages, except for reset with code
-  if (
-    user &&
-    (pathname.startsWith('/auth') || pathname.startsWith('/login'))
-  ) {
-    const searchParams = request.nextUrl.searchParams
-    const isResetPassword = pathname.includes('/reset-password')
-    const hasCode = searchParams.has('code')
-
-    if (!isResetPassword || !hasCode) {
-      const url = request.nextUrl.clone()
-      url.pathname = '/'
-      const response = NextResponse.redirect(url)
-      supabaseResponse.cookies.getAll().forEach(({ name, value, ...options }) => {
-        response.cookies.set(name, value, options)
-      })
-      return response
-    }
-  }
+  // Allow authenticated users to access auth pages - no automatic redirects
+  // Users should only enter the app when they explicitly choose to
 
   // Ensure root auth path redirects to login for unauthenticated users
   if (!user && pathname === '/auth') {
@@ -89,6 +98,38 @@ export async function middleware(request: NextRequest) {
       response.cookies.set(name, value, options)
     })
     return response
+  }
+
+  // Role-based access control for authenticated users
+  if (user && !pathname.startsWith('/auth') && !pathname.startsWith('/login')) {
+    try {
+      // Get user's role from the database
+      const { data: userProfile } = await supabase
+        .from('user_profiles')
+        .select('roles:role_id!inner(name)')
+        .eq('id', user.id)
+        .single();
+
+      const userRole = (userProfile?.roles as any)?.name;
+
+      // Check if user has access to the requested route
+      if (!hasRouteAccess(userRole, pathname)) {
+        console.log(`Access denied for role ${userRole} to ${pathname}`);
+        
+        // Redirect to dashboard (fallback route)
+        const url = request.nextUrl.clone()
+        url.pathname = '/'
+        const response = NextResponse.redirect(url)
+        supabaseResponse.cookies.getAll().forEach(({ name, value, ...options }) => {
+          response.cookies.set(name, value, options)
+        })
+        return response
+      }
+    } catch (error) {
+      console.error('Role access check failed:', error);
+      // On error, allow access but log the issue
+      // This prevents breaking the app if there's a database issue
+    }
   }
 
   return supabaseResponse

@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { useEffect, useState } from "react";
+import { useRoleAccess } from "@/hooks/use-role-access";
 
 import { NavMain } from "@/components/main-layout/nav-main";
 import { NavUser } from "@/components/main-layout/nav-user";
@@ -67,6 +68,7 @@ export default function SideBarLayout({
   const pathname = usePathname();
   const title = formatPathname(pathname);
   const { user, loading } = useUser();
+  const { isCheckingAccess, currentRole } = useRoleAccess();
 
   const data: {
     teams: Array<{
@@ -97,12 +99,11 @@ export default function SideBarLayout({
 
   // Get navigation data based on user role - updates when role changes
   const hasUser = !!user;
-  const roleName = ((user?.roles as any)?.name || "user") as string;
+  const roleName = currentRole || "user";
 
   useEffect(() => {
-    if (!hasUser) {
+    if (!hasUser || isCheckingAccess) {
       setNavItems([]);
-
       return;
     }
 
@@ -128,7 +129,7 @@ export default function SideBarLayout({
 
       return (navData.navMain || []) as NavSection[];
     });
-  }, [hasUser, roleName]);
+  }, [hasUser, roleName, isCheckingAccess]);
 
   return (
     <SidebarProvider>
@@ -154,7 +155,20 @@ export default function SideBarLayout({
           <div className="px-4 md:px-6 lg:px-8">
             <Header title={title} url={pathname} />
           </div>
-          <main>{children}</main>
+          <main>
+            {isCheckingAccess ? (
+              <div className="flex items-center justify-center min-h-[400px]">
+                <div className="text-center">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-pink-600 mx-auto mb-4"></div>
+                  <div className="text-sm text-gray-500">
+                    Verifying access...
+                  </div>
+                </div>
+              </div>
+            ) : (
+              children
+            )}
+          </main>
         </SidebarInset>
       </div>
     </SidebarProvider>
