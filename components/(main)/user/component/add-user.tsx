@@ -242,7 +242,11 @@ export default function AddUser({
                   >
                     Cancel
                   </Button>
-                  <Button type="submit" disabled={isLoading}>
+                  <Button
+                    type="submit"
+                    disabled={isLoading}
+                    className="bg-primary text-primary-foreground hover:bg-primary/90"
+                  >
                     {isLoading ? "Creating..." : "Create User"}
                   </Button>
                 </DialogFooter>

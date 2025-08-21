@@ -155,6 +155,37 @@ class UserService {
     currentPage: number = 0
   ) {
     try {
+      // First try using the optimized database function
+      const { data: funcData, error: funcError } = await this.supabase
+        .rpc('get_users_with_roles_pagination', {
+          search_term: searchTerm || '',
+          page_size: pageSize,
+          page_number: currentPage
+        });
+
+      if (!funcError && funcData) {
+        const transformedUsers = funcData.map((user: any) => ({
+          id: user.id,
+          email: user.email || '',
+          first_name: user.first_name || '',
+          last_name: user.last_name || '',
+          role_id: user.role_id,
+          is_active: user.is_active,
+          profile: user.profile,
+          created_at: user.created_at,
+          updated_at: user.updated_at,
+          roles: {
+            name: user.role_name || 'user'
+          }
+        }));
+
+        return {
+          users: transformedUsers,
+          totalCount: funcData[0]?.total_count || transformedUsers.length
+        };
+      }
+
+      // Fallback to direct query if function doesn't exist
       let query = this.supabase
         .from('user_profiles')
         .select(`
@@ -167,7 +198,7 @@ class UserService {
           profile,
           created_at,
           updated_at,
-          roles:role_id!inner(name)
+          roles:role_id(name)
         `, { count: 'exact' });
 
       // Add search filter if provided

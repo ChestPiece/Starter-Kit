@@ -148,7 +148,7 @@ function LoginPageInner() {
           onEmailSent={() => {
             setCurrentView("login");
             setReasonMessage(
-              "Password reset email sent! Please check your inbox and follow the instructions."
+              "Password reset email sent! Please check your inbox (and spam folder) for the reset link. The email may take a few minutes to arrive."
             );
           }}
         />

@@ -49,8 +49,28 @@ export function ForgotPassword({ onBack, onEmailSent }: ForgotPasswordProps) {
     setError("");
 
     try {
+      // Check if Supabase is configured
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+      const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+      if (
+        !supabaseUrl ||
+        !supabaseKey ||
+        supabaseUrl.includes("your-supabase-url") ||
+        supabaseKey.includes("your-supabase-anon-key")
+      ) {
+        setError(
+          "Email service not configured. Please contact support or set up your environment variables."
+        );
+        console.error("Supabase environment variables not configured properly");
+        return;
+      }
+
       // Get the current origin for proper redirect URL
       const origin = window.location.origin;
+
+      console.log("Attempting to send password reset email to:", email);
+      console.log("Redirect URL:", `${origin}/auth/reset-password`);
 
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${origin}/auth/reset-password`,
@@ -101,7 +121,12 @@ export function ForgotPassword({ onBack, onEmailSent }: ForgotPasswordProps) {
       } else {
         // Success - always show success message
         console.log(`✅ Password reset email sent to ${email}`);
+        console.log(
+          "Email should arrive within a few minutes. Check your spam folder if you don't see it."
+        );
         setError("");
+
+        // Show success message and call onEmailSent
         onEmailSent();
       }
     } catch (err) {
@@ -198,7 +223,7 @@ export function ForgotPassword({ onBack, onEmailSent }: ForgotPasswordProps) {
       <CardFooter className="flex justify-center">
         <button
           onClick={onBack}
-          className="flex items-center text-sm text-pink-700 hover:text-pink-800 font-medium"
+          className="flex items-center text-sm text-primary hover:text-primary/90 font-medium"
         >
           <ArrowLeft className="mr-1 h-4 w-4" />
           Back to Sign In

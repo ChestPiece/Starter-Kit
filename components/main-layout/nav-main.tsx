@@ -88,7 +88,7 @@ export function NavMain({ items, user }: { items: NavSection[]; user?: User }) {
                 <SidebarMenuItem key="__settings-link">
                   <SidebarMenuButton
                     asChild
-                    className="group/menu-button font-medium gap-3 h-9 rounded-md hover:bg-sidebar-accent data-[active=true]:bg-primary/20 [&>svg]:size-auto"
+                    className="group/menu-button font-medium gap-3 h-9 rounded-md data-[active=true]:bg-primary/20 [&>svg]:size-auto"
                     isActive={isRouteActive("/settings")}
                   >
                     <Link href="/settings">
@@ -161,7 +161,7 @@ export function NavMain({ items, user }: { items: NavSection[]; user?: User }) {
                     <SidebarMenuItem key={item.title}>
                       <SidebarMenuButton
                         asChild
-                        className="group/menu-button font-medium gap-3 h-9 rounded-md hover:bg-sidebar-accent data-[active=true]:bg-primary/20 [&>svg]:size-auto"
+                        className="group/menu-button font-medium gap-3 h-9 rounded-md data-[active=true]:bg-primary/20 [&>svg]:size-auto"
                         isActive={isRouteActive(item.url)}
                       >
                         <Link href={item.url}>

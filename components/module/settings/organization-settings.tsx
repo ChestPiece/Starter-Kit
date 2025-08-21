@@ -116,37 +116,35 @@ export function OrganizationSettings({ settings }: { settings?: Settings }) {
   };
 
   return (
-    <Card className="w-full flex-1">
-      <CardHeader>
-        <CardTitle className="text-2xl">Organization Settings</CardTitle>
+    <Card className="w-full">
+      <CardHeader className="pb-3">
+        <CardTitle className="text-xl">Organization Settings</CardTitle>
         <CardDescription>
           Customize your organization's branding and appearance
         </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-6">
+      <CardContent className="space-y-4 pb-6">
         {/* Organization Information */}
-        <div className="rounded-lg space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="org-name">Organization Name</Label>
-            <Input
-              id="org-name"
-              placeholder="Enter organization name"
-              value={organizationSettings.name}
-              onChange={(e) =>
-                setOrganizationSettings((prev) => ({
-                  ...prev,
-                  name: e.target.value,
-                }))
-              }
-            />
-          </div>
+        <div className="space-y-2">
+          <Label htmlFor="org-name">Organization Name</Label>
+          <Input
+            id="org-name"
+            placeholder="Enter organization name"
+            value={organizationSettings.name}
+            onChange={(e) =>
+              setOrganizationSettings((prev) => ({
+                ...prev,
+                name: e.target.value,
+              }))
+            }
+          />
         </div>
 
         {/* Organization Square Logo (Icon) */}
-        <div className="space-y-4">
+        <div className="space-y-3">
           <div className="space-y-1">
             <Label className="text-base font-medium">Square Logo (Icon)</Label>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-foreground/70">
               Upload a square icon logo for square spaces, favicons, and app
               icons
             </p>
@@ -159,7 +157,7 @@ export function OrganizationSettings({ settings }: { settings?: Settings }) {
               size="lg"
               shape="square"
             />
-            <span className="text-sm text-muted-foreground">
+            <span className="text-sm text-foreground/70">
               {isUploading
                 ? "Uploading..."
                 : "Click or drag to upload square logo"}
@@ -168,12 +166,12 @@ export function OrganizationSettings({ settings }: { settings?: Settings }) {
         </div>
 
         {/* Organization Horizontal Logo (Full Brand) */}
-        <div className="space-y-4">
+        <div className="space-y-3">
           <div className="space-y-1">
             <Label className="text-base font-medium">
               Horizontal Logo (Full Brand)
             </Label>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-foreground/70">
               Upload a horizontal logo with your brand name for headers and wide
               spaces
             </p>
@@ -187,7 +185,7 @@ export function OrganizationSettings({ settings }: { settings?: Settings }) {
               shape="horizontal"
               aspectRatio={4 / 1}
             />
-            <span className="text-sm text-muted-foreground">
+            <span className="text-sm text-foreground/70">
               {isUploadingHorizontal
                 ? "Uploading..."
                 : "Click or drag to upload horizontal logo"}
@@ -196,10 +194,10 @@ export function OrganizationSettings({ settings }: { settings?: Settings }) {
         </div>
 
         {/* Logo Display Style */}
-        <div className="space-y-4">
+        <div className="space-y-3">
           <div className="space-y-1">
             <Label className="text-base font-medium">Logo Display Style</Label>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-foreground/70">
               Choose which logo to display in the sidebar
             </p>
           </div>
@@ -211,7 +209,7 @@ export function OrganizationSettings({ settings }: { settings?: Settings }) {
                 logo_setting: value,
               }))
             }
-            className="space-y-3"
+            className="space-y-2"
           >
             <div className="flex items-center space-x-2">
               <RadioGroupItem value="square" id="square-logo-display" />
@@ -235,10 +233,11 @@ export function OrganizationSettings({ settings }: { settings?: Settings }) {
         </div>
 
         {/* Save Button */}
-        <div className="flex justify-end pt-2">
+        <div className="flex justify-end pt-2 border-t">
           <Button
             disabled={loading}
             onClick={() => submitSettings(organizationSettings)}
+            className="min-w-24"
           >
             {loading ? "Saving..." : "Save Changes"}
           </Button>

@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ProfileSettings } from "./profile-settings";
 import { AppearanceSettings } from "./appearance-settings";
 import { OrganizationSettings } from "./organization-settings";
@@ -18,7 +17,7 @@ const convertServiceToModelSettings = (
   if (!serviceSettings) return null;
 
   return {
-    id: serviceSettings.id?.toString() || "", // Convert number to string
+    id: serviceSettings.id?.toString() || "",
     site_name: serviceSettings.site_name,
     site_description: serviceSettings.site_description,
     site_image: serviceSettings.site_image,
@@ -38,8 +37,16 @@ const convertServiceToModelSettings = (
   };
 };
 
+const sections = [
+  { name: "Profile", icon: User },
+  { name: "Organization", icon: Building2 },
+  { name: "Appearance", icon: Palette },
+] as const;
+
 export function ComprehensiveSettings() {
   const [settings, setSettings] = useState<Settings | null>(null);
+  const [active, setActive] =
+    useState<(typeof sections)[number]["name"]>("Profile");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -51,7 +58,7 @@ export function ComprehensiveSettings() {
 
         // Add timeout to prevent hanging on Supabase connection issues
         const timeoutPromise = new Promise((_, reject) => {
-          setTimeout(() => reject(new Error("Request timeout")), 10000); // 10 second timeout
+          setTimeout(() => reject(new Error("Request timeout")), 10000);
         });
 
         const settingsPromise = settingsService.getSettingsById();
@@ -116,95 +123,88 @@ export function ComprehensiveSettings() {
 
   if (loading) {
     return (
-      <div className="space-y-8">
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
-            <p className="text-muted-foreground">
-              Manage your account settings and preferences
-            </p>
+      <div className="space-y-6">
+        <div className="flex items-center justify-center py-12">
+          <div className="text-center space-y-4">
+            <Loader className="mx-auto" />
+            <p className="text-sm text-foreground/70">Loading settings...</p>
           </div>
         </div>
-        <Card className="w-full">
-          <CardContent className="flex items-center justify-center py-12">
-            <div className="text-center space-y-4">
-              <Loader className="mx-auto" />
-              <p className="text-sm text-muted-foreground">
-                Loading settings...
-              </p>
-            </div>
-          </CardContent>
-        </Card>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="space-y-8">
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
-            <p className="text-muted-foreground">
-              Manage your account settings and preferences
-            </p>
-          </div>
+      <div className="space-y-6">
+        <div className="rounded-lg border border-destructive/20 bg-destructive/5 p-6">
+          <h3 className="text-lg font-semibold text-destructive mb-2">
+            Error Loading Settings
+          </h3>
+          <p className="text-sm text-foreground/70">{error}</p>
         </div>
-        <Card className="w-full">
-          <CardHeader>
-            <CardTitle className="text-destructive">
-              Error Loading Settings
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground">{error}</p>
-          </CardContent>
-        </Card>
       </div>
     );
   }
 
   return (
-    <div className="space-y-8">
-      {/* Header */}
-      <div className="space-y-4">
-        <div className="space-y-2">
-          <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
-          <p className="text-muted-foreground">
-            Manage your account settings and preferences
-          </p>
+    <div className="space-y-6 pt-6">
+      <div className="flex flex-col lg:flex-row gap-6">
+        {/* Navigation Sidebar */}
+        <div className="w-full lg:w-56 shrink-0">
+          {/* Mobile Navigation */}
+          <div className="lg:hidden mb-6">
+            <div className="flex space-x-1 p-1 bg-muted rounded-lg overflow-x-auto">
+              {sections.map((item) => (
+                <button
+                  key={item.name}
+                  onClick={() => setActive(item.name)}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium cursor-pointer ${
+                    active === item.name
+                      ? "bg-primary text-primary-foreground shadow-sm"
+                      : "text-foreground bg-transparent hover:bg-muted"
+                  }`}
+                >
+                  <item.icon className="h-4 w-4 shrink-0" />
+                  <span>{item.name}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Desktop Navigation */}
+          <div className="hidden lg:block">
+            <nav className="space-y-2">
+              {sections.map((item) => (
+                <button
+                  key={item.name}
+                  onClick={() => setActive(item.name)}
+                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-left cursor-pointer ${
+                    active === item.name
+                      ? "bg-primary text-primary-foreground shadow-sm"
+                      : "text-foreground bg-transparent hover:bg-muted"
+                  }`}
+                >
+                  <item.icon className="h-4 w-4 shrink-0" />
+                  <span>{item.name}</span>
+                </button>
+              ))}
+            </nav>
+          </div>
         </div>
+
+        <main className="flex-1 min-w-0">
+          <div className="max-w-4xl">
+            {active === "Profile" && <ProfileSettings />}
+            {active === "Organization" && (
+              <OrganizationSettings settings={settings || undefined} />
+            )}
+            {active === "Appearance" && (
+              <AppearanceSettings settings={settings || undefined} />
+            )}
+          </div>
+        </main>
       </div>
-
-      {/* Settings Tabs */}
-      <Tabs defaultValue="profile" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="profile" className="flex items-center gap-2">
-            <User className="h-4 w-4" />
-            Profile
-          </TabsTrigger>
-          <TabsTrigger value="appearance" className="flex items-center gap-2">
-            <Palette className="h-4 w-4" />
-            Appearance
-          </TabsTrigger>
-          <TabsTrigger value="organization" className="flex items-center gap-2">
-            <Building2 className="h-4 w-4" />
-            Organization
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="profile" className="space-y-6">
-          <ProfileSettings />
-        </TabsContent>
-
-        <TabsContent value="appearance" className="space-y-6">
-          <AppearanceSettings settings={settings || undefined} />
-        </TabsContent>
-
-        <TabsContent value="organization" className="space-y-6">
-          <OrganizationSettings settings={settings || undefined} />
-        </TabsContent>
-      </Tabs>
     </div>
   );
 }

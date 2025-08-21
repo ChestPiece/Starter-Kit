@@ -54,9 +54,7 @@
       {
         "name": "Email Confirmation API",
         "description": "API endpoint for confirming user email addresses via magic links or tokens, handles both GET and POST methods for session establishment",
-        "files": [
-          "app/api/auth/confirm/route.ts"
-        ],
+        "files": ["app/api/auth/confirm/route.ts"],
         "api_doc": {
           "openapi": "3.0.0",
           "info": {
@@ -132,9 +130,7 @@
       {
         "name": "Resend Confirmation Email API",
         "description": "API endpoint for resending email confirmation links to users with rate limiting and validation",
-        "files": [
-          "app/api/auth/resend-confirmation/route.ts"
-        ],
+        "files": ["app/api/auth/resend-confirmation/route.ts"],
         "api_doc": {
           "openapi": "3.0.0",
           "info": {
@@ -157,9 +153,7 @@
                             "format": "email"
                           }
                         },
-                        "required": [
-                          "email"
-                        ]
+                        "required": ["email"]
                       }
                     }
                   }
@@ -218,9 +212,7 @@
                             "type": "object"
                           }
                         },
-                        "required": [
-                          "query"
-                        ]
+                        "required": ["query"]
                       }
                     }
                   }
@@ -244,9 +236,7 @@
       {
         "name": "Client-Side Error Logging API",
         "description": "API endpoint for logging client-side errors and events with rate limiting",
-        "files": [
-          "app/api/logs/route.ts"
-        ],
+        "files": ["app/api/logs/route.ts"],
         "api_doc": {
           "openapi": "3.0.0",
           "info": {
@@ -280,10 +270,7 @@
                             "type": "string"
                           }
                         },
-                        "required": [
-                          "message",
-                          "timestamp"
-                        ]
+                        "required": ["message", "timestamp"]
                       }
                     }
                   }
@@ -307,9 +294,7 @@
       {
         "name": "Proxy Download API",
         "description": "API endpoint for proxying external file downloads with timeout handling",
-        "files": [
-          "app/api/proxy-download/route.ts"
-        ],
+        "files": ["app/api/proxy-download/route.ts"],
         "api_doc": {
           "openapi": "3.0.0",
           "info": {
@@ -353,9 +338,7 @@
       {
         "name": "Proxy View API",
         "description": "API endpoint for proxying external files for viewing without forcing download",
-        "files": [
-          "app/api/proxy-view/route.ts"
-        ],
+        "files": ["app/api/proxy-view/route.ts"],
         "api_doc": {
           "openapi": "3.0.0",
           "info": {
@@ -548,65 +531,6 @@
                 "responses": {
                   "200": {
                     "description": "Settings data"
-                  }
-                }
-              }
-            }
-          }
-        }
-      },
-      {
-        "name": "Dashboard Statistics Service",
-        "description": "Real-time dashboard statistics service providing user metrics, role distribution, user growth, and system health data",
-        "files": [
-          "lib/services/dashboard-stats-service.ts"
-        ],
-        "api_doc": {
-          "openapi": "3.0.0",
-          "info": {
-            "title": "Dashboard Statistics API",
-            "version": "1.0.0"
-          },
-          "paths": {
-            "/api/graphql": {
-              "post": {
-                "summary": "Dashboard statistics operations",
-                "description": "Provides dashboard metrics including user counts, role distribution, growth data, and system health",
-                "security": [
-                  {
-                    "bearerAuth": []
-                  }
-                ],
-                "responses": {
-                  "200": {
-                    "description": "Dashboard statistics",
-                    "content": {
-                      "application/json": {
-                        "schema": {
-                          "type": "object",
-                          "properties": {
-                            "totalUsers": {
-                              "type": "number"
-                            },
-                            "activeUsers": {
-                              "type": "number"
-                            },
-                            "adminUsers": {
-                              "type": "number"
-                            },
-                            "recentSignups": {
-                              "type": "number"
-                            },
-                            "totalRoles": {
-                              "type": "number"
-                            },
-                            "pendingPasswordResets": {
-                              "type": "number"
-                            }
-                          }
-                        }
-                      }
-                    }
                   }
                 }
               }

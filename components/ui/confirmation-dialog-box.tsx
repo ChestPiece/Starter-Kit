@@ -53,7 +53,9 @@ const ConfirmationDialogBox = ({
             }}
             disabled={loading}
             className={
-              type === "delete" ? "bg-destructive hover:bg-destructive/90" : ""
+              type === "delete"
+                ? "bg-destructive hover:bg-destructive/90 text-white"
+                : "bg-primary text-primary-foreground hover:bg-primary/90"
             }
           >
             {loading ? (

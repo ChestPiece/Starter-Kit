@@ -73,19 +73,21 @@ export function SettingsDialog({
           Customize your settings here.
         </DialogDescription>
         <SidebarProvider className="items-start">
-          <Sidebar collapsible="none" className="hidden md:flex">
+          <Sidebar collapsible="none" className="hidden md:flex w-44">
             <SidebarContent>
-              <SidebarGroup>
-                <SidebarGroupContent>
-                  <SidebarMenu>
+              <SidebarGroup className="py-3 px-3">
+                <SidebarGroupContent className="border border-border rounded-lg p-2">
+                  <SidebarMenu className="gap-1">
                     {sections.map((item) => (
                       <SidebarMenuItem key={item.name}>
                         <SidebarMenuButton
                           isActive={active === item.name}
                           onClick={() => setActive(item.name)}
+                          size="sm"
+                          className="py-2.5 px-3 h-9"
                         >
-                          <item.icon />
-                          <span>{item.name}</span>
+                          <item.icon className="h-4 w-4" />
+                          <span className="font-medium">{item.name}</span>
                         </SidebarMenuButton>
                       </SidebarMenuItem>
                     ))}
@@ -110,7 +112,7 @@ export function SettingsDialog({
                 </Breadcrumb>
               </div>
             </header>
-            <div className="flex flex-1 flex-col gap-4 overflow-y-auto p-4 pt-0">
+            <div className="flex flex-1 flex-col gap-3 overflow-y-auto px-4 py-2 pt-0">
               {active === "Profile" && <ProfileSettings />}
               {active === "Organization" && (
                 <OrganizationSettings settings={null as any} />

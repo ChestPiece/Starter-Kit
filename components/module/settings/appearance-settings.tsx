@@ -155,16 +155,22 @@ export function AppearanceSettings({ settings }: { settings?: Settings }) {
   };
 
   return (
-    <Card className="w-full flex-1">
-      <CardHeader>
-        <CardTitle className="text-2xl">Appearance Settings</CardTitle>
+    <Card className="w-full">
+      <CardHeader className="pb-3">
+        <CardTitle className="text-xl">Appearance Settings</CardTitle>
         <CardDescription>
           Customize the look and feel of your application
         </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-6">
+      <CardContent className="space-y-4 pb-6">
         {/* Theme Toggle */}
-        <div className="rounded-lg space-y-4">
+        <div className="space-y-3">
+          <div>
+            <Label className="text-base font-medium">Theme</Label>
+            <p className="text-sm text-foreground/70">
+              Choose your preferred interface theme
+            </p>
+          </div>
           <fieldset>
             <RadioGroup
               className="flex gap-3"
@@ -190,7 +196,7 @@ export function AppearanceSettings({ settings }: { settings?: Settings }) {
                       className="object-cover"
                     />
                   </div>
-                  <span className="group peer-data-[state=unchecked]:text-muted-foreground/70 mt-2 flex items-center gap-1">
+                  <span className="group peer-data-[state=unchecked]:text-foreground/50 mt-2 flex items-center gap-1">
                     <CheckIcon
                       size={16}
                       className="group-peer-data-[state=unchecked]:hidden"
@@ -210,10 +216,10 @@ export function AppearanceSettings({ settings }: { settings?: Settings }) {
         </div>
 
         {/* Primary Color */}
-        <div className="space-y-4">
+        <div className="space-y-3">
           <div className="space-y-1">
             <Label className="text-base font-medium">Brand Color</Label>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-foreground/70">
               Select your brand's primary color
             </p>
           </div>
@@ -231,9 +237,6 @@ export function AppearanceSettings({ settings }: { settings?: Settings }) {
                     style={color.style}
                     className="size-8 shadow-none data-[state=checked]:ring-2 data-[state=checked]:ring-offset-2 data-[state=checked]:ring-offset-background data-[state=checked]:ring-primary"
                   />
-                  {/* <span className="text-xs text-muted-foreground mt-1">
-                    {color.name}
-                  </span> */}
                 </div>
               ))}
             </RadioGroup>
@@ -241,10 +244,11 @@ export function AppearanceSettings({ settings }: { settings?: Settings }) {
         </div>
 
         {/* Save Button */}
-        <div className="flex justify-end pt-2">
+        <div className="flex justify-end pt-2 border-t">
           <Button
             disabled={loading}
             onClick={() => submitSettings(settingAppearance)}
+            className="min-w-24"
           >
             {loading ? "Saving..." : "Save Changes"}
           </Button>

@@ -40,8 +40,8 @@ export function DataTableColumnHeader<TData, TValue>({
               column.getIsSorted() === "desc"
                 ? `Sorted descending. Click to sort ascending.`
                 : column.getIsSorted() === "asc"
-                ? `Sorted ascending. Click to sort descending.`
-                : `Not sorted. Click to sort ascending.`
+                  ? `Sorted ascending. Click to sort descending.`
+                  : `Not sorted. Click to sort ascending.`
             }
             variant="ghost"
             size="sm"
@@ -63,7 +63,7 @@ export function DataTableColumnHeader<TData, TValue>({
             onClick={() => column.toggleSorting(false)}
           >
             <ArrowUpIcon
-              className="mr-2 h-3.5 w-3.5 text-muted-foreground/70"
+              className="mr-2 h-3.5 w-3.5 text-foreground/70"
               aria-hidden="true"
             />
             Asc
@@ -73,7 +73,7 @@ export function DataTableColumnHeader<TData, TValue>({
             onClick={() => column.toggleSorting(true)}
           >
             <ArrowDownIcon
-              className="mr-2 h-3.5 w-3.5 text-muted-foreground/70"
+              className="mr-2 h-3.5 w-3.5 text-foreground/70"
               aria-hidden="true"
             />
             Desc
@@ -84,7 +84,7 @@ export function DataTableColumnHeader<TData, TValue>({
             onClick={() => column.toggleVisibility(false)}
           >
             <EyeOff
-              className="mr-2 h-3.5 w-3.5 text-muted-foreground/70"
+              className="mr-2 h-3.5 w-3.5 text-foreground/70"
               aria-hidden="true"
             />
             Hide

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -74,18 +74,13 @@ export function SignupForm() {
   // Watch all form values
   const formValues = form.watch();
 
-  // Check if all required fields are filled
-  const isFormDisabled = useMemo(() => {
-    return (
-      loading ||
-      !formValues.firstName?.trim() ||
-      !formValues.lastName?.trim() ||
-      !formValues.email?.trim() ||
-      !formValues.password ||
-      !formValues.confirmPassword ||
-      formValues.password !== formValues.confirmPassword
-    );
-  }, [formValues, loading]);
+  // Use state for button disabled status to prevent hydration mismatch
+  const [isFormDisabled, setIsFormDisabled] = useState(false);
+
+  // Update button disabled state after hydration - only disable when loading
+  useEffect(() => {
+    setIsFormDisabled(loading);
+  }, [loading]);
 
   const onSubmit = async (data: SignupFormData) => {
     setLoading(true);
@@ -247,8 +242,8 @@ export function SignupForm() {
     return (
       <Card className="w-full max-w-md">
         <CardHeader className="text-center pb-3">
-          <div className="mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-pink-100">
-            <CheckCircle className="h-5 w-5 text-pink-700" />
+          <div className="mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
+            <CheckCircle className="h-5 w-5 text-primary" />
           </div>
           <CardTitle className="text-xl font-semibold text-gray-900">
             Account Created!
@@ -258,9 +253,9 @@ export function SignupForm() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
-          <Alert className="border-pink-200 bg-pink-50">
-            <CheckCircle className="h-4 w-4 text-pink-700" />
-            <AlertDescription className="text-pink-800 text-sm">
+          <Alert className="border-primary/20 bg-primary/5">
+            <CheckCircle className="h-4 w-4 text-primary" />
+            <AlertDescription className="text-primary/90 text-sm">
               Account created successfully! We've sent a verification email to{" "}
               <strong>{form.getValues("email")}</strong>. Please click the link
               in the email to verify your account, then return here to sign in.
@@ -290,11 +285,11 @@ export function SignupForm() {
               onClick={handleResendEmail}
               disabled={resendLoading}
               variant="outline"
-              className="w-full border-pink-200 text-pink-700 hover:bg-pink-50"
+              className="w-full border-primary/20 text-primary hover:bg-primary/5"
             >
               {resendLoading ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin text-pink-700" />
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin text-primary" />
                   Resending...
                 </>
               ) : (
@@ -417,7 +412,7 @@ export function SignupForm() {
                         type="button"
                         variant="ghost"
                         size="sm"
-                        className="absolute right-0 top-0 h-full px-2 hover:bg-gray-100"
+                        className="absolute right-0 top-0 h-full px-2 hover:bg-gray-100 cursor-pointer disabled:cursor-not-allowed"
                         onClick={() => setShowPassword(!showPassword)}
                         disabled={loading}
                       >
@@ -455,7 +450,7 @@ export function SignupForm() {
                         type="button"
                         variant="ghost"
                         size="sm"
-                        className="absolute right-0 top-0 h-full px-2 hover:bg-gray-100"
+                        className="absolute right-0 top-0 h-full px-2 hover:bg-gray-100 cursor-pointer disabled:cursor-not-allowed"
                         onClick={() =>
                           setShowConfirmPassword(!showConfirmPassword)
                         }
@@ -481,26 +476,7 @@ export function SignupForm() {
               )}
             />
 
-            <Button
-              type="submit"
-              className="w-full font-medium border-none shadow-sm transition-all duration-200"
-              disabled={isFormDisabled}
-              style={{
-                backgroundColor: isFormDisabled ? "#d1d5db" : "#be185d",
-                color: isFormDisabled ? "#6b7280" : "white",
-                cursor: isFormDisabled ? "not-allowed" : "pointer",
-              }}
-              onMouseEnter={(e) => {
-                if (!isFormDisabled) {
-                  e.currentTarget.style.backgroundColor = "#be1d6e";
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (!isFormDisabled) {
-                  e.currentTarget.style.backgroundColor = "#be185d";
-                }
-              }}
-            >
+            <Button type="submit" className="w-full !opacity-100 !visible !block" disabled={isFormDisabled}>
               {loading ? (
                 <>
                   <Loader2 className="mr-2 h-3 w-3 animate-spin text-current" />
@@ -518,8 +494,7 @@ export function SignupForm() {
             Already have an account?{" "}
             <Link
               href="/auth/login"
-              className="text-pink-700 underline underline-offset-4 hover:text-pink-800 transition-colors font-medium !opacity-100"
-              style={{ color: "#be185d" }}
+              className="text-primary underline underline-offset-4 hover:text-primary/90 transition-colors font-medium !opacity-100 cursor-pointer"
             >
               Sign in here
             </Link>

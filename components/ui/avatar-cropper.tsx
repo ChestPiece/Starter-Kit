@@ -288,7 +288,7 @@ export function AvatarCropper({
                 <Button
                   onClick={handleApply}
                   disabled={!previewUrl || isUploading}
-                  className="min-w-24"
+                  className="min-w-24 bg-primary text-primary-foreground hover:bg-primary/90"
                 >
                   {isUploading ? "Processing..." : "Apply"}
                 </Button>

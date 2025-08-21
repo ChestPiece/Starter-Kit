@@ -39,8 +39,10 @@ export function getUserColumns(
               />
             </Avatar>
             <div className="grid flex-1 text-left text-sm leading-tight ml-3">
-              <span className="truncate font-semibold">{fullname || ""}</span>
-              <span className="truncate text-xs">
+              <span className="truncate font-semibold text-foreground">
+                {fullname || ""}
+              </span>
+              <span className="truncate text-xs text-foreground/70">
                 {row.original.email || ""}
               </span>
             </div>
@@ -57,11 +59,24 @@ export function getUserColumns(
         <DataTableColumnHeader column={column} title="Role" />
       ),
       cell: ({ row }) => {
-        const role = row.original.roles?.name;
+        const role = row.original.roles?.name || "user";
+        const getBadgeVariant = (roleName: string) => {
+          switch (roleName.toLowerCase()) {
+            case "admin":
+              return "destructive";
+            case "manager":
+              return "warning";
+            default:
+              return "outline";
+          }
+        };
         return (
           <div className="text-ellipsis text-left overflow-hidden whitespace-nowrap">
-            <Badge className="text-xs font-semibold ">
-              {role?.toUpperCase()}
+            <Badge
+              variant={getBadgeVariant(role)}
+              className="text-xs font-semibold"
+            >
+              {role.toUpperCase()}
             </Badge>
           </div>
         );
@@ -77,12 +92,15 @@ export function getUserColumns(
       ),
       cell: ({ row }) => {
         return row.original.is_active ? (
-          <Badge className="bg-green-500">
+          <Badge className="bg-green-500 text-white border-green-500">
             <CircleCheck className="!h-3 !w-3 mr-1" />
             Active
           </Badge>
         ) : (
-          <Badge variant="outline" className="bg-red-500 text-white h-6">
+          <Badge
+            variant="outline"
+            className="bg-red-500 text-white border-red-500"
+          >
             <CircleX className="!h-3 !w-3 mr-1" />
             Inactive
           </Badge>
@@ -100,7 +118,7 @@ export function getUserColumns(
       cell: ({ row }) => {
         const created = row.original.created_at;
         return (
-          <div className="text-left overflow-hidden whitespace-nowrap">
+          <div className="text-left overflow-hidden whitespace-nowrap text-foreground">
             {created
               ? currentTimezone(created)?.toLocaleString()?.replace("GMT", "")
               : "-"}

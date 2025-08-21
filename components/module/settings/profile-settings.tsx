@@ -244,17 +244,19 @@ export function ProfileSettings() {
   // Show loading state while profile is being loaded
   if (profileLoading) {
     return (
-      <Card className="w-full flex-1">
-        <CardHeader>
-          <CardTitle className="text-2xl">Personal Information</CardTitle>
+      <Card className="w-full">
+        <CardHeader className="pb-4">
+          <CardTitle className="text-xl">Personal Information</CardTitle>
           <CardDescription>
             Update your personal details and profile picture
           </CardDescription>
         </CardHeader>
-        <CardContent className="flex items-center justify-center h-64">
+        <CardContent className="flex items-center justify-center h-32">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto"></div>
-            <p className="mt-2 text-sm text-gray-600">Loading profile...</p>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-foreground mx-auto"></div>
+            <p className="mt-2 text-sm text-foreground/70">
+              Loading profile...
+            </p>
           </div>
         </CardContent>
       </Card>
@@ -263,33 +265,37 @@ export function ProfileSettings() {
 
   if (!userProfile) {
     return (
-      <Card className="w-full flex-1">
-        <CardHeader>
-          <CardTitle className="text-2xl">Personal Information</CardTitle>
+      <Card className="w-full">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-xl">Personal Information</CardTitle>
           <CardDescription>
             Update your personal details and profile picture
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-muted-foreground">
-            No profile data found.
-          </p>
+          <p className="text-sm text-foreground/70">No profile data found.</p>
         </CardContent>
       </Card>
     );
   }
 
   return (
-    <Card className="w-full flex-1">
-      <CardHeader>
-        <CardTitle className="text-2xl">Personal Information</CardTitle>
+    <Card className="w-full">
+      <CardHeader className="pb-3">
+        <CardTitle className="text-xl">Personal Information</CardTitle>
         <CardDescription>
           Update your personal details and profile picture
         </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-6">
+      <CardContent className="space-y-4 pb-6">
         {/* Profile Picture with Image Cropper */}
-        <div className=" rounded-lg space-y-4">
+        <div className="space-y-3">
+          <div>
+            <Label className="text-base font-medium">Profile Picture</Label>
+            <p className="text-sm text-foreground/70">
+              Upload a profile picture to personalize your account
+            </p>
+          </div>
           <div className="flex items-center space-x-4">
             <div className="relative inline-flex">
               <button
@@ -335,17 +341,17 @@ export function ProfileSettings() {
                 tabIndex={-1}
               />
             </div>
-            <span className="text-sm text-muted-foreground">
+            <span className="text-sm text-foreground/70">
               {isUploading ? "Uploading..." : "Click or drag to upload"}
             </span>
           </div>
         </div>
 
         {/* Name Fields in Responsive Row */}
-        <div className="space-y-4">
+        <div className="space-y-3">
           <div className="space-y-1">
             <Label className="text-base font-medium">Full Name</Label>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-foreground/70">
               Your first and last name as you'd like it to appear
             </p>
           </div>
@@ -390,11 +396,11 @@ export function ProfileSettings() {
         </div>
 
         {/* Email Field */}
-        <div className="space-y-4">
+        <div className="space-y-3">
           <div className="space-y-1">
             <Label className="text-base font-medium">Email Address</Label>
-            <p className="text-sm text-muted-foreground">
-              Your email address is used for signing in
+            <p className="text-sm text-foreground/70">
+              Your account email address (cannot be changed)
             </p>
           </div>
           <div className="space-y-2">
@@ -407,15 +413,16 @@ export function ProfileSettings() {
               disabled
               className="bg-muted/50"
             />
-            <p className="text-xs text-muted-foreground">
-              Email cannot be changed. Contact an administrator for assistance.
-            </p>
           </div>
         </div>
 
         {/* Save Button */}
-        <div className="flex justify-end pt-2">
-          <Button onClick={handleUpdateUserProfile} disabled={isLoading}>
+        <div className="flex justify-end pt-2 border-t">
+          <Button
+            onClick={handleUpdateUserProfile}
+            disabled={isLoading}
+            className="min-w-24"
+          >
             {isLoading ? "Saving..." : "Save Changes"}
           </Button>
         </div>
@@ -472,7 +479,7 @@ export function ProfileSettings() {
                 <Button
                   onClick={handleApplyCrop}
                   disabled={!previewUrl || isUploading}
-                  className="min-w-24"
+                  className="min-w-24 bg-primary text-primary-foreground hover:bg-primary/90"
                 >
                   {isUploading ? "Processing..." : "Apply"}
                 </Button>

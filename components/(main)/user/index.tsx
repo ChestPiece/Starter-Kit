@@ -115,7 +115,7 @@ export default function UserManagementPage({ type }: { type: string }) {
             <Badge variant="outline">
               {currentUser?.roles?.name || "user"}
             </Badge>
-            <span className="text-sm text-muted-foreground">
+            <span className="text-sm text-foreground/70">
               Contact an administrator for access.
             </span>
           </div>
@@ -125,26 +125,7 @@ export default function UserManagementPage({ type }: { type: string }) {
   }
 
   return (
-    <div className="w-full space-y-4">
-      {/* Admin Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Users className="h-6 w-6" />
-            User Management
-          </h1>
-          <p className="text-muted-foreground">
-            {isAdmin
-              ? "Manage all users, roles, and permissions"
-              : "View and manage user accounts (limited access)"}
-          </p>
-        </div>
-        <Badge variant={isAdmin ? "destructive" : "secondary"}>
-          <Shield className="h-3 w-3 mr-1" />
-          {currentUser?.roles?.name || "user"}
-        </Badge>
-      </div>
-
+    <div className="w-full space-y-4 pt-6">
       <DataTable
         data={listUsers || []}
         toolbar={

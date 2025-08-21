@@ -132,7 +132,7 @@ export function Avatar({
           hidden
         />
       </div>
-      <span className="text-left block text-sm text-muted-foreground mt-1">
+      <span className="text-left block text-sm text-foreground/70 mt-1">
         {isUploading ? "Uploading..." : ""}
       </span>
     </div>

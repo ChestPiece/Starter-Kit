@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -70,10 +70,13 @@ export function LoginForm({
   // Watch all form values
   const formValues = form.watch();
 
-  // Check if all required fields are filled
-  const isFormDisabled = useMemo(() => {
-    return loading || !formValues.email?.trim() || !formValues.password;
-  }, [formValues, loading]);
+  // Use state for button disabled status to prevent hydration mismatch
+  const [isFormDisabled, setIsFormDisabled] = useState(false);
+
+  // Update button disabled state after hydration - only disable when loading
+  useEffect(() => {
+    setIsFormDisabled(loading);
+  }, [loading]);
 
   const onSubmit = async (data: LoginFormData) => {
     setLoading(true);
@@ -209,7 +212,7 @@ export function LoginForm({
                         <button
                           type="button"
                           onClick={() => onForgotPassword?.()}
-                          className="ml-auto inline-block text-sm underline-offset-4 hover:underline text-pink-700 hover:text-pink-800"
+                          className="ml-auto inline-block text-sm underline-offset-4 hover:underline text-primary hover:text-primary/90"
                         >
                           Forgot your password?
                         </button>
@@ -225,7 +228,7 @@ export function LoginForm({
                           />
                           <button
                             type="button"
-                            className="absolute right-2 top-1/2 transform -translate-y-1/2 p-1 rounded-md hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:ring-offset-2 disabled:opacity-50"
+                            className="absolute right-2 top-1/2 transform -translate-y-1/2 p-1 rounded-md hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:ring-offset-2 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
                             onClick={() => setShowPassword(!showPassword)}
                             disabled={loading}
                             tabIndex={-1}
@@ -246,23 +249,8 @@ export function LoginForm({
 
               <Button
                 type="submit"
-                className="w-full font-medium border-none shadow-sm transition-all duration-200"
+                className="w-full !opacity-100 !visible !block"
                 disabled={isFormDisabled}
-                style={{
-                  backgroundColor: isFormDisabled ? "#d1d5db" : "#be185d",
-                  color: isFormDisabled ? "#6b7280" : "white",
-                  cursor: isFormDisabled ? "not-allowed" : "pointer",
-                }}
-                onMouseEnter={(e) => {
-                  if (!isFormDisabled) {
-                    e.currentTarget.style.backgroundColor = "#be1d6e";
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (!isFormDisabled) {
-                    e.currentTarget.style.backgroundColor = "#be185d";
-                  }
-                }}
               >
                 {loading ? (
                   <>
@@ -278,8 +266,7 @@ export function LoginForm({
               Don't have an account?{" "}
               <Link
                 href="/auth/signup"
-                className="text-pink-700 underline underline-offset-4 hover:text-pink-800 transition-colors font-medium !opacity-100"
-                style={{ color: "#be185d" }}
+                className="text-primary underline underline-offset-4 hover:text-primary/90 transition-colors font-medium !opacity-100 cursor-pointer"
               >
                 Sign up
               </Link>
