@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/dialog";
 import { Slider } from "@/components/ui/slider";
 import { Area, getCroppedImg } from "@/utils/image-crop";
+import { logger } from '@/lib/services/logger';
 
 export interface AvatarCropperProps {
   profileImage?: string;
@@ -144,7 +145,7 @@ export function AvatarCropper({
       setCropData(null);
       setZoom(1);
     } catch (error) {
-      console.error("Error during apply:", error);
+      logger.error("Error during apply:", { error });
     }
   };
 

@@ -7,6 +7,10 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
+    "analyze": "ANALYZE=true npm run build",
+    "build:analyze": "npm run analyze",
+    "build:standalone": "npm run build && echo 'Standalone build complete'",
+    "analyze:code-splitting": "ts-node scripts/analyze-code-splitting.ts",
     "supabase:init": "npx supabase init",
     "supabase:link": "npx supabase link --project-ref pazpinuookneqdplkglv",
     "db:migrate": "npx supabase db push",
@@ -79,6 +83,7 @@
     "tailwindcss": "^4.1.11",
     "tailwindcss-animate": "^1.0.7",
     "tw-animate-css": "^1.2.9",
-    "typescript": "^5"
+    "typescript": "^5",
+    "webpack-bundle-analyzer": "^4.10.2"
   }
 }

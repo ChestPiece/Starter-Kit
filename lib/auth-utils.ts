@@ -1,6 +1,7 @@
 "use client";
 
 import { getSupabaseClient } from "@/lib/supabase/singleton-client";
+import { logger } from '@/lib/services/logger';
 
 /**
  * Utility functions for authentication handling
@@ -23,7 +24,7 @@ export const forceLogoutAndRedirect = async (reason?: string) => {
       await forceLogout(reason || 'session_expired');
       return; // Success, exit early
     } catch (serverError) {
-      console.warn('Server logout failed, falling back to client logout:', serverError);
+      logger.warn('Server logout failed, falling back to client logout:', serverError);
     }
     
     // Fallback to client logout
@@ -31,7 +32,7 @@ export const forceLogoutAndRedirect = async (reason?: string) => {
     await clientLogout(reason || 'session_expired');
     
   } catch (error) {
-    console.error('All logout methods failed:', error);
+    logger.error('All logout methods failed:', { error });
     
     // Last resort: direct redirect
     if (typeof window !== 'undefined') {
@@ -65,7 +66,7 @@ export const validateUserSession = async (): Promise<boolean> => {
     
     return true;
   } catch (error) {
-    console.error('Error validating session:', error);
+    logger.error('Error validating session:', { error });
     return false;
   }
 };
@@ -95,12 +96,12 @@ export const setupSessionMonitoring = () => {
   supabase.auth.onAuthStateChange(async (event, session) => {
     // Only log significant auth events
     if (event !== 'INITIAL_SESSION') {
-      console.log(`🔐 Auth event: ${event}`);
+      logger.info(`🔐 Auth event: ${event}`);
     }
     
     // Handle sign out or invalid session
     if (event === 'SIGNED_OUT' || (event === 'TOKEN_REFRESHED' && !session)) {
-      console.log('Session ended, redirecting to login');
+      logger.info('Session ended, redirecting to login');
       
       // Only redirect if not already on auth pages
       if (typeof window !== 'undefined') {
@@ -113,13 +114,13 @@ export const setupSessionMonitoring = () => {
     
     // Handle successful sign in
     if (event === 'SIGNED_IN' && session) {
-      console.log('User signed in successfully');
+      logger.info('User signed in successfully');
       
       // Redirect to main app if on auth page
       if (typeof window !== 'undefined') {
         const currentPath = window.location.pathname;
         if (currentPath.startsWith('/auth') || currentPath.startsWith('/login')) {
-          console.log('Redirecting to main app after successful login');
+          logger.info('Redirecting to main app after successful login');
           setTimeout(() => {
             window.location.href = '/';
           }, 100);

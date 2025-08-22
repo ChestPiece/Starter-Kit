@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle, CheckCircle, Mail } from "lucide-react";
 import Link from "next/link";
+import { logger } from '@/lib/services/logger';
 
 interface ConfirmationErrorHelperProps {
   errorType:
@@ -69,7 +70,7 @@ export function ConfirmationErrorHelper({
         }, 5000);
       }
     } catch (error) {
-      console.error("Resend email error:", error);
+      logger.error("Resend email error", { error: error instanceof Error ? error : String(error) });
       setError("Connection failed. Please check your internet connection.");
     } finally {
       setLoading(false);
@@ -192,3 +193,6 @@ export function ConfirmationErrorHelper({
     </div>
   );
 }
+
+// Export as default for dynamic imports
+export default ConfirmationErrorHelper;

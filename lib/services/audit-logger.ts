@@ -1,4 +1,5 @@
 import { getSecurityConfig, getLoggingConfig } from '@/lib/config/app-config';
+import { logger, errorLogger } from '@/lib/services/logger';
 
 /**
  * Audit logging service for tracking sensitive operations
@@ -88,7 +89,7 @@ class AuditLogger {
       const color = success ? '\x1b[34m' : '\x1b[31m';
       const reset = '\x1b[0m';
       
-      console.log(`${color}${emoji} AUDIT LOG${reset}`, {
+      logger.info(`${color}${emoji} AUDIT LOG${reset}`, {
         operation,
         resource,
         action,
@@ -137,7 +138,7 @@ class AuditLogger {
       await this.storeInDatabase(entry);
       
     } catch (error) {
-      console.error('Failed to persist audit log:', error);
+      logger.error('Failed to persist audit log:', { error });
       // Don't throw error to avoid breaking main operation
     }
   }
@@ -160,7 +161,7 @@ class AuditLogger {
       await fs.appendFile(auditFile, logLine);
       
     } catch (error) {
-      console.error('Failed to write audit log to file:', error);
+      logger.error('Failed to write audit log to file:', { error });
     }
   }
 
@@ -183,7 +184,7 @@ class AuditLogger {
         }),
       });
     } catch (error) {
-      console.error('Failed to store audit log:', error);
+      logger.error('Failed to store audit log:', { error });
     }
   }
 

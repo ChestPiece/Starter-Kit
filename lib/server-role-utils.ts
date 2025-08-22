@@ -1,4 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
+import { logger } from '@/lib/services/logger';
+import { ROLE_HIERARCHY } from './role-utils';
 
 export type UserRole = 'admin' | 'manager' | 'user';
 
@@ -20,7 +22,7 @@ export const getServerUserRole = async (): Promise<UserRole | null> => {
         return data as UserRole;
       }
     } catch (funcError) {
-      console.warn('RPC function failed, using direct query:', funcError);
+      logger.warn('RPC function failed, using direct query:', funcError as Record<string, any>);
     }
 
     // Fallback to direct query if function fails
@@ -34,7 +36,7 @@ export const getServerUserRole = async (): Promise<UserRole | null> => {
       .maybeSingle();
 
     if (profileError) {
-      console.error('Error fetching user role with fallback:', profileError);
+      logger.error('Error fetching user role with fallback:', { error: profileError });
       
       // Last resort: try basic query and separate role lookup
       try {
@@ -54,7 +56,7 @@ export const getServerUserRole = async (): Promise<UserRole | null> => {
           return (roleData?.name as UserRole) || 'user';
         }
       } catch (lastResortError) {
-        console.error('Last resort role query failed:', lastResortError);
+        logger.error('Last resort role query failed:', { error: lastResortError instanceof Error ? lastResortError.message : String(lastResortError) });
       }
       
       return 'user'; // Default role
@@ -64,7 +66,7 @@ export const getServerUserRole = async (): Promise<UserRole | null> => {
     const roleName = (profileData?.roles as any)?.name || 'user';
     return roleName as UserRole;
   } catch (error) {
-    console.error('Error in getServerUserRole:', error);
+    logger.error('Error in getServerUserRole:', { error: error instanceof Error ? error.message : String(error) });
     return 'user'; // Default role
   }
 };
@@ -73,12 +75,6 @@ export const getServerUserRole = async (): Promise<UserRole | null> => {
  * Check if user has required role or higher (server-side)
  */
 export const hasServerPermission = (userRole: UserRole, requiredRole: UserRole): boolean => {
-  const ROLE_HIERARCHY: Record<UserRole, number> = {
-    admin: 3,
-    manager: 2,
-    user: 1,
-  };
-
   return ROLE_HIERARCHY[userRole] >= ROLE_HIERARCHY[requiredRole];
 };
 

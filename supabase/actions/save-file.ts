@@ -1,10 +1,12 @@
 "use server";
 
+import { logger } from '@/lib/services/logger';
+
 // Mock file upload function (Supabase and authentication removed)
 export const saveFile = async (file: File) => {
   try {
     // Simulate file upload process
-    console.log("Mock file upload:", {
+    logger.info("Mock file upload:", {
       name: file.name,
       size: file.size,
       type: file.type
@@ -18,7 +20,7 @@ export const saveFile = async (file: File) => {
     
     return mockUrl;
   } catch (error) {
-    console.error("Mock file upload error:", error);
+    logger.error("Mock file upload error:", error);
     return null;
   }
 };

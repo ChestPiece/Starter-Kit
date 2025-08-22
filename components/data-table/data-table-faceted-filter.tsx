@@ -147,3 +147,5 @@ export function DataTableFacetedFilter<TData, TValue>({
     </Popover>
   )
 }
+
+export default DataTableFacetedFilter;

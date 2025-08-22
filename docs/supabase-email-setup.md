@@ -57,7 +57,7 @@ When you deploy to production with Supabase Cloud:
 
 ### Test Password Reset
 
-1. Go to http://localhost:3000/auth/login
+1. Go to `${NEXT_PUBLIC_SITE_URL}/auth/login` (default: http://localhost:3000/auth/login)
 2. Click "Forgot Password"
 3. Enter a test email address
 4. Check http://localhost:54324 for the email
@@ -66,7 +66,7 @@ When you deploy to production with Supabase Cloud:
 
 ### Test Email Verification
 
-1. Create a new account at http://localhost:3000/auth/signup
+1. Create a new account at `${NEXT_PUBLIC_SITE_URL}/auth/signup` (default: http://localhost:3000/auth/signup)
 2. Check http://localhost:54324 for verification email
 3. Click the verification link
 4. Try logging in with the new account
@@ -89,7 +89,7 @@ In your Supabase project dashboard:
 
 1. **Authentication > Settings > General**
 
-   - Site URL: `https://yourapp.com` (production) or `http://localhost:3000` (development)
+   - Site URL: Your production domain or `NEXT_PUBLIC_SITE_URL` value (default: `http://localhost:3000` for development)
 
 2. **Authentication > URL Configuration**
 
@@ -104,13 +104,13 @@ In your Supabase project dashboard:
 ### Password Reset Not Working
 
 1. **Check Supabase logs**: Go to your project dashboard → Logs
-2. **Verify redirect URLs**: Make sure `https://yourapp.com/auth/reset-password` is in your allowed URLs
+2. **Verify redirect URLs**: Make sure `${NEXT_PUBLIC_SITE_URL}/auth/reset-password` is in your allowed URLs
 3. **Check email**: Look in spam folder or use local email interface
 4. **Test with different email**: Some email providers block automated emails
 
 ### Email Verification Failing
 
-1. **Check confirmation URL**: Should be `https://yourapp.com/api/auth/confirm`
+1. **Check confirmation URL**: Should be `${NEXT_PUBLIC_SITE_URL}/api/auth/confirm`
 2. **Verify user exists**: Check Authentication > Users in dashboard
 3. **Check rate limits**: Supabase limits email sending frequency
 4. **Test locally first**: Use http://localhost:54324 to debug

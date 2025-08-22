@@ -73,7 +73,7 @@ A modern, full-stack Next.js application with Supabase authentication, user mana
    npm run dev
    ```
 
-   Open [http://localhost:3000](http://localhost:3000) in your browser.
+   Open your application at the URL specified in `NEXT_PUBLIC_SITE_URL` (default: [http://localhost:3000](http://localhost:3000)).
 
 ## 🔧 Environment Variables
 

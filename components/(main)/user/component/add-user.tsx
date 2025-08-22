@@ -30,6 +30,7 @@ import {
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
+import { logger } from '@/lib/services/logger';
 import {
   Form,
   FormControl,
@@ -38,6 +39,8 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import { SharedForm, commonFieldConfigs } from "@/components/ui/shared-form";
+import { useFormState, handleAuthError, commonValidations } from "@/hooks/use-form-state";
 
 // Default avatar image
 const initialAvatarImage = [
@@ -52,9 +55,9 @@ const initialAvatarImage = [
 
 // Define form validation schema (password fields removed - no authentication)
 const formSchema = z.object({
-  firstName: z.string().min(1, "First name is required"),
-  lastName: z.string().min(1, "Last name is required"),
-  email: z.string().email("Invalid email address"),
+  firstName: z.string().min(1, "First name is required").max(50, "Name is too long (maximum 50 characters)"),
+  lastName: z.string().min(1, "Last name is required").max(50, "Name is too long (maximum 50 characters)"),
+  email: z.string().min(1, "Email is required").email("Please enter a valid email address"),
   role: z.string().min(1, "Role is required"),
 });
 
@@ -74,7 +77,6 @@ export default function AddUser({
   const [avatar, setAvatar] = useState("");
   const [isFileLoading, setIsFileLoading] = useState(false);
   const [profile, setProfile] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
 
   // Initialize form
   const form = useForm<z.infer<typeof formSchema>>({
@@ -85,6 +87,20 @@ export default function AddUser({
       email: "",
       role: "",
     },
+  });
+
+  const formState = useFormState({
+    logContext: 'AddUser',
+    onSuccess: () => {
+      logger.info("✅ User created successfully");
+      form.reset();
+      setProfile("");
+      if (onOpenChange) onOpenChange(false);
+      if (onRefresh) onRefresh();
+    },
+    onError: (error) => {
+      logger.error("Add user error", { error });
+    }
   });
 
   // Reset form when dialog opens/closes
@@ -106,36 +122,22 @@ export default function AddUser({
   ];
 
   // Handler for creating user (mock implementation - no authentication)
-  const onSubmit = async (values: z.infer<typeof formSchema>) => {
-    setIsLoading(true);
+  const submitCreateUser = async (values: z.infer<typeof formSchema>) => {
+    // Create user directly in the user service (no authentication required)
+    const userData = {
+      id: `mock-user-${Date.now()}`, // Generate a mock ID
+      first_name: values.firstName,
+      last_name: values.lastName,
+      email: values.email,
+      profile: profile || "",
+      role_id: values.role,
+    };
 
-    try {
-      // Create user directly in the user service (no authentication required)
-      const userData = {
-        id: `mock-user-${Date.now()}`, // Generate a mock ID
-        first_name: values.firstName,
-        last_name: values.lastName,
-        email: values.email,
-        profile: profile || "",
-        role_id: values.role,
-      };
-
-      await usersService.createUser(userData);
-
-      toast.success("User created successfully");
-
-      // Close dialog and refresh user list
-      if (onOpenChange) onOpenChange(false);
-      if (onRefresh) onRefresh();
-    } catch (error) {
-      console.error("Error creating user:", error);
-      toast.error(
-        error instanceof Error ? error.message : "Failed to create user"
-      );
-    } finally {
-      setIsLoading(false);
-    }
+    await usersService.createUser(userData);
+    toast.success("User created successfully");
   };
+
+  const onSubmit = formState.handleSubmit(form, submitCreateUser);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -244,10 +246,10 @@ export default function AddUser({
                   </Button>
                   <Button
                     type="submit"
-                    disabled={isLoading}
+                    disabled={formState.loading}
                     className="bg-primary text-primary-foreground hover:bg-primary/90"
                   >
-                    {isLoading ? "Creating..." : "Create User"}
+                    {formState.loading ? "Creating..." : "Create User"}
                   </Button>
                 </DialogFooter>
               </form>

@@ -1,7 +1,9 @@
+import { logger } from '@/lib/services/logger';
+
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { rateLimiter, rateLimitConfigs, getClientIP } from '@/lib/utils/rate-limiter'
-import { errorLogger } from '@/lib/services/error-logger'
+import { errorLogger } from '@/lib/services/logger'
 import { createValidationError, createRateLimitError, createServerError, getRequestId } from '@/lib/utils/error-responses'
 
 export async function POST(request: NextRequest) {
@@ -65,7 +67,7 @@ export async function POST(request: NextRequest) {
     const supabase = await createClient()
 
     // Get the origin from the request
-    const origin = request.headers.get('origin') || 'http://localhost:3000';
+    const origin = request.headers.get('origin') || process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
     
     // Resend the confirmation email using Supabase
     const { error } = await supabase.auth.resend({
@@ -77,7 +79,7 @@ export async function POST(request: NextRequest) {
     })
 
     if (error) {
-      console.error('Resend confirmation error:', error)
+      logger.error('Resend confirmation error:', error)
       
       // Check for specific Supabase error codes and messages
       if (error.message?.includes('email not confirmed')) {

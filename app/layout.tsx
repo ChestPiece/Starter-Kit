@@ -6,6 +6,7 @@ import { ThemeProviderWrapper } from "@/context/theme-provider-wrapper";
 import PointerEventsFix from "@/utils/pointer-events";
 import { ClientProviders } from "@/components/providers/client-providers";
 import { ErrorBoundary } from "@/components/error-boundary";
+import { logger } from '@/lib/services/logger';
 
 const fontSans = Inter({
   subsets: ["latin"],
@@ -67,7 +68,7 @@ export async function generateMetadata() {
       manifest: "/manifest.json",
     };
   } catch (error) {
-    console.error("Failed to load settings:", error);
+    logger.error("Failed to load settings:", { error: error instanceof Error ? error.message : String(error) });
     return {
       title: {
         template: `%s | ${process.env.THEME_SITE_NAME || "Kaizen Developers"}`,
@@ -92,7 +93,7 @@ export async function generateViewport() {
       themeColor: settings?.primary_color || "#0070f3",
     };
   } catch (error) {
-    console.error("Failed to load settings for viewport:", error);
+    logger.error("Failed to load settings for viewport:", { error: error instanceof Error ? error.message : String(error) });
     return {
       themeColor: "#0070f3",
     };

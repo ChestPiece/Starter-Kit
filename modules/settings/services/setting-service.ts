@@ -3,7 +3,8 @@
 // For server usage (e.g. in `generateMetadata`), import
 // `@/modules/settings/services/setting-service.server` instead.
 
-import { createClient } from '@/lib/supabase/client';
+import { getSupabaseClient } from '@/lib/supabase/singleton-client';
+import { logger } from '@/lib/services/logger';
 
 export interface Settings {
   id?: number;
@@ -30,7 +31,7 @@ const settingsService = {
      * Get settings by ID or get the first settings record
      */
     getSettingsById: async (id?: number): Promise<Settings | null> => {
-        const supabase = createClient();
+        const supabase = getSupabaseClient();
         
         try {
             let query = supabase.from('settings').select('*');
@@ -53,7 +54,7 @@ const settingsService = {
             if (error) {
                 if (error.code === 'PGRST116' || error.message?.includes('relation') || error.message?.includes('does not exist')) {
                     // No settings found or table doesn't exist, return default settings
-                    console.warn("Settings table not found or empty, using default settings");
+                    logger.warn("Settings table not found or empty, using default settings");
                     return {
                         site_name: "Starter Kit",
                         site_description: "A modern application starter kit",
@@ -66,13 +67,13 @@ const settingsService = {
                         appearance_theme: "light"
                     };
                 }
-                console.error("Error fetching settings:", error);
+                logger.error("Error fetching settings:", { error: error instanceof Error ? error.message : String(error) });
                 throw error;
             }
             
             return data;
         } catch (error) {
-            console.error("Error in getSettingsById:", error);
+            logger.error("Error in getSettingsById:", { error: error instanceof Error ? error.message : String(error) });
             // Return default settings on error
             return {
                 site_name: "Starter Kit",
@@ -92,7 +93,7 @@ const settingsService = {
      * Update settings by ID
      */
     updateSettingsById: async (data: Partial<Settings>, id?: number): Promise<Settings | number> => {
-        const supabase = createClient();
+        const supabase = getSupabaseClient();
         
         try {
             // Add updated_at timestamp
@@ -125,13 +126,13 @@ const settingsService = {
             const { error, count } = await query;
             
             if (error) {
-                console.error("Error updating settings:", error);
+                logger.error("Error updating settings:", { error: error instanceof Error ? error.message : String(error) });
                 throw error;
             }
             
             return count || 1;
         } catch (error) {
-            console.error("Error in updateSettingsById:", error);
+            logger.error("Error in updateSettingsById:", { error: error instanceof Error ? error.message : String(error) });
             throw error;
         }
     },
@@ -140,7 +141,7 @@ const settingsService = {
      * Insert new settings record
      */
     insertSettings: async (data: Partial<Settings>): Promise<Settings> => {
-        const supabase = createClient();
+        const supabase = getSupabaseClient();
         
         try {
             const insertData = {
@@ -156,13 +157,13 @@ const settingsService = {
                 .single();
             
             if (error) {
-                console.error("Error inserting settings:", error);
+                logger.error("Error inserting settings:", error);
                 throw error;
             }
             
             return newSettings;
         } catch (error) {
-            console.error("Error in insertSettings:", error);
+            logger.error("Error in insertSettings:", { error: error instanceof Error ? error.message : String(error) });
             throw error;
         }
     },
@@ -171,7 +172,7 @@ const settingsService = {
      * Get all settings records
      */
     getAllSettings: async (): Promise<Settings[]> => {
-        const supabase = createClient();
+        const supabase = getSupabaseClient();
         
         try {
             const { data, error } = await supabase
@@ -180,13 +181,13 @@ const settingsService = {
                 .order('created_at', { ascending: true });
             
             if (error) {
-                console.error("Error fetching all settings:", error);
+                logger.error("Error fetching all settings:", { error: error instanceof Error ? error.message : String(error) });
                 throw error;
             }
             
             return data || [];
         } catch (error) {
-            console.error("Error in getAllSettings:", error);
+            logger.error("Error in getAllSettings:", { error: error instanceof Error ? error.message : String(error) });
             return [];
         }
     },
@@ -195,7 +196,7 @@ const settingsService = {
      * Delete settings by ID
      */
     deleteSettingsById: async (id: number): Promise<boolean> => {
-        const supabase = createClient();
+        const supabase = getSupabaseClient();
         
         try {
             const { error } = await supabase
@@ -204,13 +205,13 @@ const settingsService = {
                 .eq('id', id);
             
             if (error) {
-                console.error("Error deleting settings:", error);
+                logger.error("Error deleting settings:", { error: error instanceof Error ? error.message : String(error) });
                 throw error;
             }
             
             return true;
         } catch (error) {
-            console.error("Error in deleteSettingsById:", error);
+            logger.error("Error in deleteSettingsById:", { error: error instanceof Error ? error.message : String(error) });
             return false;
         }
     }

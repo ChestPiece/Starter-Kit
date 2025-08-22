@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { errorLogger } from '@/lib/services/error-logger';
+import { errorLogger } from '@/lib/services/logger';
+import { logger } from '@/lib/services/logger';
 
 interface LogData {
   requestId: string;
@@ -259,7 +260,7 @@ class ApiLogger {
       const color = type === 'ERROR' ? '\x1b[31m' : type === 'REQUEST' ? '\x1b[36m' : '\x1b[32m';
       const reset = '\x1b[0m';
       
-      console.log(`${color}${emoji} API ${type}${reset}`, {
+      logger.info(`${color}${emoji} API ${type}${reset}`, {
         id: data.requestId,
         method: data.method,
         url: data.url,
@@ -270,7 +271,7 @@ class ApiLogger {
       });
 
       if (this.config.logLevel === 'full') {
-        console.log(`${color}Full Details:${reset}`, logEntry);
+        logger.info(`${color}Full Details:${reset}`, logEntry);
       }
     }
 
@@ -300,7 +301,7 @@ class ApiLogger {
       await fs.appendFile(logFile, logLine);
       
     } catch (error) {
-      console.error('Failed to write log to file:', error);
+      logger.error('Failed to write log to file:', { error });
     }
   }
 
@@ -326,7 +327,7 @@ class ApiLogger {
       });
       
     } catch (error) {
-      console.error('Failed to send log to external service:', error);
+      logger.error('Failed to send log to external service:', { error });
     }
   }
 }

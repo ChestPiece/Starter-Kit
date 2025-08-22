@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { strictContentValidator } from "@/lib/security/content-validator";
-import { errorLogger } from '@/lib/services/error-logger';
+import { errorLogger } from '@/lib/services/logger';
 import { getClientIP } from '@/lib/utils/rate-limiter';
 
 export const GET = async (request: NextRequest) => {
@@ -100,4 +100,4 @@ export const GET = async (request: NextRequest) => {
       { status: 500 }
     );
   }
-}; 
+};

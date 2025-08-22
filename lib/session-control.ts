@@ -5,6 +5,7 @@
 
 import { SESSION_CONFIG } from './session-config';
 import { forceLogoutAndRedirect } from './auth-utils';
+import { logger } from '@/lib/services/logger';
 
 /**
  * Safely enable force logout on start
@@ -13,7 +14,7 @@ import { forceLogoutAndRedirect } from './auth-utils';
 export function enableForceLogoutOnStart(): void {
   if (typeof window !== 'undefined') {
     localStorage.setItem('forceLogoutOnNextStart', 'true');
-    console.log('Force logout on next start enabled');
+    logger.info('Force logout on next start enabled');
   }
 }
 
@@ -23,7 +24,7 @@ export function enableForceLogoutOnStart(): void {
 export function disableForceLogoutOnStart(): void {
   if (typeof window !== 'undefined') {
     localStorage.removeItem('forceLogoutOnNextStart');
-    console.log('Force logout on next start disabled');
+    logger.info('Force logout on next start disabled');
   }
 }
 
@@ -56,12 +57,12 @@ export async function handleForceLogoutOnStart(): Promise<boolean> {
   if (typeof window !== 'undefined') {
     const currentPath = window.location.pathname;
     if (currentPath.startsWith('/auth') || currentPath.startsWith('/login')) {
-      console.log('Already on auth page, skipping force logout redirect');
+      logger.info('Already on auth page, skipping force logout redirect');
       return true; // Still counts as handled
     }
   }
   
-  console.log('Triggering force logout on start');
+  logger.info('Triggering force logout on start');
   await forceLogoutAndRedirect('force_logout_on_start');
   return true;
 }
@@ -80,7 +81,7 @@ export function enableStrictSessionMode(): void {
   if (typeof window !== 'undefined') {
     localStorage.setItem('strictSessionMode', 'true');
     enableForceLogoutOnStart();
-    console.log('Strict session mode enabled - shorter timeouts and force logout on start');
+    logger.info('Strict session mode enabled - shorter timeouts and force logout on start');
   }
 }
 
@@ -91,7 +92,7 @@ export function disableStrictSessionMode(): void {
   if (typeof window !== 'undefined') {
     localStorage.removeItem('strictSessionMode');
     disableForceLogoutOnStart();
-    console.log('Strict session mode disabled');
+    logger.info('Strict session mode disabled');
   }
 }
 

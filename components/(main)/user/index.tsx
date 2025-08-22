@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { getUserColumns } from "@/components/data-table/columns/column-user";
 import { UserDataTableToolbar } from "@/components/data-table/toolbars/user-toolbar";
 import { DataTable } from "@/components/data-table/data-table";
-import { userService } from "@/lib/services/user-service";
+import { getUserService } from "@/lib/services/service-registry";
 import { User, UserRoles } from "@/types/types";
 import { rolesService } from "@/modules/roles/services/roles-service";
 import { Role } from "@/modules/roles/models/role";
@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Shield, Users, AlertTriangle } from "lucide-react";
+import { logger } from '@/lib/services/logger';
 
 export default function UserManagementPage({ type }: { type: string }) {
   const { user: currentUser } = useUser();
@@ -39,6 +40,7 @@ export default function UserManagementPage({ type }: { type: string }) {
   const fetchUsers = useCallback(async () => {
     setIsRefetching(true);
     try {
+      const userService = await getUserService();
       const usersResponse = await userService.getUsersPagination(
         debouncedSearchTerm || "",
         pageSize,
@@ -48,7 +50,7 @@ export default function UserManagementPage({ type }: { type: string }) {
       setListUsers(usersResponse.users);
       setRecordCount(usersResponse.totalCount);
     } catch (error) {
-      console.error("Error fetching users:", error);
+      logger.error("Error fetching users", { error: error instanceof Error ? error : String(error) });
       // Set empty state on error
       setListUsers([]);
       setRecordCount(0);
@@ -62,7 +64,7 @@ export default function UserManagementPage({ type }: { type: string }) {
       const rolesResponse: Role[] = await rolesService.getAllRoles();
       setListRoles(rolesResponse);
     } catch (error) {
-      console.error("Error fetching roles:", error);
+      logger.error("Error fetching roles", { error: error instanceof Error ? error : String(error) });
       setListRoles([]);
     }
   }, []);

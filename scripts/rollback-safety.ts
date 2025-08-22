@@ -3,6 +3,7 @@
 import { MigrationValidator } from './validate-migrations';
 import { readFileSync } from 'fs';
 import { join } from 'path';
+import { logger } from '@/lib/services/logger';
 
 interface RollbackPlan {
   migration: string;
@@ -172,15 +173,15 @@ async function main() {
   const migrationFile = process.argv[2];
   
   try {
-    console.log('🔄 Analyzing rollback safety...\n');
+    logger.info('🔄 Analyzing rollback safety...\n');
     
     const analyzer = new RollbackAnalyzer();
     const report = await analyzer.generateRollbackReport(migrationFile);
     
-    console.log(report);
+    logger.info(report);
     
   } catch (error) {
-    console.error('❌ Rollback analysis failed:', error instanceof Error ? error.message : 'Unknown error');
+    logger.error('❌ Rollback analysis failed:', error instanceof Error ? error.message : 'Unknown error');
     process.exit(1);
   }
 }

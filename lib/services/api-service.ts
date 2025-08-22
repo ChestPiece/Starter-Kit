@@ -3,7 +3,7 @@
  * Handles external API calls with consistent error handling and caching
  */
 
-import { errorLogger } from './error-logger';
+import { errorLogger } from './logger';
 
 export interface ApiResponse<T> {
   data: T | null;

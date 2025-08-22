@@ -66,7 +66,7 @@ In your Supabase Dashboard:
 
 ### Local Testing:
 
-1. Go to `http://localhost:3000/auth/login`
+1. Go to your application URL (check `NEXT_PUBLIC_SITE_URL` in your `.env.local`)
 2. Click "Forgot Password"
 3. Enter any email address
 4. Check `http://localhost:54324` for the reset email

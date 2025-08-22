@@ -17,6 +17,7 @@ import { saveFile } from "@/supabase/actions/save-file";
 import { AvatarCropper } from "@/components/ui/avatar-cropper";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Building } from "lucide-react";
+import { logger } from '@/lib/services/logger';
 
 export type OrganizationSettings = {
   logo?: string;
@@ -84,7 +85,7 @@ export function OrganizationSettings({ settings }: { settings?: Settings }) {
         }));
       }
     } catch (error) {
-      console.error("Error uploading logo:", error);
+      logger.error("Error uploading logo:", { error });
       toast.error("Failed to upload logo");
     } finally {
       setIsUploading(false);
@@ -108,7 +109,7 @@ export function OrganizationSettings({ settings }: { settings?: Settings }) {
         }));
       }
     } catch (error) {
-      console.error("Error uploading horizontal logo:", error);
+      logger.error("Error uploading horizontal logo:", { error });
       toast.error("Failed to upload horizontal logo");
     } finally {
       setIsUploadingHorizontal(false);

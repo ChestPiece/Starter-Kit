@@ -1,13 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { createClient } from "@/lib/supabase/client";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { getSupabaseClient } from "@/lib/supabase/singleton-client";
+import { SharedForm, commonFieldConfigs } from "@/components/ui/shared-form";
+import { useFormState, handleAuthError, commonValidations } from "@/hooks/use-form-state";
 import {
   Card,
   CardContent,
@@ -15,29 +15,17 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Eye, EyeOff, Loader2, AlertCircle, CheckCircle } from "lucide-react";
+import { CheckCircle, AlertCircle, Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import { logger } from '@/lib/services/logger';
 
 const signupSchema = z
   .object({
-    firstName: z
-      .string()
-      .min(1, "First name is required")
-      .max(50, "First name is too long"),
-    lastName: z
-      .string()
-      .min(1, "Last name is required")
-      .max(50, "Last name is too long"),
-    email: z.string().email("Please enter a valid email address"),
+    firstName: z.string().min(1, "First name is required").max(50, "Name is too long (maximum 50 characters)"),
+    lastName: z.string().min(1, "Last name is required").max(50, "Name is too long (maximum 50 characters)"),
+    email: z.string().min(1, "Email is required").email("Please enter a valid email address"),
     password: z.string().min(6, "Password must be at least 6 characters long"),
     confirmPassword: z.string().min(1, "Please confirm your password"),
   })
@@ -49,16 +37,13 @@ const signupSchema = z
 type SignupFormData = z.infer<typeof signupSchema>;
 
 export function SignupForm() {
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [showPasswordStates, setShowPasswordStates] = useState<Record<string, boolean>>({});
   const [success, setSuccess] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [resendLoading, setResendLoading] = useState(false);
   const [resendError, setResendError] = useState<string | null>(null);
   const [resendSuccess, setResendSuccess] = useState(false);
   const router = useRouter();
-  const supabase = createClient();
+  const supabase = getSupabaseClient();
 
   const form = useForm<SignupFormData>({
     resolver: zodResolver(signupSchema),
@@ -71,99 +56,47 @@ export function SignupForm() {
     },
   });
 
-  // Watch all form values
-  const formValues = form.watch();
-
-  // Use state for button disabled status to prevent hydration mismatch
-  const [isFormDisabled, setIsFormDisabled] = useState(false);
-
-  // Update button disabled state after hydration - only disable when loading
-  useEffect(() => {
-    setIsFormDisabled(loading);
-  }, [loading]);
-
-  const onSubmit = async (data: SignupFormData) => {
-    setLoading(true);
-    setError(null);
-
-    try {
-      // Get the current origin for proper redirect URL
-      const origin = window.location.origin;
-
-      const { error } = await supabase.auth.signUp({
-        email: data.email,
-        password: data.password,
-        options: {
-          emailRedirectTo: `${origin}/api/auth/confirm`,
-          data: {
-            first_name: data.firstName.trim(),
-            last_name: data.lastName.trim(),
-            full_name: `${data.firstName.trim()} ${data.lastName.trim()}`,
-          },
-        },
-      });
-
-      if (error) {
-        console.error("Signup error details:", error);
-
-        // Handle specific Supabase errors
-        if (
-          error.message.includes("Network") ||
-          error.message.includes("fetch") ||
-          error.message.includes("connection")
-        ) {
-          setError("Connection failed. Please check your internet connection.");
-        } else if (
-          error.message.includes("User already registered") ||
-          error.message.includes("already been registered")
-        ) {
-          setError(
-            "An account with this email already exists. Please try logging in instead."
-          );
-        } else if (error.message.includes("Invalid email")) {
-          setError("Please enter a valid email address.");
-        } else if (
-          error.message.includes("Password") ||
-          error.message.includes("password")
-        ) {
-          setError("Password must be at least 6 characters long.");
-        } else if (
-          error.message.includes("rate limit") ||
-          error.message.includes("security purposes")
-        ) {
-          setError(
-            "Too many signup attempts. Please wait a moment before trying again."
-          );
-        } else if (
-          error.message.includes("email") &&
-          error.message.includes("confirm")
-        ) {
-          setError(
-            "Email confirmation is required. Please check your email after signing up."
-          );
-        } else if (error.message.includes("signup disabled")) {
-          setError(
-            "Account creation is temporarily disabled. Please contact support."
-          );
-        } else {
-          // Show a helpful error message for debugging
-          console.error("Full signup error:", error);
-          setError(
-            "Unable to create account. Please check your information and try again."
-          );
-        }
-        setLoading(false);
-        return;
-      }
-
-      // Always show success message instead of email waiting screen
+  const formState = useFormState({
+    logContext: 'Signup',
+    onSuccess: () => {
       setSuccess(true);
-    } catch (error) {
-      console.error("Signup error:", error);
-      setError("Connection failed. Please check your internet connection.");
-      setLoading(false);
+      logger.info("✅ Signup successful - check email for confirmation");
+    },
+    onError: (error) => {
+      logger.error("Signup error:", { error });
+    }
+  });
+
+  const handlePasswordToggle = (fieldName: string) => {
+    setShowPasswordStates(prev => ({
+      ...prev,
+      [fieldName]: !prev[fieldName]
+    }));
+  };
+
+  const submitSignup = async (data: SignupFormData) => {
+    // Get the current origin for proper redirect URL
+    const origin = window.location.origin;
+
+    const { error } = await supabase.auth.signUp({
+      email: data.email,
+      password: data.password,
+      options: {
+        emailRedirectTo: `${origin}/api/auth/confirm`,
+        data: {
+          first_name: data.firstName.trim(),
+          last_name: data.lastName.trim(),
+          full_name: `${data.firstName.trim()} ${data.lastName.trim()}`,
+        },
+      },
+    });
+
+    if (error) {
+      throw new Error(handleAuthError(error));
     }
   };
+
+  const onSubmit = formState.handleSubmit(form, submitSignup);
 
   const handleResendEmail = async () => {
     if (resendLoading) return; // Prevent double-clicks
@@ -229,7 +162,7 @@ export function SignupForm() {
         setTimeout(() => setResendSuccess(false), 5000);
       }
     } catch (error) {
-      console.error("Resend email error:", error);
+      logger.error("Resend email error:", { error });
       setResendError(
         "Connection failed. Please check your internet connection and try again."
       );
@@ -308,199 +241,46 @@ export function SignupForm() {
     );
   }
 
+  const fields = [
+    { ...commonFieldConfigs.firstName, placeholder: "First name" },
+    { ...commonFieldConfigs.lastName, placeholder: "Last name" },
+    { ...commonFieldConfigs.email, placeholder: "Enter your email address" },
+    { ...commonFieldConfigs.password, placeholder: "Create a password" },
+    { ...commonFieldConfigs.password, name: "confirmPassword", label: "Confirm Password", placeholder: "Confirm your password" },
+  ];
+
+  const footerContent = (
+    <div className="text-center">
+      <p className="text-gray-600 text-sm">
+        Already have an account?{" "}
+        <Link
+          href="/auth/login"
+          className="text-primary underline underline-offset-4 hover:text-primary/90 transition-colors font-medium !opacity-100 cursor-pointer"
+        >
+          Sign in here
+        </Link>
+      </p>
+    </div>
+  );
+
   return (
-    <Card className="w-full max-w-md">
-      <CardHeader>
-        <CardTitle>Create Account</CardTitle>
-        <CardDescription>Enter your information to get started</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-3">
-        {error && (
-          <Alert variant="destructive" className="border-red-200 bg-red-50">
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription className="text-red-800">
-              {error}
-            </AlertDescription>
-          </Alert>
-        )}
-
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3">
-            <div className="grid grid-cols-2 gap-2">
-              <FormField
-                control={form.control}
-                name="firstName"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-sm font-medium text-gray-700">
-                      First Name
-                    </FormLabel>
-                    <FormControl>
-                      <Input
-                        {...field}
-                        placeholder="First name"
-                        className="h-8 border-gray-200 focus:border-pink-700 focus:ring-1 focus:ring-pink-700/20"
-                        disabled={loading}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="lastName"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-sm font-medium text-gray-700">
-                      Last Name
-                    </FormLabel>
-                    <FormControl>
-                      <Input
-                        {...field}
-                        placeholder="Last name"
-                        className="h-8 border-gray-200 focus:border-pink-700 focus:ring-1 focus:ring-pink-700/20"
-                        disabled={loading}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            <FormField
-              control={form.control}
-              name="email"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-sm font-medium text-gray-700">
-                    Email Address
-                  </FormLabel>
-                  <FormControl>
-                    <Input
-                      {...field}
-                      type="email"
-                      placeholder="Enter your email address"
-                      className="h-8 border-gray-200 focus:border-pink-600 focus:ring-1 focus:ring-pink-600/20"
-                      disabled={loading}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="password"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-sm font-medium text-gray-700">
-                    Password
-                  </FormLabel>
-                  <FormControl>
-                    <div className="relative">
-                      <Input
-                        {...field}
-                        type={showPassword ? "text" : "password"}
-                        placeholder="Create a password"
-                        className="h-8 pr-8 border-gray-200 focus:border-pink-700 focus:ring-1 focus:ring-pink-700/20"
-                        disabled={loading}
-                      />
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="absolute right-0 top-0 h-full px-2 hover:bg-gray-100 cursor-pointer disabled:cursor-not-allowed"
-                        onClick={() => setShowPassword(!showPassword)}
-                        disabled={loading}
-                      >
-                        {showPassword ? (
-                          <EyeOff className="h-3 w-3 text-gray-400 hover:text-gray-600" />
-                        ) : (
-                          <Eye className="h-3 w-3 text-gray-400 hover:text-gray-600" />
-                        )}
-                      </Button>
-                    </div>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="confirmPassword"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-sm font-medium text-gray-700">
-                    Confirm Password
-                  </FormLabel>
-                  <FormControl>
-                    <div className="relative">
-                      <Input
-                        {...field}
-                        type={showConfirmPassword ? "text" : "password"}
-                        placeholder="Confirm your password"
-                        className="h-8 pr-8 border-gray-200 focus:border-pink-700 focus:ring-1 focus:ring-pink-700/20"
-                        disabled={loading}
-                      />
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="absolute right-0 top-0 h-full px-2 hover:bg-gray-100 cursor-pointer disabled:cursor-not-allowed"
-                        onClick={() =>
-                          setShowConfirmPassword(!showConfirmPassword)
-                        }
-                        disabled={loading}
-                      >
-                        {showConfirmPassword ? (
-                          <EyeOff className="h-3 w-3 text-gray-400 hover:text-gray-600" />
-                        ) : (
-                          <Eye className="h-3 w-3 text-gray-400 hover:text-gray-600" />
-                        )}
-                      </Button>
-                    </div>
-                  </FormControl>
-                  {form.watch("confirmPassword") &&
-                    form.watch("password") !==
-                      form.watch("confirmPassword") && (
-                      <p className="text-xs text-red-500">
-                        Passwords do not match
-                      </p>
-                    )}
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <Button type="submit" className="w-full !opacity-100 !visible !block" disabled={isFormDisabled}>
-              {loading ? (
-                <>
-                  <Loader2 className="mr-2 h-3 w-3 animate-spin text-current" />
-                  Creating Account...
-                </>
-              ) : (
-                "Create Account"
-              )}
-            </Button>
-          </form>
-        </Form>
-
-        <div className="text-center">
-          <p className="text-gray-600 text-sm">
-            Already have an account?{" "}
-            <Link
-              href="/auth/login"
-              className="text-primary underline underline-offset-4 hover:text-primary/90 transition-colors font-medium !opacity-100 cursor-pointer"
-            >
-              Sign in here
-            </Link>
-          </p>
-        </div>
-      </CardContent>
-    </Card>
+    <SharedForm
+      title="Create Account"
+      description="Enter your information to get started"
+      form={form}
+      onSubmit={onSubmit}
+      fields={fields}
+      submitText="Create Account"
+      loading={formState.loading}
+      error={formState.error}
+      isFormDisabled={formState.isFormDisabled}
+      footerContent={footerContent}
+      showPasswordStates={showPasswordStates}
+      onPasswordToggle={handlePasswordToggle}
+      className="w-full max-w-md"
+    />
   );
 }
+
+// Export as default for dynamic imports
+export default SignupForm;

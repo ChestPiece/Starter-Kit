@@ -1,3 +1,5 @@
+import { logger } from '@/lib/services/logger';
+
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { rateLimiter, rateLimitConfigs, getClientIP } from '@/lib/utils/rate-limiter'
@@ -16,7 +18,7 @@ export async function GET(request: NextRequest) {
     const errorCode = searchParams.get('error_code')
     const errorDescription = searchParams.get('error_description')
     
-    console.log('Confirmation attempt:', { 
+    logger.info('Confirmation attempt:', { 
       hasCode: !!code, 
       hasTokenHash: !!token_hash, 
       type, 
@@ -28,7 +30,7 @@ export async function GET(request: NextRequest) {
 
     // Handle explicit error parameters from Supabase (e.g., expired links)
     if (error || errorCode) {
-      console.log('Confirmation error detected:', { error, errorCode, errorDescription })
+      logger.info('Confirmation error detected:', { error, errorCode, errorDescription })
       
       // Log the failed confirmation attempt
       await auditLogger.logAuthOperation(
@@ -80,7 +82,7 @@ export async function GET(request: NextRequest) {
       const { data, error } = await supabase.auth.exchangeCodeForSession(code)
 
       if (error) {
-        console.error('Email confirmation failed:', error)
+        logger.error('Email confirmation failed:', error)
         
         // Check rate limit for failed auth attempts
         const rateLimitInfo = rateLimiter.getRateLimitInfo(clientIP, rateLimitConfigs.authFailures);
@@ -110,7 +112,7 @@ export async function GET(request: NextRequest) {
       // Email confirmed successfully - now sign out to prevent auto-login
       await supabase.auth.signOut()
       
-      console.log('✅ Email confirmed successfully for:', data?.user?.email, '(user signed out)')
+      logger.info('✅ Email confirmed successfully for:', { email: data?.user?.email, status: 'user signed out' })
       
       // Log successful email confirmation (but user not logged in)
       await auditLogger.logAuthOperation(
@@ -132,7 +134,7 @@ export async function GET(request: NextRequest) {
       })
 
       if (error) {
-        console.error('Token verification failed:', error)
+        logger.error('Token verification failed:', error)
         
         // Check rate limit for invalid token attempts
         const rateLimitInfo = rateLimiter.getRateLimitInfo(clientIP, rateLimitConfigs.invalidTokens);
@@ -162,7 +164,7 @@ export async function GET(request: NextRequest) {
       // Token verified successfully - sign out to prevent auto-login
       await supabase.auth.signOut()
       
-      console.log('✅ Token verified successfully (user signed out)')
+      logger.info('✅ Token verified successfully (user signed out)')
       
       // Log successful token verification
       await auditLogger.logAuthOperation(
@@ -177,11 +179,11 @@ export async function GET(request: NextRequest) {
     }
 
     // No valid confirmation parameters
-    console.log('No confirmation parameters found, redirecting to login with invalid_link message');
+    logger.info('No confirmation parameters found, redirecting to login with invalid_link message');
     return NextResponse.redirect(`${origin}/auth/login?message=invalid_link`)
 
   } catch (error: any) {
-    console.error('Confirmation error:', error)
+    logger.error('Confirmation error:', error)
     const { origin } = new URL(request.url)
     return NextResponse.redirect(`${origin}/auth/login?message=confirmation_failed`)
   }

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { rateLimiter, rateLimitConfigs, getClientIP } from '@/lib/utils/rate-limiter';
-import { errorLogger } from '@/lib/services/error-logger';
+import { errorLogger } from '@/lib/services/logger';
 import { developmentLogger } from '@/lib/middleware/api-logger';
 import { auditLogger, extractAuditContext } from '@/lib/services/audit-logger';
 
@@ -190,4 +190,4 @@ const loggedPOST = developmentLogger(async (req: NextRequest) => {
   }
 });
 
-export { loggedPOST as POST }; 
+export { loggedPOST as POST };

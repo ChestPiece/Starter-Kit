@@ -9,6 +9,7 @@ import {
   UserRole,
 } from "@/lib/role-utils";
 import { Skeleton } from "@/components/ui/skeleton";
+import { logger } from '@/lib/services/logger';
 
 interface RolePageGuardProps {
   children: React.ReactNode;
@@ -34,7 +35,7 @@ export function RolePageGuard({
 
     // Check if user can access this route
     if (!canAccessRoute(userRole, currentPath)) {
-      console.log(
+      logger.info(
         `Role-based access denied: ${userRole} trying to access ${currentPath}`
       );
 

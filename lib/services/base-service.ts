@@ -5,7 +5,6 @@
 
 import { PostgrestError, SupabaseClient } from '@supabase/supabase-js';
 import { getSupabaseClient } from '@/lib/supabase/singleton-client';
-import { errorLogger } from '@/lib/services/error-logger';
 
 export interface ServiceResponse<T> {
   data: T | null;
@@ -66,15 +65,12 @@ export abstract class BaseService {
     if (!error) return '';
 
     const errorMessage = error.message || 'Unknown error occurred';
-    const context = {
-      operation,
-      tableName: this.tableName,
-      error: errorMessage,
-      timestamp: new Date().toISOString()
-    };
-
-    errorLogger.error(`${operation} failed for table ${this.tableName}`, context);
     
+    // Log the error to console in development
+    if (process.env.NODE_ENV === 'development') {
+      console.error(`[${this.constructor.name}] ${operation}:`, error);
+    }
+
     // Return user-friendly error message
     if (error.message?.includes('duplicate key')) {
       return 'This record already exists';

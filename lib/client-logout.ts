@@ -1,13 +1,14 @@
 "use client";
 
-import { createClient } from "@/lib/supabase/client";
+import { getSupabaseClient } from "@/lib/supabase/singleton-client";
+import { logger } from '@/lib/services/logger';
 
 /**
  * Client-side logout utility with enhanced session clearing
  * This is used as a fallback when server actions aren't available
  */
 export async function clientLogout(reason?: string) {
-  const supabase = createClient();
+  const supabase = getSupabaseClient();
   
   try {
     // Sign out from Supabase
@@ -29,7 +30,7 @@ export async function clientLogout(reason?: string) {
       });
     }
     
-    console.log("Client logout completed");
+    logger.info("Client logout completed");
     
     // Redirect to login
     const redirectUrl = `/auth/login${reason ? `?reason=${encodeURIComponent(reason)}` : ''}`;
@@ -39,7 +40,7 @@ export async function clientLogout(reason?: string) {
     }
     
   } catch (error) {
-    console.error("Error during client logout:", error);
+    logger.error("Error during client logout:", { error });
     
     // Force redirect even if logout fails
     if (typeof window !== 'undefined') {
@@ -57,7 +58,7 @@ export async function quickLogout(reason?: string) {
     const { logout } = await import('@/lib/actions/auth-actions');
     await logout();
   } catch (error) {
-    console.warn("Server logout failed, falling back to client logout:", error);
+    logger.warn("Server logout failed, falling back to client logout:", { error });
     await clientLogout(reason);
   }
 }

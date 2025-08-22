@@ -1,3 +1,5 @@
+import { logger } from '@/lib/services/logger';
+
 /**
  * Environment variable validation and configuration
  * This ensures all required environment variables are present and valid
@@ -113,40 +115,40 @@ class EnvironmentValidator {
 
     // Skip validation during build process
     if (process.env.NODE_ENV === 'production' && !process.env.NEXT_PUBLIC_SUPABASE_URL) {
-      console.log('⏭️  Skipping environment validation during build process')
+      logger.info('⏭️  Skipping environment validation during build process')
       return
     }
 
     if (errors.length > 0) {
-      console.error('\n🚨 Environment Variable Errors:')
-      errors.forEach(error => console.error(error))
+      logger.error('\n🚨 Environment Variable Errors:')
+      errors.forEach(error => logger.error(error))
       
-      console.error('\n📋 To fix these errors:')
-      console.error('1. Copy .env.example to .env.local')
-      console.error('2. Fill in the required values')
-      console.error('3. Restart the development server')
-      console.error('\nSee README.md for detailed setup instructions.\n')
+      logger.error('\n📋 To fix these errors:')
+      logger.error('1. Copy .env.example to .env.local')
+      logger.error('2. Fill in the required values')
+      logger.error('3. Restart the development server')
+      logger.error('\nSee README.md for detailed setup instructions.\n')
     }
 
     if (warnings.length > 0) {
-      console.warn('\n⚠️  Environment Variable Warnings:')
-      warnings.forEach(warning => console.warn(warning))
-      console.warn('')
+      logger.warn('\n⚠️  Environment Variable Warnings:')
+      warnings.forEach(warning => logger.warn(warning))
+      logger.warn('')
     }
 
     if (isValid && warnings.length === 0) {
-      console.log('✅ All environment variables are properly configured!')
+      logger.info('✅ All environment variables are properly configured!')
     }
 
     if (!isValid) {
       // Always warn about missing environment variables (consistent across environments)
-      console.error('❌ Critical environment variables are missing. Application may not work properly.')
+      logger.error('❌ Critical environment variables are missing. Application may not work properly.')
       
       // Only throw error if we have some environment variables but they're invalid
       // This prevents build failures while still catching runtime configuration issues
       if (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-        console.error('⚠️ Environment variables are present but validation failed.')
-        console.error('This may cause runtime issues. Please check your configuration.')
+        logger.error('⚠️ Environment variables are present but validation failed.')
+        logger.error('This may cause runtime issues. Please check your configuration.')
       }
     }
   }

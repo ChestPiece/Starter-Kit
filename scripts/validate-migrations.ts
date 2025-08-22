@@ -4,6 +4,7 @@ import { createClient } from '@supabase/supabase-js';
 import { readFileSync, readdirSync } from 'fs';
 import { join } from 'path';
 import { config } from 'dotenv';
+import { logger } from '@/lib/services/logger';
 
 // Load environment variables
 config({ path: '.env.local' });
@@ -300,18 +301,18 @@ class MigrationValidator {
 // CLI usage
 async function main() {
   try {
-    console.log('🔍 Starting migration validation...\n');
+    logger.info('🔍 Starting migration validation...\n');
     
     const validator = new MigrationValidator();
     const report = await validator.generateReport();
     
-    console.log(report);
+    logger.info(report);
     
     const validation = await validator.validateMigrations();
     process.exit(validation.isValid ? 0 : 1);
     
   } catch (error) {
-    console.error('❌ Validation failed:', error instanceof Error ? error.message : 'Unknown error');
+    logger.error('❌ Validation failed:', error instanceof Error ? error.message : 'Unknown error');
     process.exit(1);
   }
 }

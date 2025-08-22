@@ -82,3 +82,5 @@ export function DataTableToolbar<TData>({
     </div>
   );
 }
+
+export default DataTableToolbar;

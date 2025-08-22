@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { useCSRFToken } from "@/lib/security/csrf-protection";
+import { logger } from '@/lib/services/logger';
 
 interface CSRFTokenProps {
   token: string;
@@ -58,7 +59,7 @@ export function useCSRFProtection() {
       const body = await response.clone().json();
       if (body.code === "CSRF_TOKEN_INVALID") {
         // Optionally refresh the page to get a new token
-        console.warn("CSRF token invalid, page refresh may be required");
+        logger.warn("CSRF token invalid, page refresh may be required");
       }
     }
 

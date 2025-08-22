@@ -3,12 +3,13 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useUser } from '@/components/auth/user-context';
+import { logger } from '@/lib/services/logger';
 import { 
   hasRouteAccess, 
   requiresRedirect, 
   validateRouteAccess,
   UserRole 
-} from '@/lib/auth/role-access-control';
+} from '@/lib/role-utils';
 
 /**
  * Hook to handle role-based access control with real-time updates
@@ -39,7 +40,7 @@ export function useRoleAccess() {
     
     // Check if role has changed
     if (previousRole !== currentRole) {
-      console.log(`Role changed from ${previousRole} to ${currentRole}`);
+      logger.info(`Role changed from ${previousRole} to ${currentRole}`);
       
       // Check if redirect is needed due to role change
       const { shouldRedirect, redirectTo } = requiresRedirect(
@@ -49,7 +50,7 @@ export function useRoleAccess() {
       );
       
       if (shouldRedirect && redirectTo) {
-        console.log(`Redirecting to ${redirectTo} due to role change`);
+        logger.info(`Redirecting to ${redirectTo} due to role change`);
         setIsCheckingAccess(true);
         router.replace(redirectTo);
         previousRoleRef.current = currentRole;
@@ -64,7 +65,7 @@ export function useRoleAccess() {
     const { hasAccess, redirectTo } = validateRouteAccess(pathname, currentRole);
     
     if (!hasAccess && redirectTo) {
-      console.log(`Access denied to ${pathname} for role ${currentRole}, redirecting to ${redirectTo}`);
+      logger.info(`Access denied to ${pathname} for role ${currentRole}, redirecting to ${redirectTo}`);
       setIsCheckingAccess(true);
       router.replace(redirectTo);
       return;

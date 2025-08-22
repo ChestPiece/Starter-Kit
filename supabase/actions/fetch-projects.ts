@@ -1,3 +1,5 @@
+import { logger } from '@/lib/services/logger';
+
 "use server";
 
 export interface Project {
@@ -36,7 +38,7 @@ export async function fetchProjects(): Promise<Project[]> {
     const data: Project[] = await response.json();
     return data;
   } catch (error) {
-    console.error("Error fetching projects:", error);
+    logger.error("Error fetching projects:", error);
     return [];
   }
 } 

@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
+import { logger } from '@/lib/services/logger';
 
 /**
  * Server action for proper logout handling
@@ -17,7 +18,7 @@ export async function logout() {
     const { error } = await supabase.auth.signOut();
     
     if (error) {
-      console.error("Error signing out:", error);
+      logger.error("Error signing out:", { error });
     }
     
     // Clear all session-related cookies
@@ -41,15 +42,15 @@ export async function logout() {
         try {
           cookieStore.delete(cookie.name);
         } catch (e) {
-          console.warn(`Could not delete cookie ${cookie.name}:`, e);
+          logger.warn(`Could not delete cookie ${cookie.name}:`, e);
         }
       }
     });
     
-    console.log("User logged out successfully, cookies cleared");
+    logger.info("User logged out successfully, cookies cleared");
     
   } catch (error) {
-    console.error("Error during logout:", error);
+    logger.error("Error during logout:", { error });
   }
   
   // Revalidate and redirect
@@ -82,15 +83,15 @@ export async function forceLogout(reason: string = "session_expired") {
         try {
           cookieStore.delete(cookie.name);
         } catch (e) {
-          console.warn(`Could not delete cookie ${cookie.name}:`, e);
+          logger.warn(`Could not delete cookie ${cookie.name}:`, e);
         }
       }
     });
     
-    console.log(`Force logout completed with reason: ${reason}`);
+    logger.info(`Force logout completed with reason: ${reason}`);
     
   } catch (error) {
-    console.error("Error during force logout:", error);
+    logger.error("Error during force logout:", { error });
   }
   
   revalidatePath("/", "layout");

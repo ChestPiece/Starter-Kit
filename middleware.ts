@@ -1,3 +1,5 @@
+import { logger } from '@/lib/services/logger';
+
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
@@ -114,7 +116,7 @@ export async function middleware(request: NextRequest) {
 
       // Check if user has access to the requested route
       if (!hasRouteAccess(userRole, pathname)) {
-        console.log(`Access denied for role ${userRole} to ${pathname}`);
+        logger.info(`Access denied for role ${userRole} to ${pathname}`);
         
         // Redirect to dashboard (fallback route)
         const url = request.nextUrl.clone()
@@ -126,7 +128,7 @@ export async function middleware(request: NextRequest) {
         return response
       }
     } catch (error) {
-      console.error('Role access check failed:', error);
+      logger.error('Role access check failed:', { error: error instanceof Error ? error.message : String(error) });
       // On error, allow access but log the issue
       // This prevents breaking the app if there's a database issue
     }

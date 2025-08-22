@@ -1,3 +1,5 @@
+import { logger } from '@/lib/services/logger';
+
 /**
  * Utility to prevent automatic redirects and ensure users explicitly choose to enter the app
  */
@@ -26,7 +28,7 @@ export function safeRedirect(url: string, requireUserAction: boolean = true): vo
   if (typeof window === 'undefined') return;
   
   if (requireUserAction && isAuthPage()) {
-    console.log('🚫 Automatic redirect prevented - user must explicitly choose to enter app');
+    logger.info('🚫 Automatic redirect prevented - user must explicitly choose to enter app');
     return;
   }
   
@@ -61,6 +63,6 @@ export function initializeAutoRedirectPrevention(): void {
   
   // Prevent automatic redirects on auth state changes for auth pages
   if (isAuthPage()) {
-    console.log('🔒 Auto-redirect prevention active on auth page');
+    logger.info('🔒 Auto-redirect prevention active on auth page');
   }
 }

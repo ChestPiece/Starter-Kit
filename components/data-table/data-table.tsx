@@ -25,6 +25,7 @@ import {
 import { DataTablePagination } from "./data-table-pagination";
 import { DataTableToolbar } from "./data-table-toolbar";
 import DataTableSkeleton from "./data-table-skeleton";
+import { logger } from '@/lib/services/logger';
 // Add a new interface for toolbar props
 interface DataTableToolbarProps {
   onRefresh: () => void;
@@ -140,16 +141,16 @@ export function DataTable<TData, TValue>({
     //   try {
     //     const { data, error } = await supabase.from(tableName).select("*");
     //     if (error) {
-    //       console.error("Error fetching data from Supabase:", error);
+    //       logger.error("Error fetching data from Supabase:", error);
     //       return;
     //     }
     //     if (data && data.length > 0) {
     //       exportToCSV(data);
     //     } else {
-    //       console.log("No data available to export");
+    //       logger.info("No data available to export");
     //     }
     //   } catch (error) {
-    //     console.error("Error exporting data:", error);
+    //     logger.error("Error exporting data:", error);
     //   }
     // }
   };
@@ -247,3 +248,5 @@ export function DataTable<TData, TValue>({
     </div>
   );
 }
+
+export default DataTable;

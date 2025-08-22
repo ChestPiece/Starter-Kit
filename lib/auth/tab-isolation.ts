@@ -1,3 +1,6 @@
+import { logger } from '@/lib/services/logger';
+import { createTabContext } from '@/lib/utils/data-sanitizer';
+
 /**
  * Tab Isolation System
  * Ensures that authentication only happens in the specific tab where user performs login
@@ -41,7 +44,7 @@ export function markAsAuthTab(): void {
   const tabId = getCurrentTabId();
   localStorage.setItem(AUTH_TAB_KEY, tabId);
   
-  console.log(`🔐 Tab ${tabId} marked as auth tab`);
+  logger.info('🔐 Tab marked as auth tab', createTabContext(tabId));
 }
 
 /**
@@ -93,7 +96,7 @@ export function setTabSession(authenticated: boolean): void {
   try {
     localStorage.setItem(TAB_SESSION_KEY, JSON.stringify(sessions));
   } catch (error) {
-    console.warn('Failed to store tab session:', error);
+    logger.warn('Failed to store tab session:', error);
   }
 }
 
@@ -135,7 +138,7 @@ export function clearTabSession(): void {
   try {
     localStorage.setItem(TAB_SESSION_KEY, JSON.stringify(sessions));
   } catch (error) {
-    console.warn('Failed to clear tab session:', error);
+    logger.warn('Failed to clear tab session:', error);
   }
 }
 
@@ -146,7 +149,7 @@ export function clearAuthTab(): void {
   if (typeof window === 'undefined') return;
   
   localStorage.removeItem(AUTH_TAB_KEY);
-  console.log('🚫 Auth tab marker cleared');
+  logger.info('🚫 Auth tab marker cleared');
 }
 
 /**
@@ -168,7 +171,7 @@ export function initializeTabIsolation(): void {
   if (typeof window === 'undefined') return;
   
   const tabId = getCurrentTabId();
-  console.log(`🏷️ Tab isolation initialized for tab: ${tabId}`);
+  logger.info('🏷️ Tab isolation initialized', createTabContext(tabId));
   
   // Clean up old sessions (older than 1 hour)
   const sessions = getTabSessions();
@@ -185,7 +188,7 @@ export function initializeTabIsolation(): void {
     try {
       localStorage.setItem(TAB_SESSION_KEY, JSON.stringify(cleanSessions));
     } catch (error) {
-      console.warn('Failed to clean old sessions:', error);
+      logger.warn('Failed to clean old sessions:', error);
     }
   }
 }
@@ -228,12 +231,12 @@ export function enforceTabIsolation(supabaseClient: any): void {
     
     // Only sign out if we haven't done so in the last 5 seconds
     if (!lastSignout || (now - parseInt(lastSignout)) > 5000) {
-      console.log(`🚫 Enforcing tab isolation - signing out tab ${tabId}`);
+      logger.info('🚫 Enforcing tab isolation - signing out tab', createTabContext(tabId));
       sessionStorage.setItem(lastSignoutKey, now.toString());
       
       // Use silent signout to prevent triggering more auth events
       supabaseClient.auth.signOut({ scope: 'local' }).catch((error: any) => {
-        console.warn('Silent signout failed:', error);
+        logger.warn('Silent signout failed:', error);
       });
     }
   }
@@ -249,5 +252,5 @@ export function resetTabIsolation(): void {
   localStorage.removeItem(TAB_SESSION_KEY);
   sessionStorage.removeItem(TAB_ID_KEY);
   
-  console.log('🧹 Tab isolation reset');
+  logger.info('🧹 Tab isolation reset');
 }

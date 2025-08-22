@@ -1,3 +1,5 @@
+import { logger } from '@/lib/services/logger';
+
 "use server";
 
 type StatusResponse = {
@@ -61,7 +63,7 @@ export async function checkWhatsAppStatus() {
     if (error instanceof Error && error.name === 'AbortError') {
       throw new Error("WhatsApp API request timed out");
     }
-    console.error("Error checking WhatsApp status:", error);
+    logger.error("Error checking WhatsApp status:", { error });
     throw error;
   }
 }
@@ -92,7 +94,7 @@ export async function getWhatsAppProfile() {
     const data = await response.json() as ProfileResponse;
     return data;
   } catch (error) {
-    console.error("Error getting WhatsApp profile:", error);
+    logger.error("Error getting WhatsApp profile:", { error });
     throw error;
   }
 }
@@ -129,7 +131,7 @@ export async function fetchUltraMsgContacts(): Promise<any[]> {
     if (error instanceof Error && error.name === 'AbortError') {
       throw new Error("WhatsApp contacts API request timed out");
     }
-    console.error("Error fetching UltraMsg contacts:", error);
+    logger.error("Error fetching UltraMsg contacts:", { error });
     throw error;
   }
 }
@@ -160,7 +162,7 @@ export async function getWhatsAppQRCode() {
     // Return the URL directly for the client to fetch the image
     return `https://api.ultramsg.com/${instanceId}/instance/qr?token=${token}`;
   } catch (error) {
-    console.error("Error getting WhatsApp QR code:", error);
+    logger.error("Error getting WhatsApp QR code:", { error });
     throw error;
   }
 }
@@ -191,7 +193,7 @@ export async function logoutWhatsApp() {
     const data = await response.json();
     return data;
   } catch (error) {
-    console.error("Error logging out from WhatsApp:", error);
+    logger.error("Error logging out from WhatsApp:", { error });
     throw error;
   }
-} 
+}

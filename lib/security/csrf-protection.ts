@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { SignJWT, jwtVerify } from 'jose';
 import { cookies } from 'next/headers';
+import { logger } from '@/lib/services/logger';
 
 export interface CSRFConfig {
   secret: string;
@@ -36,7 +37,7 @@ class CSRFProtection {
     this.config = { ...defaultConfig, ...config };
     
     if (this.config.secret === 'your-csrf-secret-key-change-this') {
-      console.warn('⚠️  CSRF Protection: Using default secret key. Please set CSRF_SECRET environment variable.');
+      logger.warn('⚠️  CSRF Protection: Using default secret key. Please set CSRF_SECRET environment variable.');
     }
   }
 
@@ -277,7 +278,7 @@ export function useCSRFToken() {
   const addTokenToHeaders = (headers: HeadersInit = {}): HeadersInit => {
     const token = getToken();
     if (!token) {
-      console.warn('CSRF token not found');
+      logger.warn('CSRF token not found');
       return headers;
     }
 
@@ -298,7 +299,7 @@ export function useCSRFToken() {
   const addTokenToBody = (body: any): any => {
     const token = getToken();
     if (!token) {
-      console.warn('CSRF token not found');
+      logger.warn('CSRF token not found');
       return body;
     }
 

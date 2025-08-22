@@ -1,6 +1,7 @@
 "use client";
 
-import { createClient } from "@/lib/supabase/client";
+import { getSupabaseClient } from "@/lib/supabase/singleton-client";
+import { logger } from '@/lib/services/logger';
 
 export type UserRole = 'admin' | 'manager' | 'user';
 
@@ -9,6 +10,20 @@ export const ROLE_HIERARCHY: Record<UserRole, number> = {
   admin: 3,
   manager: 2,
   user: 1,
+};
+
+// Define which routes each role can access
+export const ROLE_ACCESS_MAP: Record<UserRole, string[]> = {
+  admin: ['/', '/settings', '/users'],
+  manager: ['/', '/settings'], 
+  user: ['/']
+};
+
+// Define fallback routes for each role when they lose access
+export const ROLE_FALLBACK_MAP: Record<UserRole, string> = {
+  admin: '/',
+  manager: '/',
+  user: '/'
 };
 
 /**
@@ -46,7 +61,7 @@ export const canAccessRoute = (userRole: UserRole, route: string): boolean => {
  */
 export const getUserRole = async (forceRefresh: boolean = false): Promise<UserRole | null> => {
   try {
-    const supabase = createClient();
+    const supabase = getSupabaseClient();
     
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return null;
@@ -62,7 +77,7 @@ export const getUserRole = async (forceRefresh: boolean = false): Promise<UserRo
       .maybeSingle();
 
     if (error) {
-      console.error('Error fetching user role:', error);
+      logger.error('Error fetching user role:', { error });
       
       // Try fallback query without join as backup
       try {
@@ -83,7 +98,7 @@ export const getUserRole = async (forceRefresh: boolean = false): Promise<UserRo
           return (roleData?.name as UserRole) || 'user';
         }
       } catch (fallbackError) {
-        console.error('Fallback role query failed:', fallbackError);
+        logger.error('Fallback role query failed:', { error: fallbackError });
       }
       
       return 'user'; // Default role
@@ -103,7 +118,7 @@ export const getUserRole = async (forceRefresh: boolean = false): Promise<UserRo
       ? roleName as UserRole 
       : 'user';
   } catch (error) {
-    console.error('Error in getUserRole:', error);
+    logger.error('Error in getUserRole:', { error });
     return 'user'; // Default role
   }
 };
@@ -151,6 +166,87 @@ export const requiresAuth = (route: string): boolean => {
 
   return !publicRoutes.some(publicRoute => route.startsWith(publicRoute));
 };
+
+/**
+ * Check if a user role has access to a specific route
+ */
+export function hasRouteAccess(role: UserRole | undefined, route: string): boolean {
+  if (!role) return false;
+  
+  const allowedRoutes = ROLE_ACCESS_MAP[role] || [];
+  
+  // Check exact match first
+  if (allowedRoutes.includes(route)) {
+    return true;
+  }
+  
+  // Check if route starts with any allowed route (for sub-routes)
+  return allowedRoutes.some(allowedRoute => {
+    if (allowedRoute === '/') {
+      return route === '/';
+    }
+    return route.startsWith(allowedRoute);
+  });
+}
+
+/**
+ * Get the appropriate fallback route for a role
+ */
+export function getFallbackRoute(role: UserRole | undefined): string {
+  if (!role) return '/auth/login';
+  return ROLE_FALLBACK_MAP[role] || '/';
+}
+
+/**
+ * Get all accessible routes for a role
+ */
+export function getAccessibleRoutes(role: UserRole | undefined): string[] {
+  if (!role) return [];
+  return ROLE_ACCESS_MAP[role] || [];
+}
+
+/**
+ * Check if role change requires redirect
+ */
+export function requiresRedirect(
+  currentRoute: string,
+  oldRole: UserRole | undefined,
+  newRole: UserRole | undefined
+): { shouldRedirect: boolean; redirectTo?: string } {
+  // If no role change, no redirect needed
+  if (oldRole === newRole) {
+    return { shouldRedirect: false };
+  }
+  
+  // If new role doesn't have access to current route, redirect
+  if (!hasRouteAccess(newRole, currentRoute)) {
+    return {
+      shouldRedirect: true,
+      redirectTo: getFallbackRoute(newRole)
+    };
+  }
+  
+  return { shouldRedirect: false };
+}
+
+/**
+ * Validate route access and get redirect if needed
+ */
+export function validateRouteAccess(
+  route: string,
+  role: UserRole | undefined
+): { hasAccess: boolean; redirectTo?: string } {
+  const hasAccess = hasRouteAccess(role, route);
+  
+  if (!hasAccess) {
+    return {
+      hasAccess: false,
+      redirectTo: getFallbackRoute(role)
+    };
+  }
+  
+  return { hasAccess: true };
+}
 
 /**
  * Get redirect URL for unauthorized access based on user role

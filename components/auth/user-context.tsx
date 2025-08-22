@@ -11,9 +11,11 @@ import { useRouter } from "next/navigation";
 import { User as SupabaseUser } from "@supabase/supabase-js";
 import { User as CustomUser } from "@/types/types";
 import { getSupabaseClient } from "@/lib/supabase/singleton-client";
-import { userService } from "@/lib/services/user-service";
+import { getUserService } from "@/lib/services/service-registry";
 import { mapSupabaseUserToCustomUser } from "@/types/auth";
 import { shouldPreventAutoRedirect } from "@/lib/auth/prevent-auto-redirect";
+import { logger } from '@/lib/services/logger';
+import { createTabContext } from '@/lib/utils/data-sanitizer';
 import {
   shouldAllowAuth,
   isAuthTab,
@@ -84,11 +86,12 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       }
 
       try {
+        const userService = await getUserService();
         const enhancedUser = await userService.createEnhancedUser(supaUser);
         setUser(enhancedUser);
         return enhancedUser;
       } catch (error) {
-        console.error("Error in fetchUserWithProfile:", error);
+        logger.error("Error in fetchUserWithProfile:", { error: error instanceof Error ? error.message : String(error) });
         setUser(null);
         return null;
       }
@@ -99,6 +102,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   // Manual refresh function using centralized service
   const refreshUser = useCallback(async () => {
     if (supabaseUser) {
+      const userService = await getUserService();
       const updatedUser = await userService.getUserProfile(supabaseUser.id, {
         useCache: false,
       });
@@ -110,7 +114,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   const forceRefreshUserRole = useCallback(async () => {
     if (supabaseUser) {
       // Clear cache and force fresh data
-      userService.clearCache();
+        (await getUserService()).clearCache();
       await refreshUser();
 
       // Also refresh the router to update any server-side role checks (rate limited)
@@ -124,7 +128,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
           sessionStorage.setItem("last_router_refresh", now.toString());
         }
       } catch (e) {
-        console.warn("Router refresh failed:", e);
+        logger.warn("Router refresh failed:", { error: e instanceof Error ? e.message : String(e) });
       }
     }
   }, [supabaseUser, refreshUser, router]);
@@ -154,7 +158,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
           currentRoleId !== storedRoleId ||
           currentRoleName !== storedRoleName
         ) {
-          console.log(
+          logger.info(
             `Role change detected: ${storedRoleName} -> ${currentRoleName}`
           );
 
@@ -168,7 +172,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         }
       }
     } catch (error) {
-      console.error("Error checking role:", error);
+      logger.error("Error checking role:", { error: error instanceof Error ? error.message : String(error) });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [supabaseUser, supabase, refreshUser]);
@@ -193,7 +197,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         if (supaUser && session && !userRes.error && !sessionRes.error) {
           // Enforce tab isolation - only allow auth in proper tabs
           if (!shouldAllowAuth() && !wasTabRefreshed()) {
-            console.log(
+            logger.info(
               `🚫 Initial auth blocked for tab ${getCurrentTabId()} - not the auth tab`
             );
             enforceTabIsolation(supabase);
@@ -260,13 +264,13 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             event === "TOKEN_REFRESHED") &&
           (!lastLog || now - parseInt(lastLog) > 1000)
         ) {
-          console.log(`🔐 Auth event: ${event} in tab: ${getCurrentTabId()}`);
+          logger.info(`🔐 Auth event: ${event}`, createTabContext(getCurrentTabId()));
           sessionStorage.setItem(logKey, now.toString());
         }
 
         // Check if this auth state change should be blocked
         if (shouldBlockAuthStateChange(event)) {
-          console.log(
+          logger.info(
             `🚫 Blocking auth state change ${event} in tab ${getCurrentTabId()}`
           );
 
@@ -288,7 +292,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         // Handle specific auth events
         if (event === "SIGNED_OUT") {
           const tabId = getCurrentTabId();
-          console.log(`🚪 User signed out in tab: ${tabId}`);
+          logger.info('🚪 User signed out', createTabContext(tabId));
 
           // Clear tab isolation data on logout
           resetTabIsolation();
@@ -301,16 +305,16 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
         if (event === "SIGNED_IN" && authUser) {
           const tabId = getCurrentTabId();
-          console.log(
+          logger.info(
             `🔐 Processing sign-in for: ${authUser.email} in tab: ${tabId}`
           );
 
           if (wasTabRefreshed()) {
-            console.log(
+            logger.info(
               `🔄 Tab ${tabId} was refreshed - allowing auth state sync`
             );
           } else if (!shouldAllowAuth()) {
-            console.log(
+            logger.info(
               `🚫 Tab isolation: Sign-in blocked for tab ${tabId} - not the auth tab`
             );
             // This should not happen as it's already handled above, but double-check
@@ -330,11 +334,11 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
           // No automatic redirects - users should explicitly choose to enter the app
           if (shouldPreventAutoRedirect()) {
-            console.log("🚫 Auto-redirect prevented - user is on auth page");
+            logger.info("🚫 Auto-redirect prevented - user is on auth page");
             return;
           }
 
-          console.log(
+          logger.info(
             `🔐 User signed in in tab ${tabId} - no automatic redirect, waiting for user action`
           );
           return;
@@ -342,7 +346,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
         if (event === "TOKEN_REFRESHED") {
           if (!session) {
-            console.log("❌ Token refresh failed - re-authentication required");
+            logger.info("❌ Token refresh failed - re-authentication required");
             setUser(null);
             setSupabaseUser(null);
             setLoading(false);
@@ -360,7 +364,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
           setLoading(false);
         });
       } catch (error: unknown) {
-        console.error("❌ Error in auth state change handler:", error);
+        logger.error("❌ Error in auth state change handler:", { error: error instanceof Error ? error.message : String(error) });
 
         // Ensure we don't leave the app in a loading state
         setLoading(false);
@@ -372,7 +376,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
           errorMessage.includes("timeout") ||
           errorMessage.includes("network")
         ) {
-          console.warn(
+          logger.warn(
             "🔄 Network/timeout error detected, clearing auth state for safety"
           );
           setSupabaseUser(null);
@@ -391,12 +395,23 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!supabaseUser) return;
 
-    const subscription = userService.subscribeToUserChanges(
-      supabaseUser.id,
-      (updatedUser) => {
-        setUser(updatedUser);
+    let subscription: any;
+
+    const setupSubscription = async () => {
+      try {
+        const userService = await getUserService();
+        subscription = userService.subscribeToUserChanges((payload: any) => {
+          // Handle real-time user profile changes
+          if (payload.eventType === 'UPDATE' && payload.new?.id === supabaseUser.id) {
+            fetchUserWithProfile(supabaseUser);
+          }
+        });
+      } catch (error) {
+        console.error('Failed to setup user subscription:', error);
       }
-    );
+    };
+
+    setupSubscription();
 
     return () => {
       if (subscription) {

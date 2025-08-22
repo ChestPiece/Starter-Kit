@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/dialog";
 import { forceLogoutAndRedirect, validateUserSession } from "@/lib/auth-utils";
 import { SESSION_CONFIG, updateLastActivity } from "@/lib/session-config";
+import { logger } from '@/lib/services/logger';
 
 interface SessionTimeoutProps {
   /**
@@ -89,13 +90,13 @@ export function SessionTimeout({
         setTimeRemaining(0);
 
         // Show success notification
-        console.log("Session extended successfully");
+        logger.info("Session extended successfully");
       } else {
         // Session is invalid, force logout
         await forceLogoutAndRedirect("invalid_session_on_extend");
       }
     } catch (error) {
-      console.error("Error extending session:", error);
+      logger.error("Error extending session:", { error: error instanceof Error ? error.message : String(error) });
       await forceLogoutAndRedirect("session_extend_error");
     } finally {
       setIsExtending(false);
@@ -240,4 +241,5 @@ export function SessionTimeout({
   );
 }
 
-// No default export needed since we're using named export
+// Export as default for dynamic imports
+export default SessionTimeout;

@@ -57,3 +57,5 @@ export function DataTableViewOptions<TData>({
     </DropdownMenu>
   );
 }
+
+export default DataTableViewOptions;

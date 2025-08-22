@@ -9,6 +9,7 @@ import { Settings as ServiceSettings } from "@/modules/settings/services/setting
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Loader from "@/components/loader";
 import { User, Palette, Building2 } from "lucide-react";
+import { logger } from '@/lib/services/logger';
 
 // Helper function to convert service settings to model settings
 const convertServiceToModelSettings = (
@@ -69,7 +70,7 @@ export function ComprehensiveSettings() {
         ])) as any;
         setSettings(convertServiceToModelSettings(settingsData));
       } catch (err) {
-        console.error("Failed to fetch settings:", err);
+        logger.error("Failed to fetch settings:", { error: err instanceof Error ? err.message : String(err) });
 
         // Set default settings to prevent infinite loading
         const defaultSettings: Settings = {
@@ -111,7 +112,7 @@ export function ComprehensiveSettings() {
         const updatedSettings = await settingsService.getSettingsById();
         setSettings(convertServiceToModelSettings(updatedSettings));
       } catch (err) {
-        console.error("Failed to refresh settings:", err);
+        logger.error("Failed to refresh settings:", { error: err instanceof Error ? err.message : String(err) });
       }
     };
 

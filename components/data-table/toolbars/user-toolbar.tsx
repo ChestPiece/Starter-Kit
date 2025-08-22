@@ -122,3 +122,5 @@ export function UserDataTableToolbar<TData>({
     </div>
   );
 }
+
+export default UserDataTableToolbar;

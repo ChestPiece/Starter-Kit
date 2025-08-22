@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
+import { getSupabaseClient } from "@/lib/supabase/singleton-client";
 import { initializeAutoRedirectPrevention } from "@/lib/auth/prevent-auto-redirect";
 import { CheckCircle, XCircle, Loader2 } from "lucide-react";
 import {
@@ -13,6 +13,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { logger } from '@/lib/services/logger';
 
 // Force dynamic rendering to ensure client runs on first-load
 export const dynamic = "force-dynamic";
@@ -38,7 +39,7 @@ export default function ConfirmPage() {
     }
 
     // Otherwise, handle client-side confirmation for fallback cases
-    const supabase = createClient();
+    const supabase = getSupabaseClient();
 
     const run = async () => {
       try {
@@ -46,7 +47,7 @@ export default function ConfirmPage() {
         const token_hash = searchParams.get("token_hash");
         const type = searchParams.get("type");
 
-        console.log("Client-side confirmation attempt:", {
+        logger.info("Client-side confirmation attempt:", {
           hasCode: !!code,
           hasTokenHash: !!token_hash,
           type,
@@ -54,21 +55,20 @@ export default function ConfirmPage() {
         });
 
         if (code) {
-          console.log("Attempting code confirmation...");
+          logger.info("Attempting code confirmation...");
           const { error, data } =
             await supabase.auth.exchangeCodeForSession(code);
           if (error) {
-            console.error("Code confirmation failed:", error);
+            logger.error("Code confirmation failed:", error);
             throw error;
           }
 
           // Email confirmed - now sign out to prevent auto-login
           await supabase.auth.signOut();
 
-          console.log(
+          logger.info(
             "Code confirmation successful:",
-            data?.user?.email,
-            "(user signed out)"
+            { email: data?.user?.email, status: "user signed out" }
           );
 
           // Redirect to login instead of showing confirmed status
@@ -77,20 +77,20 @@ export default function ConfirmPage() {
         }
 
         if (token_hash && type) {
-          console.log("Attempting token confirmation...");
+          logger.info("Attempting token confirmation...");
           const { error } = await supabase.auth.verifyOtp({
             token_hash,
             type: type as any,
           });
           if (error) {
-            console.error("Token confirmation failed:", error);
+            logger.error("Token confirmation failed:", error);
             throw error;
           }
 
           // Token verified - sign out to prevent auto-login
           await supabase.auth.signOut();
 
-          console.log("Token confirmation successful (user signed out)");
+          logger.info("Token confirmation successful (user signed out)");
 
           // Redirect to login instead of showing confirmed status
           router.push("/auth/login?message=email_confirmed");
@@ -98,13 +98,13 @@ export default function ConfirmPage() {
         }
 
         // Fallback – no valid params
-        console.log("No valid confirmation parameters found");
+        logger.info("No valid confirmation parameters found");
         setError(
           "Invalid confirmation link. Please try requesting a new confirmation email."
         );
         setStatus("error");
       } catch (e: any) {
-        console.error("Confirmation error (client):", e);
+        logger.error("Confirmation error (client):", e);
         let errorMessage = "Confirmation failed";
 
         if (

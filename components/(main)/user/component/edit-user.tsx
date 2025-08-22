@@ -39,6 +39,7 @@ import {
 } from "@/components/ui/form";
 import { toast } from "sonner";
 import { useUser } from "@/components/auth/user-context";
+import { logger } from '@/lib/services/logger';
 
 // Pretend we have initial image files
 const initialBgImage = [
@@ -143,12 +144,12 @@ export default function EditUser({
           await forceRefreshUserRole();
         }
       } catch (e) {
-        console.warn("Failed to refresh current user role after update:", e);
+        logger.warn("Failed to refresh current user role after update", { error: e instanceof Error ? e : String(e) });
       }
       if (onOpenChange) onOpenChange(false);
       fetchUser();
     } catch (error) {
-      console.error("Error saving user data:", error);
+      logger.error("Error saving user data", { error: error instanceof Error ? error : String(error) });
       toast.error(
         error instanceof Error ? error.message : "Failed to update user"
       );

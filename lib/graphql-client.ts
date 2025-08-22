@@ -1,3 +1,5 @@
+import { logger } from '@/lib/services/logger';
+
 export async function executeGraphQL<T = any>(query: string, variables?: Record<string, any>, token?: string) {
   try {
     // Validate required environment variables
@@ -35,10 +37,10 @@ export async function executeGraphQL<T = any>(query: string, variables?: Record<
     return result.data as T;
   } catch (error) {
     if (error instanceof Error && error.name === 'AbortError') {
-      console.error('GraphQL request timed out:', error);
+      logger.error('GraphQL request timed out:', { error });
       throw new Error('Request timed out - please try again');
     }
-    console.error('GraphQL Error:', error);
+    logger.error('GraphQL Error:', { error });
     throw error;
   }
-} 
+}

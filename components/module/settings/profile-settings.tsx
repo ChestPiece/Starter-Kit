@@ -17,7 +17,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { useUser } from "@/components/auth/user-context";
-import { userService } from "@/lib/services/user-service";
+import { getUserService } from "@/lib/services/service-registry";
 import { Button } from "@/components/ui/button";
 import { saveFile } from "@/supabase/actions/save-file";
 import { toast } from "sonner";
@@ -46,6 +46,7 @@ import {
   ZoomOutIcon,
 } from "lucide-react";
 import { Area, getCroppedImg } from "@/utils/image-crop";
+import { logger } from '@/lib/services/logger';
 
 export type UserProfile = {
   id: string;
@@ -70,6 +71,7 @@ export function ProfileSettings() {
 
     setProfileLoading(true);
     try {
+      const userService = await getUserService();
       const userData = await userService.getUserProfile(supabaseUser.id);
 
       if (userData) {
@@ -95,7 +97,7 @@ export function ProfileSettings() {
         });
       }
     } catch (error) {
-      console.error("Error loading user profile:", error);
+      logger.error("Error loading user profile:", { error });
       // Fallback
       setUserProfile({
         id: supabaseUser?.id || "fallback-id",
@@ -187,7 +189,7 @@ export function ProfileSettings() {
       // Close the dialog
       setIsDialogOpen(false);
     } catch (error) {
-      console.error("Error during apply:", error);
+      logger.error("Error during apply:", { error });
       toast.error("Failed to process image");
     } finally {
       setIsUploading(false);
@@ -209,6 +211,7 @@ export function ProfileSettings() {
 
     setIsLoading(true);
     try {
+      const userService = await getUserService();
       await userService.updateUserProfile(supabaseUser?.id || "", {
         id: supabaseUser?.id || "",
         first_name: userProfile.first_name,
@@ -216,14 +219,14 @@ export function ProfileSettings() {
         profile: userProfile.profile || undefined,
       });
       // Mock profile update (authentication removed)
-      console.log("Mock profile update:", {
+      logger.info("Mock profile update:", {
         first_name: userProfile.first_name,
         last_name: userProfile.last_name,
         profile: userProfile.profile,
       });
       toast.success("Profile updated successfully");
     } catch (error) {
-      console.error("Failed to update profile:", error);
+      logger.error("Failed to update profile:", { error });
       toast.error("Failed to update profile. Please try again.");
     } finally {
       setIsLoading(false);

@@ -1,0 +1,2294 @@
+{
+  "timestamp": "2025-08-21T18:09:41.342Z",
+  "summary": {
+    "totalComponents": 106,
+    "highPriority": 29,
+    "mediumPriority": 15,
+    "lowPriority": 31,
+    "totalSize": 422341
+  },
+  "components": [
+    {
+      "filePath": "components\\auth\\signup-form.tsx",
+      "fileName": "signup-form.tsx",
+      "size": 18249,
+      "dependencies": [
+        "react",
+        "next/navigation",
+        "react-hook-form",
+        "@hookform/resolvers/zod",
+        "zod",
+        "@/lib/supabase/client",
+        "@/components/ui/button",
+        "@/components/ui/input",
+        "@/components/ui/alert",
+        "lucide-react",
+        "next/link",
+        "@/lib/services/logger"
+      ],
+      "heavyDependencies": [
+        "react-hook-form",
+        "@hookform/resolvers/zod",
+        "zod",
+        "lucide-react"
+      ],
+      "lineCount": 508,
+      "complexity": 448,
+      "recommendation": "high",
+      "reasons": [
+        "High complexity score (448)",
+        "Multiple heavy dependencies (4)",
+        "Large file size (18KB)",
+        "Many lines of code (508)",
+        "Form component (heavy validation libraries)"
+      ]
+    },
+    {
+      "filePath": "components\\(main)\\user\\component\\edit-user.tsx",
+      "fileName": "edit-user.tsx",
+      "size": 9126,
+      "dependencies": [
+        "react",
+        "lucide-react",
+        "@/hooks/use-file-upload",
+        "@/components/ui/button",
+        "@/components/ui/input",
+        "@/components/ui/label",
+        "@/types/types",
+        "@/supabase/actions/save-file",
+        "@/modules/users/services/users-service",
+        "next/image",
+        "@/modules/roles/models/role",
+        "./image-setting",
+        "@hookform/resolvers/zod",
+        "react-hook-form",
+        "zod",
+        "sonner",
+        "@/components/auth/user-context",
+        "@/lib/services/logger"
+      ],
+      "heavyDependencies": [
+        "lucide-react",
+        "@hookform/resolvers/zod",
+        "react-hook-form",
+        "zod"
+      ],
+      "lineCount": 289,
+      "complexity": 424,
+      "recommendation": "high",
+      "reasons": [
+        "High complexity score (424)",
+        "Multiple heavy dependencies (4)",
+        "Medium file size (9KB)",
+        "Many lines of code (289)"
+      ]
+    },
+    {
+      "filePath": "components\\(main)\\user\\component\\add-user.tsx",
+      "fileName": "add-user.tsx",
+      "size": 8219,
+      "dependencies": [
+        "react",
+        "lucide-react",
+        "@/hooks/use-file-upload",
+        "@/components/ui/button",
+        "@/components/ui/input",
+        "@/components/ui/label",
+        "@/supabase/actions/save-file",
+        "@/modules/users/services/users-service",
+        "next/image",
+        "@/modules/roles/models/role",
+        "sonner",
+        "@/utils/generateRandomAvatar",
+        "./image-setting",
+        "@hookform/resolvers/zod",
+        "react-hook-form",
+        "zod",
+        "@/lib/services/logger"
+      ],
+      "heavyDependencies": [
+        "lucide-react",
+        "@hookform/resolvers/zod",
+        "react-hook-form",
+        "zod"
+      ],
+      "lineCount": 262,
+      "complexity": 420,
+      "recommendation": "high",
+      "reasons": [
+        "High complexity score (420)",
+        "Multiple heavy dependencies (4)",
+        "Medium file size (8KB)",
+        "Many lines of code (262)"
+      ]
+    },
+    {
+      "filePath": "components\\ui\\dropdown-menu.tsx",
+      "fileName": "dropdown-menu.tsx",
+      "size": 8284,
+      "dependencies": [
+        "react",
+        "@radix-ui/react-dropdown-menu",
+        "lucide-react",
+        "@/lib/utils"
+      ],
+      "heavyDependencies": [
+        "@radix-ui/react-dropdown-menu",
+        "lucide-react"
+      ],
+      "lineCount": 258,
+      "complexity": 412,
+      "recommendation": "high",
+      "reasons": [
+        "High complexity score (412)",
+        "Some heavy dependencies (2)",
+        "Medium file size (8KB)",
+        "Many lines of code (258)"
+      ]
+    },
+    {
+      "filePath": "components\\ui\\alert-dialog.tsx",
+      "fileName": "alert-dialog.tsx",
+      "size": 4455,
+      "dependencies": [
+        "react",
+        "@radix-ui/react-alert-dialog",
+        "@/lib/utils",
+        "@/components/ui/button"
+      ],
+      "heavyDependencies": [
+        "@radix-ui/react-alert-dialog"
+      ],
+      "lineCount": 142,
+      "complexity": 375,
+      "recommendation": "high",
+      "reasons": [
+        "High complexity score (375)",
+        "Has heavy dependencies (@radix-ui/react-alert-dialog)",
+        "Moderate lines of code (142)",
+        "Modal/dialog component (on-demand loading)"
+      ]
+    },
+    {
+      "filePath": "components\\login-form.tsx",
+      "fileName": "login-form.tsx",
+      "size": 9535,
+      "dependencies": [
+        "react",
+        "next/navigation",
+        "react-hook-form",
+        "@hookform/resolvers/zod",
+        "zod",
+        "@/lib/supabase/client",
+        "@/lib/utils",
+        "@/components/ui/button",
+        "@/components/ui/input",
+        "@/components/ui/label",
+        "@/components/ui/alert",
+        "lucide-react",
+        "next/link",
+        "@/lib/services/logger",
+        "@/lib/utils/data-sanitizer"
+      ],
+      "heavyDependencies": [
+        "react-hook-form",
+        "@hookform/resolvers/zod",
+        "zod",
+        "lucide-react"
+      ],
+      "lineCount": 282,
+      "complexity": 306,
+      "recommendation": "high",
+      "reasons": [
+        "High complexity score (306)",
+        "Multiple heavy dependencies (4)",
+        "Medium file size (9KB)",
+        "Many lines of code (282)",
+        "Form component (heavy validation libraries)"
+      ]
+    },
+    {
+      "filePath": "components\\ui\\multiselect.tsx",
+      "fileName": "multiselect.tsx",
+      "size": 20981,
+      "dependencies": [
+        "cmdk",
+        "lucide-react",
+        "react",
+        "@/lib/utils"
+      ],
+      "heavyDependencies": [
+        "lucide-react"
+      ],
+      "lineCount": 642,
+      "complexity": 290,
+      "recommendation": "high",
+      "reasons": [
+        "High complexity score (290)",
+        "Has heavy dependencies (lucide-react)",
+        "Large file size (20KB)",
+        "Many lines of code (642)"
+      ]
+    },
+    {
+      "filePath": "components\\ui\\form.tsx",
+      "fileName": "form.tsx",
+      "size": 3756,
+      "dependencies": [
+        "react",
+        "@radix-ui/react-label",
+        "@radix-ui/react-slot",
+        "@/lib/utils",
+        "@/components/ui/label"
+      ],
+      "heavyDependencies": [
+        "@radix-ui/react-label",
+        "@radix-ui/react-slot"
+      ],
+      "lineCount": 168,
+      "complexity": 277,
+      "recommendation": "high",
+      "reasons": [
+        "High complexity score (277)",
+        "Some heavy dependencies (2)",
+        "Moderate lines of code (168)",
+        "Form component (heavy validation libraries)"
+      ]
+    },
+    {
+      "filePath": "components\\ui\\dialog.tsx",
+      "fileName": "dialog.tsx",
+      "size": 3808,
+      "dependencies": [
+        "react",
+        "@radix-ui/react-dialog",
+        "lucide-react",
+        "@/lib/utils"
+      ],
+      "heavyDependencies": [
+        "@radix-ui/react-dialog",
+        "lucide-react"
+      ],
+      "lineCount": 136,
+      "complexity": 270,
+      "recommendation": "high",
+      "reasons": [
+        "High complexity score (270)",
+        "Some heavy dependencies (2)",
+        "Moderate lines of code (136)",
+        "Modal/dialog component (on-demand loading)"
+      ]
+    },
+    {
+      "filePath": "components\\ui\\sheet.tsx",
+      "fileName": "sheet.tsx",
+      "size": 4085,
+      "dependencies": [
+        "react",
+        "@radix-ui/react-dialog",
+        "lucide-react",
+        "@/lib/utils"
+      ],
+      "heavyDependencies": [
+        "@radix-ui/react-dialog",
+        "lucide-react"
+      ],
+      "lineCount": 140,
+      "complexity": 261,
+      "recommendation": "high",
+      "reasons": [
+        "High complexity score (261)",
+        "Some heavy dependencies (2)",
+        "Moderate lines of code (140)"
+      ]
+    },
+    {
+      "filePath": "components\\data-table\\actions\\user-actions.tsx",
+      "fileName": "user-actions.tsx",
+      "size": 6333,
+      "dependencies": [
+        "react",
+        "@tanstack/react-table",
+        "@/components/ui/button",
+        "sonner",
+        "@/types/types",
+        "@/components/(main)/user/component/edit-user",
+        "@/modules/roles/models/role",
+        "@/modules/roles/services/roles-service",
+        "@/modules",
+        "@/components/ui/confirmation-dialog-box"
+      ],
+      "heavyDependencies": [],
+      "lineCount": 211,
+      "complexity": 261,
+      "recommendation": "high",
+      "reasons": [
+        "High complexity score (261)",
+        "Medium file size (6KB)",
+        "Many lines of code (211)"
+      ]
+    },
+    {
+      "filePath": "components\\module\\settings\\profile-settings.tsx",
+      "fileName": "profile-settings.tsx",
+      "size": 15349,
+      "dependencies": [
+        "next/image",
+        "@/components/ui/input",
+        "@/components/ui/label",
+        "@/components/auth/user-context",
+        "@/lib/services/user-service",
+        "@/components/ui/button",
+        "@/supabase/actions/save-file",
+        "sonner",
+        "@/hooks/use-file-upload",
+        "@/components/ui/slider",
+        "@/utils/image-crop",
+        "@/lib/services/logger"
+      ],
+      "heavyDependencies": [],
+      "lineCount": 495,
+      "complexity": 227,
+      "recommendation": "high",
+      "reasons": [
+        "High complexity score (227)",
+        "Large file size (15KB)",
+        "Many lines of code (495)",
+        "Admin/settings component (conditional loading)"
+      ]
+    },
+    {
+      "filePath": "components\\data-table\\data-table-faceted-filter.tsx",
+      "fileName": "data-table-faceted-filter.tsx",
+      "size": 5113,
+      "dependencies": [
+        "react",
+        "@tanstack/react-table",
+        "@/lib/utils",
+        "@/components/ui/badge",
+        "@/components/ui/button",
+        "@/components/ui/separator",
+        "lucide-react"
+      ],
+      "heavyDependencies": [
+        "lucide-react"
+      ],
+      "lineCount": 149,
+      "complexity": 224,
+      "recommendation": "high",
+      "reasons": [
+        "High complexity score (224)",
+        "Has heavy dependencies (lucide-react)",
+        "Medium file size (5KB)",
+        "Moderate lines of code (149)"
+      ]
+    },
+    {
+      "filePath": "components\\ui\\avatar-cropper.tsx",
+      "fileName": "avatar-cropper.tsx",
+      "size": 9265,
+      "dependencies": [
+        "react",
+        "next/image",
+        "@/hooks/use-file-upload",
+        "@/components/ui/button",
+        "@/components/ui/slider",
+        "@/utils/image-crop",
+        "@/lib/services/logger"
+      ],
+      "heavyDependencies": [],
+      "lineCount": 304,
+      "complexity": 208,
+      "recommendation": "high",
+      "reasons": [
+        "High complexity score (208)",
+        "Medium file size (9KB)",
+        "Many lines of code (304)"
+      ]
+    },
+    {
+      "filePath": "components\\ui\\sidebar.tsx",
+      "fileName": "sidebar.tsx",
+      "size": 21091,
+      "dependencies": [
+        "react",
+        "@radix-ui/react-slot",
+        "class-variance-authority",
+        "lucide-react",
+        "@/hooks/use-mobile",
+        "@/lib/utils",
+        "@/components/ui/button",
+        "@/components/ui/input",
+        "@/components/ui/separator",
+        "@/components/ui/skeleton"
+      ],
+      "heavyDependencies": [
+        "@radix-ui/react-slot",
+        "lucide-react"
+      ],
+      "lineCount": 726,
+      "complexity": 197,
+      "recommendation": "high",
+      "reasons": [
+        "High complexity score (197)",
+        "Some heavy dependencies (2)",
+        "Large file size (21KB)",
+        "Many lines of code (726)"
+      ]
+    },
+    {
+      "filePath": "components\\auth\\session-timeout.tsx",
+      "fileName": "session-timeout.tsx",
+      "size": 7056,
+      "dependencies": [
+        "react",
+        "lucide-react",
+        "@/components/ui/alert",
+        "@/components/ui/button",
+        "@/lib/auth-utils",
+        "@/lib/session-config",
+        "@/lib/services/logger"
+      ],
+      "heavyDependencies": [
+        "lucide-react"
+      ],
+      "lineCount": 245,
+      "complexity": 166,
+      "recommendation": "high",
+      "reasons": [
+        "High complexity score (166)",
+        "Has heavy dependencies (lucide-react)",
+        "Medium file size (7KB)",
+        "Many lines of code (245)"
+      ]
+    },
+    {
+      "filePath": "components\\settings-dialog.tsx",
+      "fileName": "settings-dialog.tsx",
+      "size": 4647,
+      "dependencies": [
+        "react",
+        "lucide-react",
+        "@/components/ui/button",
+        "@/components/module/settings/profile-settings",
+        "@/components/module/settings/organization-settings",
+        "@/components/module/settings/appearance-settings"
+      ],
+      "heavyDependencies": [
+        "lucide-react"
+      ],
+      "lineCount": 130,
+      "complexity": 138,
+      "recommendation": "high",
+      "reasons": [
+        "High complexity score (138)",
+        "Has heavy dependencies (lucide-react)",
+        "Moderate lines of code (130)",
+        "Admin/settings component (conditional loading)",
+        "Modal/dialog component (on-demand loading)"
+      ]
+    },
+    {
+      "filePath": "components\\data-table\\data-table.tsx",
+      "fileName": "data-table.tsx",
+      "size": 7441,
+      "dependencies": [
+        "react",
+        "./data-table-pagination",
+        "./data-table-toolbar",
+        "./data-table-skeleton",
+        "@/lib/services/logger"
+      ],
+      "heavyDependencies": [],
+      "lineCount": 251,
+      "complexity": 113,
+      "recommendation": "high",
+      "reasons": [
+        "High complexity score (113)",
+        "Medium file size (7KB)",
+        "Many lines of code (251)"
+      ]
+    },
+    {
+      "filePath": "components\\auth\\user-context.tsx",
+      "fileName": "user-context.tsx",
+      "size": 13016,
+      "dependencies": [
+        "next/navigation",
+        "@supabase/supabase-js",
+        "@/types/types",
+        "@/lib/supabase/singleton-client",
+        "@/lib/services/user-service",
+        "@/types/auth",
+        "@/lib/auth/prevent-auto-redirect",
+        "@/lib/services/logger",
+        "@/lib/utils/data-sanitizer"
+      ],
+      "heavyDependencies": [
+        "@supabase/supabase-js"
+      ],
+      "lineCount": 433,
+      "complexity": 106,
+      "recommendation": "high",
+      "reasons": [
+        "High complexity score (106)",
+        "Has heavy dependencies (@supabase/supabase-js)",
+        "Large file size (13KB)",
+        "Many lines of code (433)"
+      ]
+    },
+    {
+      "filePath": "app\\auth\\reset-password\\page.tsx",
+      "fileName": "page.tsx",
+      "size": 9737,
+      "dependencies": [
+        "react",
+        "next/navigation",
+        "@/lib/supabase/client",
+        "@/components/ui/button",
+        "@/components/ui/input",
+        "@/components/ui/label",
+        "@/components/ui/alert",
+        "lucide-react",
+        "next/link"
+      ],
+      "heavyDependencies": [
+        "lucide-react"
+      ],
+      "lineCount": 298,
+      "complexity": 105,
+      "recommendation": "high",
+      "reasons": [
+        "High complexity score (105)",
+        "Has heavy dependencies (lucide-react)",
+        "Medium file size (10KB)",
+        "Many lines of code (298)"
+      ]
+    },
+    {
+      "filePath": "components\\auth\\confirmation-error-helper.tsx",
+      "fileName": "confirmation-error-helper.tsx",
+      "size": 6329,
+      "dependencies": [
+        "react",
+        "@/components/ui/button",
+        "@/components/ui/alert",
+        "lucide-react",
+        "next/link",
+        "@/lib/services/logger"
+      ],
+      "heavyDependencies": [
+        "lucide-react"
+      ],
+      "lineCount": 196,
+      "complexity": 100,
+      "recommendation": "high",
+      "reasons": [
+        "High complexity score (100)",
+        "Has heavy dependencies (lucide-react)",
+        "Medium file size (6KB)",
+        "Moderate lines of code (196)"
+      ]
+    },
+    {
+      "filePath": "components\\auth\\forgot-password.tsx",
+      "fileName": "forgot-password.tsx",
+      "size": 7951,
+      "dependencies": [
+        "react",
+        "@/lib/supabase/client",
+        "@/components/ui/button",
+        "@/components/ui/input",
+        "@/components/ui/label",
+        "lucide-react",
+        "@/lib/services/logger",
+        "@/lib/utils/data-sanitizer"
+      ],
+      "heavyDependencies": [
+        "lucide-react"
+      ],
+      "lineCount": 237,
+      "complexity": 80,
+      "recommendation": "high",
+      "reasons": [
+        "Medium complexity score (80)",
+        "Has heavy dependencies (lucide-react)",
+        "Medium file size (8KB)",
+        "Many lines of code (237)"
+      ]
+    },
+    {
+      "filePath": "components\\search-form.tsx",
+      "fileName": "search-form.tsx",
+      "size": 8633,
+      "dependencies": [
+        "react",
+        "next/navigation",
+        "@/components/ui/sidebar",
+        "@remixicon/react",
+        "@/lib/utils"
+      ],
+      "heavyDependencies": [],
+      "lineCount": 254,
+      "complexity": 79,
+      "recommendation": "high",
+      "reasons": [
+        "Medium complexity score (79)",
+        "Medium file size (8KB)",
+        "Many lines of code (254)",
+        "Form component (heavy validation libraries)"
+      ]
+    },
+    {
+      "filePath": "components\\module\\settings\\organization-settings.tsx",
+      "fileName": "organization-settings.tsx",
+      "size": 8304,
+      "dependencies": [
+        "react",
+        "@/components/ui/input",
+        "@/components/ui/label",
+        "@/modules/settings",
+        "@/components/ui/button",
+        "sonner",
+        "@/supabase/actions/save-file",
+        "@/components/ui/avatar-cropper",
+        "@/components/ui/radio-group",
+        "lucide-react",
+        "@/lib/services/logger"
+      ],
+      "heavyDependencies": [
+        "lucide-react"
+      ],
+      "lineCount": 250,
+      "complexity": 77,
+      "recommendation": "high",
+      "reasons": [
+        "Medium complexity score (77)",
+        "Has heavy dependencies (lucide-react)",
+        "Medium file size (8KB)",
+        "Many lines of code (250)",
+        "Admin/settings component (conditional loading)"
+      ]
+    },
+    {
+      "filePath": "components\\module\\settings\\comprehensive-settings.tsx",
+      "fileName": "comprehensive-settings.tsx",
+      "size": 7468,
+      "dependencies": [
+        "react",
+        "./profile-settings",
+        "./appearance-settings",
+        "./organization-settings",
+        "@/modules/settings",
+        "@/modules/settings/services/setting-service",
+        "@/components/ui/card",
+        "@/components/loader",
+        "lucide-react",
+        "@/lib/services/logger"
+      ],
+      "heavyDependencies": [
+        "lucide-react"
+      ],
+      "lineCount": 212,
+      "complexity": 73,
+      "recommendation": "high",
+      "reasons": [
+        "Medium complexity score (73)",
+        "Has heavy dependencies (lucide-react)",
+        "Medium file size (7KB)",
+        "Many lines of code (212)",
+        "Admin/settings component (conditional loading)"
+      ]
+    },
+    {
+      "filePath": "components\\module\\settings\\appearance-settings.tsx",
+      "fileName": "appearance-settings.tsx",
+      "size": 9262,
+      "dependencies": [
+        "react",
+        "@/components/ui/label",
+        "lucide-react",
+        "@/context/ThemeContext",
+        "next/image",
+        "@/components/ui/radio-group",
+        "@/modules/settings",
+        "@/components/ui/button",
+        "sonner"
+      ],
+      "heavyDependencies": [
+        "lucide-react"
+      ],
+      "lineCount": 260,
+      "complexity": 71,
+      "recommendation": "high",
+      "reasons": [
+        "Medium complexity score (71)",
+        "Has heavy dependencies (lucide-react)",
+        "Medium file size (9KB)",
+        "Many lines of code (260)",
+        "Admin/settings component (conditional loading)"
+      ]
+    },
+    {
+      "filePath": "components\\error-boundary.tsx",
+      "fileName": "error-boundary.tsx",
+      "size": 6685,
+      "dependencies": [
+        "react",
+        "lucide-react",
+        "@/components/ui/button",
+        "@/components/ui/alert",
+        "@/lib/services/error-logger"
+      ],
+      "heavyDependencies": [
+        "lucide-react"
+      ],
+      "lineCount": 212,
+      "complexity": 63,
+      "recommendation": "high",
+      "reasons": [
+        "Medium complexity score (63)",
+        "Has heavy dependencies (lucide-react)",
+        "Medium file size (7KB)",
+        "Many lines of code (212)"
+      ]
+    },
+    {
+      "filePath": "components\\ui\\select.tsx",
+      "fileName": "select.tsx",
+      "size": 5866,
+      "dependencies": [
+        "react",
+        "@radix-ui/react-select",
+        "lucide-react",
+        "@/lib/utils"
+      ],
+      "heavyDependencies": [
+        "@radix-ui/react-select",
+        "lucide-react"
+      ],
+      "lineCount": 187,
+      "complexity": 63,
+      "recommendation": "high",
+      "reasons": [
+        "Medium complexity score (63)",
+        "Some heavy dependencies (2)",
+        "Medium file size (6KB)",
+        "Moderate lines of code (187)"
+      ]
+    },
+    {
+      "filePath": "app\\auth\\confirm\\page.tsx",
+      "fileName": "page.tsx",
+      "size": 6735,
+      "dependencies": [
+        "react",
+        "next/navigation",
+        "@/lib/supabase/client",
+        "@/lib/auth/prevent-auto-redirect",
+        "lucide-react",
+        "@/components/ui/button",
+        "@/lib/services/logger"
+      ],
+      "heavyDependencies": [
+        "lucide-react"
+      ],
+      "lineCount": 204,
+      "complexity": 59,
+      "recommendation": "high",
+      "reasons": [
+        "Medium complexity score (59)",
+        "Has heavy dependencies (lucide-react)",
+        "Medium file size (7KB)",
+        "Many lines of code (204)"
+      ]
+    },
+    {
+      "filePath": "components\\ui\\command.tsx",
+      "fileName": "command.tsx",
+      "size": 4656,
+      "dependencies": [
+        "react",
+        "cmdk",
+        "lucide-react",
+        "@/lib/utils"
+      ],
+      "heavyDependencies": [
+        "lucide-react"
+      ],
+      "lineCount": 178,
+      "complexity": 320,
+      "recommendation": "medium",
+      "reasons": [
+        "High complexity score (320)",
+        "Has heavy dependencies (lucide-react)",
+        "Moderate lines of code (178)"
+      ]
+    },
+    {
+      "filePath": "components\\ui\\dynamic-ui-components.tsx",
+      "fileName": "dynamic-ui-components.tsx",
+      "size": 3687,
+      "dependencies": [
+        "@/lib/utils/dynamic-imports"
+      ],
+      "heavyDependencies": [],
+      "lineCount": 139,
+      "complexity": 220,
+      "recommendation": "medium",
+      "reasons": [
+        "High complexity score (220)",
+        "Moderate lines of code (139)"
+      ]
+    },
+    {
+      "filePath": "components\\ui\\confirmation-dialog-box.tsx",
+      "fileName": "confirmation-dialog-box.tsx",
+      "size": 2006,
+      "dependencies": [
+        "react",
+        "lucide-react"
+      ],
+      "heavyDependencies": [
+        "lucide-react"
+      ],
+      "lineCount": 80,
+      "complexity": 169,
+      "recommendation": "medium",
+      "reasons": [
+        "High complexity score (169)",
+        "Has heavy dependencies (lucide-react)",
+        "Modal/dialog component (on-demand loading)"
+      ]
+    },
+    {
+      "filePath": "components\\data-table\\data-table-view-options.tsx",
+      "fileName": "data-table-view-options.tsx",
+      "size": 1704,
+      "dependencies": [
+        "@radix-ui/react-dropdown-menu",
+        "@tanstack/react-table",
+        "@/components/ui/button",
+        "lucide-react"
+      ],
+      "heavyDependencies": [
+        "@radix-ui/react-dropdown-menu",
+        "lucide-react"
+      ],
+      "lineCount": 59,
+      "complexity": 146,
+      "recommendation": "medium",
+      "reasons": [
+        "High complexity score (146)",
+        "Some heavy dependencies (2)"
+      ]
+    },
+    {
+      "filePath": "components\\main-layout\\nav-user.tsx",
+      "fileName": "nav-user.tsx",
+      "size": 4699,
+      "dependencies": [
+        "lucide-react",
+        "@/components/ui/avatar",
+        "next/navigation",
+        "@/types/types",
+        "@/utils/generateRandomAvatar",
+        "@/components/auth/logout-button",
+        "@/components/ui/badge"
+      ],
+      "heavyDependencies": [
+        "lucide-react"
+      ],
+      "lineCount": 127,
+      "complexity": 131,
+      "recommendation": "medium",
+      "reasons": [
+        "High complexity score (131)",
+        "Has heavy dependencies (lucide-react)",
+        "Moderate lines of code (127)"
+      ]
+    },
+    {
+      "filePath": "components\\data-table\\toolbars\\user-toolbar.tsx",
+      "fileName": "user-toolbar.tsx",
+      "size": 3692,
+      "dependencies": [
+        "@tanstack/react-table",
+        "@/components/ui/button",
+        "@/components/data-table/data-table-view-options",
+        "lucide-react",
+        "react",
+        "@/components/ui/input",
+        "@/components/(main)/user/component/add-user",
+        "@/modules/roles/models/role",
+        "@/components/dashboard/user-management/manage-user-settings"
+      ],
+      "heavyDependencies": [
+        "lucide-react"
+      ],
+      "lineCount": 125,
+      "complexity": 127,
+      "recommendation": "medium",
+      "reasons": [
+        "High complexity score (127)",
+        "Has heavy dependencies (lucide-react)",
+        "Moderate lines of code (125)"
+      ]
+    },
+    {
+      "filePath": "components\\ui\\popover.tsx",
+      "fileName": "popover.tsx",
+      "size": 1635,
+      "dependencies": [
+        "react",
+        "@radix-ui/react-popover",
+        "@/lib/utils"
+      ],
+      "heavyDependencies": [
+        "@radix-ui/react-popover"
+      ],
+      "lineCount": 49,
+      "complexity": 123,
+      "recommendation": "medium",
+      "reasons": [
+        "High complexity score (123)",
+        "Has heavy dependencies (@radix-ui/react-popover)"
+      ]
+    },
+    {
+      "filePath": "components\\feedback-dialog.tsx",
+      "fileName": "feedback-dialog.tsx",
+      "size": 1506,
+      "dependencies": [
+        "@/components/ui/button",
+        "@/components/ui/textarea"
+      ],
+      "heavyDependencies": [],
+      "lineCount": 53,
+      "complexity": 106,
+      "recommendation": "medium",
+      "reasons": [
+        "High complexity score (106)",
+        "Modal/dialog component (on-demand loading)"
+      ]
+    },
+    {
+      "filePath": "components\\(main)\\user\\index.tsx",
+      "fileName": "index.tsx",
+      "size": 4883,
+      "dependencies": [
+        "react",
+        "@/components/data-table/columns/column-user",
+        "@/components/data-table/toolbars/user-toolbar",
+        "@/components/data-table/data-table",
+        "@/lib/services/user-service",
+        "@/types/types",
+        "@/modules/roles/services/roles-service",
+        "@/modules/roles/models/role",
+        "@/hooks/use-debounce",
+        "@/components/auth/user-context",
+        "@/components/ui/badge",
+        "lucide-react",
+        "@/lib/services/logger"
+      ],
+      "heavyDependencies": [
+        "lucide-react"
+      ],
+      "lineCount": 160,
+      "complexity": 97,
+      "recommendation": "medium",
+      "reasons": [
+        "High complexity score (97)",
+        "Has heavy dependencies (lucide-react)",
+        "Moderate lines of code (160)"
+      ]
+    },
+    {
+      "filePath": "components\\data-table\\columns\\column-user.tsx",
+      "fileName": "column-user.tsx",
+      "size": 4483,
+      "dependencies": [
+        "@tanstack/react-table",
+        "../data-table-column-header",
+        "../actions/user-actions",
+        "@/components/ui/avatar",
+        "@/components/ui/badge",
+        "@/lib/helper/current-timezone",
+        "lucide-react",
+        "@/types/types",
+        "@/modules/roles/models/role",
+        "@/utils/generateRandomAvatar"
+      ],
+      "heavyDependencies": [
+        "lucide-react"
+      ],
+      "lineCount": 150,
+      "complexity": 84,
+      "recommendation": "medium",
+      "reasons": [
+        "High complexity score (84)",
+        "Has heavy dependencies (lucide-react)",
+        "Moderate lines of code (150)"
+      ]
+    },
+    {
+      "filePath": "app\\auth\\login\\page.tsx",
+      "fileName": "page.tsx",
+      "size": 6248,
+      "dependencies": [
+        "react",
+        "next/navigation",
+        "@/components/login-form",
+        "@/components/auth/forgot-password",
+        "@/components/ui/alert",
+        "lucide-react",
+        "@/components/error-boundary",
+        "@/lib/auth/prevent-auto-redirect",
+        "@/lib/auth/tab-isolation",
+        "@/components/auth/confirmation-error-helper"
+      ],
+      "heavyDependencies": [
+        "lucide-react"
+      ],
+      "lineCount": 177,
+      "complexity": 78,
+      "recommendation": "medium",
+      "reasons": [
+        "Medium complexity score (78)",
+        "Has heavy dependencies (lucide-react)",
+        "Medium file size (6KB)",
+        "Moderate lines of code (177)"
+      ]
+    },
+    {
+      "filePath": "components\\main-layout\\app-sidebar.tsx",
+      "fileName": "app-sidebar.tsx",
+      "size": 5119,
+      "dependencies": [
+        "react",
+        "@/hooks/use-role-access",
+        "@/components/main-layout/nav-main",
+        "@/components/main-layout/nav-user",
+        "@/components/main-layout/menu-items",
+        "next/navigation",
+        "./header",
+        "../search-form",
+        "../ui/settings/app-side-bar-logo",
+        "@/modules/settings",
+        "@/components/auth/user-context",
+        "@remixicon/react",
+        "lucide-react"
+      ],
+      "heavyDependencies": [
+        "lucide-react"
+      ],
+      "lineCount": 177,
+      "complexity": 71,
+      "recommendation": "medium",
+      "reasons": [
+        "Medium complexity score (71)",
+        "Has heavy dependencies (lucide-react)",
+        "Medium file size (5KB)",
+        "Moderate lines of code (177)"
+      ]
+    },
+    {
+      "filePath": "components\\(main)\\user\\component\\image-setting.tsx",
+      "fileName": "image-setting.tsx",
+      "size": 4422,
+      "dependencies": [
+        "@/hooks/use-file-upload",
+        "react",
+        "lucide-react",
+        "next/image",
+        "@/supabase/actions/save-file"
+      ],
+      "heavyDependencies": [
+        "lucide-react"
+      ],
+      "lineCount": 141,
+      "complexity": 62,
+      "recommendation": "medium",
+      "reasons": [
+        "Medium complexity score (62)",
+        "Has heavy dependencies (lucide-react)",
+        "Moderate lines of code (141)"
+      ]
+    },
+    {
+      "filePath": "components\\ui\\accordian.tsx",
+      "fileName": "accordian.tsx",
+      "size": 2179,
+      "dependencies": [
+        "@radix-ui/react-accordion",
+        "lucide-react",
+        "react",
+        "@/lib/utils"
+      ],
+      "heavyDependencies": [
+        "@radix-ui/react-accordion",
+        "lucide-react"
+      ],
+      "lineCount": 64,
+      "complexity": 56,
+      "recommendation": "medium",
+      "reasons": [
+        "Medium complexity score (56)",
+        "Some heavy dependencies (2)"
+      ]
+    },
+    {
+      "filePath": "components\\ui\\breadcrumb.tsx",
+      "fileName": "breadcrumb.tsx",
+      "size": 2358,
+      "dependencies": [
+        "react",
+        "@radix-ui/react-slot",
+        "lucide-react",
+        "@/lib/utils"
+      ],
+      "heavyDependencies": [
+        "@radix-ui/react-slot",
+        "lucide-react"
+      ],
+      "lineCount": 110,
+      "complexity": 51,
+      "recommendation": "medium",
+      "reasons": [
+        "Medium complexity score (51)",
+        "Some heavy dependencies (2)",
+        "Moderate lines of code (110)"
+      ]
+    },
+    {
+      "filePath": "components\\user-dropdown.tsx",
+      "fileName": "user-dropdown.tsx",
+      "size": 2185,
+      "dependencies": [
+        "@/components/ui/avatar",
+        "@/components/ui/button",
+        "@remixicon/react"
+      ],
+      "heavyDependencies": [],
+      "lineCount": 68,
+      "complexity": 145,
+      "recommendation": "low",
+      "reasons": [
+        "High complexity score (145)"
+      ]
+    },
+    {
+      "filePath": "components\\data-table\\data-table-column-header.tsx",
+      "fileName": "data-table-column-header.tsx",
+      "size": 2914,
+      "dependencies": [
+        "@tanstack/react-table",
+        "@/lib/utils",
+        "@/components/ui/button"
+      ],
+      "heavyDependencies": [],
+      "lineCount": 97,
+      "complexity": 124,
+      "recommendation": "low",
+      "reasons": [
+        "High complexity score (124)"
+      ]
+    },
+    {
+      "filePath": "components\\data-table\\dynamic-data-table.tsx",
+      "fileName": "dynamic-data-table.tsx",
+      "size": 915,
+      "dependencies": [
+        "@/lib/utils/dynamic-imports"
+      ],
+      "heavyDependencies": [],
+      "lineCount": 38,
+      "complexity": 87,
+      "recommendation": "low",
+      "reasons": [
+        "High complexity score (87)"
+      ]
+    },
+    {
+      "filePath": "components\\auth\\dynamic-auth-components.tsx",
+      "fileName": "dynamic-auth-components.tsx",
+      "size": 873,
+      "dependencies": [
+        "@/lib/utils/dynamic-imports"
+      ],
+      "heavyDependencies": [],
+      "lineCount": 37,
+      "complexity": 72,
+      "recommendation": "low",
+      "reasons": [
+        "Medium complexity score (72)"
+      ]
+    },
+    {
+      "filePath": "components\\data-table\\data-table-toolbar.tsx",
+      "fileName": "data-table-toolbar.tsx",
+      "size": 2435,
+      "dependencies": [
+        "@tanstack/react-table",
+        "@/components/ui/button",
+        "@/components/ui/input",
+        "@/components/data-table/data-table-view-options",
+        "lucide-react",
+        "react"
+      ],
+      "heavyDependencies": [
+        "lucide-react"
+      ],
+      "lineCount": 85,
+      "complexity": 63,
+      "recommendation": "low",
+      "reasons": [
+        "Medium complexity score (63)",
+        "Has heavy dependencies (lucide-react)"
+      ]
+    },
+    {
+      "filePath": "components\\team-switcher.tsx",
+      "fileName": "team-switcher.tsx",
+      "size": 1815,
+      "dependencies": [
+        "react",
+        "next/image",
+        "@remixicon/react",
+        "next/navigation"
+      ],
+      "heavyDependencies": [],
+      "lineCount": 66,
+      "complexity": 54,
+      "recommendation": "low",
+      "reasons": [
+        "Medium complexity score (54)"
+      ]
+    },
+    {
+      "filePath": "components\\ui\\csrf-token.tsx",
+      "fileName": "csrf-token.tsx",
+      "size": 2832,
+      "dependencies": [
+        "react",
+        "@/lib/security/csrf-protection",
+        "@/lib/services/logger"
+      ],
+      "heavyDependencies": [],
+      "lineCount": 113,
+      "complexity": 53,
+      "recommendation": "low",
+      "reasons": [
+        "Medium complexity score (53)",
+        "Moderate lines of code (113)"
+      ]
+    },
+    {
+      "filePath": "components\\ui\\slider.tsx",
+      "fileName": "slider.tsx",
+      "size": 3771,
+      "dependencies": [
+        "react",
+        "@radix-ui/react-slider",
+        "@/lib/utils"
+      ],
+      "heavyDependencies": [
+        "@radix-ui/react-slider"
+      ],
+      "lineCount": 133,
+      "complexity": 50,
+      "recommendation": "low",
+      "reasons": [
+        "Low complexity score (50)",
+        "Has heavy dependencies (@radix-ui/react-slider)",
+        "Moderate lines of code (133)"
+      ]
+    },
+    {
+      "filePath": "components\\access-denied.tsx",
+      "fileName": "access-denied.tsx",
+      "size": 3599,
+      "dependencies": [
+        "react",
+        "next/navigation",
+        "@/components/ui/alert",
+        "@/components/ui/button",
+        "lucide-react",
+        "@/components/auth/user-context"
+      ],
+      "heavyDependencies": [
+        "lucide-react"
+      ],
+      "lineCount": 127,
+      "complexity": 49,
+      "recommendation": "low",
+      "reasons": [
+        "Low complexity score (49)",
+        "Has heavy dependencies (lucide-react)",
+        "Moderate lines of code (127)"
+      ]
+    },
+    {
+      "filePath": "components\\file-uploader.tsx",
+      "fileName": "file-uploader.tsx",
+      "size": 3476,
+      "dependencies": [
+        "react",
+        "@/components/ui/button",
+        "@/components/ui/input",
+        "lucide-react",
+        "@/supabase/actions/save-file"
+      ],
+      "heavyDependencies": [
+        "lucide-react"
+      ],
+      "lineCount": 120,
+      "complexity": 46,
+      "recommendation": "low",
+      "reasons": [
+        "Low complexity score (46)",
+        "Has heavy dependencies (lucide-react)",
+        "Moderate lines of code (120)"
+      ]
+    },
+    {
+      "filePath": "components\\ui\\optimized-image.tsx",
+      "fileName": "optimized-image.tsx",
+      "size": 4295,
+      "dependencies": [
+        "next/image",
+        "react",
+        "@/lib/utils",
+        "@/components/ui/skeleton"
+      ],
+      "heavyDependencies": [],
+      "lineCount": 162,
+      "complexity": 43,
+      "recommendation": "low",
+      "reasons": [
+        "Low complexity score (43)",
+        "Moderate lines of code (162)"
+      ]
+    },
+    {
+      "filePath": "components\\main-layout\\nav-main.tsx",
+      "fileName": "nav-main.tsx",
+      "size": 6826,
+      "dependencies": [
+        "@/components/ui/sidebar",
+        "@remixicon/react",
+        "react",
+        "next/navigation",
+        "@/types/types",
+        "next/link"
+      ],
+      "heavyDependencies": [],
+      "lineCount": 188,
+      "complexity": 38,
+      "recommendation": "low",
+      "reasons": [
+        "Low complexity score (38)",
+        "Medium file size (7KB)",
+        "Moderate lines of code (188)"
+      ]
+    },
+    {
+      "filePath": "components\\ui\\toggle-group.tsx",
+      "fileName": "toggle-group.tsx",
+      "size": 1925,
+      "dependencies": [
+        "react",
+        "@radix-ui/react-toggle-group",
+        "class-variance-authority",
+        "@/lib/utils",
+        "@/components/ui/toggle"
+      ],
+      "heavyDependencies": [
+        "@radix-ui/react-toggle-group"
+      ],
+      "lineCount": 74,
+      "complexity": 37,
+      "recommendation": "low",
+      "reasons": [
+        "Low complexity score (37)",
+        "Has heavy dependencies (@radix-ui/react-toggle-group)"
+      ]
+    },
+    {
+      "filePath": "components\\data-table\\data-table-pagination.tsx",
+      "fileName": "data-table-pagination.tsx",
+      "size": 3690,
+      "dependencies": [
+        "@tanstack/react-table",
+        "@/components/ui/button"
+      ],
+      "heavyDependencies": [],
+      "lineCount": 117,
+      "complexity": 34,
+      "recommendation": "low",
+      "reasons": [
+        "Low complexity score (34)",
+        "Moderate lines of code (117)"
+      ]
+    },
+    {
+      "filePath": "components\\ui\\resizable.tsx",
+      "fileName": "resizable.tsx",
+      "size": 2026,
+      "dependencies": [
+        "react",
+        "lucide-react",
+        "react-resizable-panels",
+        "@/lib/utils"
+      ],
+      "heavyDependencies": [
+        "lucide-react"
+      ],
+      "lineCount": 57,
+      "complexity": 31,
+      "recommendation": "low",
+      "reasons": [
+        "Low complexity score (31)",
+        "Has heavy dependencies (lucide-react)"
+      ]
+    },
+    {
+      "filePath": "components\\ui\\button.tsx",
+      "fileName": "button.tsx",
+      "size": 2191,
+      "dependencies": [
+        "react",
+        "@radix-ui/react-slot",
+        "class-variance-authority",
+        "@/lib/utils"
+      ],
+      "heavyDependencies": [
+        "@radix-ui/react-slot"
+      ],
+      "lineCount": 60,
+      "complexity": 31,
+      "recommendation": "low",
+      "reasons": [
+        "Low complexity score (31)",
+        "Has heavy dependencies (@radix-ui/react-slot)"
+      ]
+    },
+    {
+      "filePath": "components\\ui\\tooltip.tsx",
+      "fileName": "tooltip.tsx",
+      "size": 1896,
+      "dependencies": [
+        "react",
+        "@radix-ui/react-tooltip",
+        "@/lib/utils"
+      ],
+      "heavyDependencies": [
+        "@radix-ui/react-tooltip"
+      ],
+      "lineCount": 67,
+      "complexity": 30,
+      "recommendation": "low",
+      "reasons": [
+        "Low complexity score (30)",
+        "Has heavy dependencies (@radix-ui/react-tooltip)"
+      ]
+    },
+    {
+      "filePath": "components\\ui\\tabs.tsx",
+      "fileName": "tabs.tsx",
+      "size": 1969,
+      "dependencies": [
+        "react",
+        "@radix-ui/react-tabs",
+        "@/lib/utils"
+      ],
+      "heavyDependencies": [
+        "@radix-ui/react-tabs"
+      ],
+      "lineCount": 67,
+      "complexity": 30,
+      "recommendation": "low",
+      "reasons": [
+        "Low complexity score (30)",
+        "Has heavy dependencies (@radix-ui/react-tabs)"
+      ]
+    },
+    {
+      "filePath": "components\\ui\\badge.tsx",
+      "fileName": "badge.tsx",
+      "size": 1981,
+      "dependencies": [
+        "react",
+        "@radix-ui/react-slot",
+        "class-variance-authority",
+        "@/lib/utils"
+      ],
+      "heavyDependencies": [
+        "@radix-ui/react-slot"
+      ],
+      "lineCount": 52,
+      "complexity": 30,
+      "recommendation": "low",
+      "reasons": [
+        "Low complexity score (30)",
+        "Has heavy dependencies (@radix-ui/react-slot)"
+      ]
+    },
+    {
+      "filePath": "app\\layout.tsx",
+      "fileName": "layout.tsx",
+      "size": 3301,
+      "dependencies": [
+        "next/font/google",
+        "sonner",
+        "@/modules/settings/services/setting-service.server",
+        "@/context/theme-provider-wrapper",
+        "@/utils/pointer-events",
+        "@/components/providers/client-providers",
+        "@/components/error-boundary",
+        "@/lib/services/logger"
+      ],
+      "heavyDependencies": [],
+      "lineCount": 102,
+      "complexity": 30,
+      "recommendation": "low",
+      "reasons": [
+        "Low complexity score (30)",
+        "Moderate lines of code (102)"
+      ]
+    },
+    {
+      "filePath": "components\\role-page-guard.tsx",
+      "fileName": "role-page-guard.tsx",
+      "size": 3505,
+      "dependencies": [
+        "react",
+        "next/navigation",
+        "@/components/auth/user-context",
+        "@/components/ui/skeleton",
+        "@/lib/services/logger"
+      ],
+      "heavyDependencies": [],
+      "lineCount": 126,
+      "complexity": 29,
+      "recommendation": "low",
+      "reasons": [
+        "Low complexity score (29)",
+        "Moderate lines of code (126)"
+      ]
+    },
+    {
+      "filePath": "components\\ui\\toggle.tsx",
+      "fileName": "toggle.tsx",
+      "size": 1570,
+      "dependencies": [
+        "react",
+        "@radix-ui/react-toggle",
+        "class-variance-authority",
+        "@/lib/utils"
+      ],
+      "heavyDependencies": [
+        "@radix-ui/react-toggle"
+      ],
+      "lineCount": 48,
+      "complexity": 29,
+      "recommendation": "low",
+      "reasons": [
+        "Low complexity score (29)",
+        "Has heavy dependencies (@radix-ui/react-toggle)"
+      ]
+    },
+    {
+      "filePath": "components\\ui\\scroll-area.tsx",
+      "fileName": "scroll-area.tsx",
+      "size": 1645,
+      "dependencies": [
+        "react",
+        "@radix-ui/react-scroll-area",
+        "@/lib/utils"
+      ],
+      "heavyDependencies": [
+        "@radix-ui/react-scroll-area"
+      ],
+      "lineCount": 59,
+      "complexity": 29,
+      "recommendation": "low",
+      "reasons": [
+        "Low complexity score (29)",
+        "Has heavy dependencies (@radix-ui/react-scroll-area)"
+      ]
+    },
+    {
+      "filePath": "components\\ui\\checkbox.tsx",
+      "fileName": "checkbox.tsx",
+      "size": 2299,
+      "dependencies": [
+        "react",
+        "@radix-ui/react-checkbox",
+        "@/lib/utils"
+      ],
+      "heavyDependencies": [
+        "@radix-ui/react-checkbox"
+      ],
+      "lineCount": 60,
+      "complexity": 29,
+      "recommendation": "low",
+      "reasons": [
+        "Low complexity score (29)",
+        "Has heavy dependencies (@radix-ui/react-checkbox)"
+      ]
+    },
+    {
+      "filePath": "components\\main-layout\\header.tsx",
+      "fileName": "header.tsx",
+      "size": 1362,
+      "dependencies": [
+        "@radix-ui/react-separator",
+        "@remixicon/react",
+        "next/link",
+        "../ui/sidebar"
+      ],
+      "heavyDependencies": [
+        "@radix-ui/react-separator"
+      ],
+      "lineCount": 44,
+      "complexity": 29,
+      "recommendation": "low",
+      "reasons": [
+        "Low complexity score (29)",
+        "Has heavy dependencies (@radix-ui/react-separator)"
+      ]
+    },
+    {
+      "filePath": "components\\ui\\radio-group.tsx",
+      "fileName": "radio-group.tsx",
+      "size": 1550,
+      "dependencies": [
+        "react",
+        "@radix-ui/react-radio-group",
+        "@/lib/utils"
+      ],
+      "heavyDependencies": [
+        "@radix-ui/react-radio-group"
+      ],
+      "lineCount": 50,
+      "complexity": 28,
+      "recommendation": "low",
+      "reasons": [
+        "Low complexity score (28)",
+        "Has heavy dependencies (@radix-ui/react-radio-group)"
+      ]
+    },
+    {
+      "filePath": "components\\ui\\avatar.tsx",
+      "fileName": "avatar.tsx",
+      "size": 1097,
+      "dependencies": [
+        "react",
+        "@radix-ui/react-avatar",
+        "@/lib/utils"
+      ],
+      "heavyDependencies": [
+        "@radix-ui/react-avatar"
+      ],
+      "lineCount": 54,
+      "complexity": 27,
+      "recommendation": "low",
+      "reasons": [
+        "Low complexity score (27)",
+        "Has heavy dependencies (@radix-ui/react-avatar)"
+      ]
+    },
+    {
+      "filePath": "components\\ui\\settings\\app-side-bar-logo.tsx",
+      "fileName": "app-side-bar-logo.tsx",
+      "size": 3197,
+      "dependencies": [
+        "react",
+        "next/image",
+        "next/navigation",
+        "@/modules/settings/models/setting"
+      ],
+      "heavyDependencies": [],
+      "lineCount": 98,
+      "complexity": 24,
+      "recommendation": "low",
+      "reasons": [
+        "Admin/settings component (conditional loading)"
+      ]
+    },
+    {
+      "filePath": "components\\ui\\settings\\menu-icon-switcher.tsx",
+      "fileName": "menu-icon-switcher.tsx",
+      "size": 2598,
+      "dependencies": [
+        "react",
+        "@/components/ui/toggle-group",
+        "next/image",
+        "@/modules/settings/models/setting"
+      ],
+      "heavyDependencies": [],
+      "lineCount": 65,
+      "complexity": 17,
+      "recommendation": "low",
+      "reasons": [
+        "Admin/settings component (conditional loading)"
+      ]
+    },
+    {
+      "filePath": "app\\(main)\\settings\\page.tsx",
+      "fileName": "page.tsx",
+      "size": 486,
+      "dependencies": [
+        "@/components/module/settings/comprehensive-settings",
+        "@/components/error-boundary",
+        "@/hooks/use-role-access"
+      ],
+      "heavyDependencies": [],
+      "lineCount": 17,
+      "complexity": 8,
+      "recommendation": "low",
+      "reasons": [
+        "Admin/settings component (conditional loading)"
+      ]
+    },
+    {
+      "filePath": "components\\module\\settings\\dynamic-comprehensive-settings.tsx",
+      "fileName": "dynamic-comprehensive-settings.tsx",
+      "size": 415,
+      "dependencies": [
+        "@/lib/utils/dynamic-imports"
+      ],
+      "heavyDependencies": [],
+      "lineCount": 12,
+      "complexity": 4,
+      "recommendation": "low",
+      "reasons": [
+        "Admin/settings component (conditional loading)"
+      ]
+    },
+    {
+      "filePath": "app\\auth\\signup\\page.tsx",
+      "fileName": "page.tsx",
+      "size": 747,
+      "dependencies": [
+        "react",
+        "@/components/auth/signup-form",
+        "@/components/error-boundary",
+        "@/lib/auth/prevent-auto-redirect",
+        "@/lib/auth/tab-isolation"
+      ],
+      "heavyDependencies": [],
+      "lineCount": 25,
+      "complexity": 26,
+      "recommendation": "none",
+      "reasons": [
+        "Low complexity score (26)",
+        "Component is lightweight and doesn't need code splitting"
+      ]
+    },
+    {
+      "filePath": "components\\ui\\switch.tsx",
+      "fileName": "switch.tsx",
+      "size": 1177,
+      "dependencies": [
+        "react",
+        "@radix-ui/react-switch",
+        "@/lib/utils"
+      ],
+      "heavyDependencies": [
+        "@radix-ui/react-switch"
+      ],
+      "lineCount": 32,
+      "complexity": 25,
+      "recommendation": "none",
+      "reasons": [
+        "Has heavy dependencies (@radix-ui/react-switch)",
+        "Component is lightweight and doesn't need code splitting"
+      ]
+    },
+    {
+      "filePath": "components\\ui\\separator.tsx",
+      "fileName": "separator.tsx",
+      "size": 699,
+      "dependencies": [
+        "react",
+        "@radix-ui/react-separator",
+        "@/lib/utils"
+      ],
+      "heavyDependencies": [
+        "@radix-ui/react-separator"
+      ],
+      "lineCount": 29,
+      "complexity": 25,
+      "recommendation": "none",
+      "reasons": [
+        "Has heavy dependencies (@radix-ui/react-separator)",
+        "Component is lightweight and doesn't need code splitting"
+      ]
+    },
+    {
+      "filePath": "components\\ui\\progress.tsx",
+      "fileName": "progress.tsx",
+      "size": 740,
+      "dependencies": [
+        "react",
+        "@radix-ui/react-progress",
+        "@/lib/utils"
+      ],
+      "heavyDependencies": [
+        "@radix-ui/react-progress"
+      ],
+      "lineCount": 32,
+      "complexity": 25,
+      "recommendation": "none",
+      "reasons": [
+        "Has heavy dependencies (@radix-ui/react-progress)",
+        "Component is lightweight and doesn't need code splitting"
+      ]
+    },
+    {
+      "filePath": "components\\ui\\label.tsx",
+      "fileName": "label.tsx",
+      "size": 611,
+      "dependencies": [
+        "react",
+        "@radix-ui/react-label",
+        "@/lib/utils"
+      ],
+      "heavyDependencies": [
+        "@radix-ui/react-label"
+      ],
+      "lineCount": 25,
+      "complexity": 24,
+      "recommendation": "none",
+      "reasons": [
+        "Has heavy dependencies (@radix-ui/react-label)",
+        "Component is lightweight and doesn't need code splitting"
+      ]
+    },
+    {
+      "filePath": "components\\ui\\info-graphic.tsx",
+      "fileName": "info-graphic.tsx",
+      "size": 1087,
+      "dependencies": [
+        "lucide-react",
+        "react"
+      ],
+      "heavyDependencies": [
+        "lucide-react"
+      ],
+      "lineCount": 43,
+      "complexity": 24,
+      "recommendation": "none",
+      "reasons": [
+        "Has heavy dependencies (lucide-react)",
+        "Component is lightweight and doesn't need code splitting"
+      ]
+    },
+    {
+      "filePath": "components\\ui\\drawer.tsx",
+      "fileName": "drawer.tsx",
+      "size": 4252,
+      "dependencies": [
+        "react",
+        "vaul",
+        "@/lib/utils"
+      ],
+      "heavyDependencies": [],
+      "lineCount": 136,
+      "complexity": 24,
+      "recommendation": "none",
+      "reasons": [
+        "Moderate lines of code (136)",
+        "Component is lightweight and doesn't need code splitting"
+      ]
+    },
+    {
+      "filePath": "components\\ui\\collapsible.tsx",
+      "fileName": "collapsible.tsx",
+      "size": 800,
+      "dependencies": [
+        "@radix-ui/react-collapsible"
+      ],
+      "heavyDependencies": [
+        "@radix-ui/react-collapsible"
+      ],
+      "lineCount": 34,
+      "complexity": 21,
+      "recommendation": "none",
+      "reasons": [
+        "Has heavy dependencies (@radix-ui/react-collapsible)",
+        "Component is lightweight and doesn't need code splitting"
+      ]
+    },
+    {
+      "filePath": "components\\(main)\\user\\dynamic-user-management.tsx",
+      "fileName": "dynamic-user-management.tsx",
+      "size": 571,
+      "dependencies": [
+        "@/lib/utils/dynamic-imports"
+      ],
+      "heavyDependencies": [],
+      "lineCount": 22,
+      "complexity": 20,
+      "recommendation": "none",
+      "reasons": [
+        "Component is lightweight and doesn't need code splitting"
+      ]
+    },
+    {
+      "filePath": "app\\debug\\confirm\\page.tsx",
+      "fileName": "page.tsx",
+      "size": 4370,
+      "dependencies": [
+        "next/navigation",
+        "@/components/ui/card"
+      ],
+      "heavyDependencies": [],
+      "lineCount": 119,
+      "complexity": 20,
+      "recommendation": "none",
+      "reasons": [
+        "Moderate lines of code (119)",
+        "Component is lightweight and doesn't need code splitting"
+      ]
+    },
+    {
+      "filePath": "components\\ui\\cropper.tsx",
+      "fileName": "cropper.tsx",
+      "size": 2432,
+      "dependencies": [
+        "react",
+        "react-easy-crop",
+        "@/lib/utils"
+      ],
+      "heavyDependencies": [],
+      "lineCount": 110,
+      "complexity": 19,
+      "recommendation": "none",
+      "reasons": [
+        "Moderate lines of code (110)",
+        "Component is lightweight and doesn't need code splitting"
+      ]
+    },
+    {
+      "filePath": "components\\auth\\auth-wrapper.tsx",
+      "fileName": "auth-wrapper.tsx",
+      "size": 1940,
+      "dependencies": [
+        "@/components/auth/user-context",
+        "react"
+      ],
+      "heavyDependencies": [],
+      "lineCount": 68,
+      "complexity": 19,
+      "recommendation": "none",
+      "reasons": [
+        "Component is lightweight and doesn't need code splitting"
+      ]
+    },
+    {
+      "filePath": "components\\ui\\table.tsx",
+      "fileName": "table.tsx",
+      "size": 2448,
+      "dependencies": [
+        "react",
+        "@/lib/utils"
+      ],
+      "heavyDependencies": [],
+      "lineCount": 117,
+      "complexity": 18,
+      "recommendation": "none",
+      "reasons": [
+        "Moderate lines of code (117)",
+        "Component is lightweight and doesn't need code splitting"
+      ]
+    },
+    {
+      "filePath": "components\\data-table\\data-table-skeleton.tsx",
+      "fileName": "data-table-skeleton.tsx",
+      "size": 486,
+      "dependencies": [
+        "react",
+        "../ui/skeleton"
+      ],
+      "heavyDependencies": [],
+      "lineCount": 17,
+      "complexity": 16,
+      "recommendation": "none",
+      "reasons": [
+        "Component is lightweight and doesn't need code splitting"
+      ]
+    },
+    {
+      "filePath": "components\\ui\\card.tsx",
+      "fileName": "card.tsx",
+      "size": 1996,
+      "dependencies": [
+        "react",
+        "@/lib/utils"
+      ],
+      "heavyDependencies": [],
+      "lineCount": 93,
+      "complexity": 15,
+      "recommendation": "none",
+      "reasons": [
+        "Component is lightweight and doesn't need code splitting"
+      ]
+    },
+    {
+      "filePath": "components\\ui\\alert.tsx",
+      "fileName": "alert.tsx",
+      "size": 1614,
+      "dependencies": [
+        "react",
+        "class-variance-authority",
+        "@/lib/utils"
+      ],
+      "heavyDependencies": [],
+      "lineCount": 67,
+      "complexity": 14,
+      "recommendation": "none",
+      "reasons": [
+        "Component is lightweight and doesn't need code splitting"
+      ]
+    },
+    {
+      "filePath": "app\\(main)\\layout.tsx",
+      "fileName": "layout.tsx",
+      "size": 801,
+      "dependencies": [
+        "@/components/ui/scroll-area",
+        "@/components/main-layout/app-sidebar",
+        "@/components/auth/auth-wrapper",
+        "@/components/access-denied",
+        "@/components/error-boundary"
+      ],
+      "heavyDependencies": [],
+      "lineCount": 28,
+      "complexity": 14,
+      "recommendation": "none",
+      "reasons": [
+        "Component is lightweight and doesn't need code splitting"
+      ]
+    },
+    {
+      "filePath": "components\\stats-grid.tsx",
+      "fileName": "stats-grid.tsx",
+      "size": 2107,
+      "dependencies": [
+        "@remixicon/react",
+        "@/lib/utils"
+      ],
+      "heavyDependencies": [],
+      "lineCount": 64,
+      "complexity": 13,
+      "recommendation": "none",
+      "reasons": [
+        "Component is lightweight and doesn't need code splitting"
+      ]
+    },
+    {
+      "filePath": "components\\auth\\logout-button.tsx",
+      "fileName": "logout-button.tsx",
+      "size": 984,
+      "dependencies": [
+        "@/components/ui/button",
+        "@/lib/actions/auth-actions",
+        "react",
+        "@/lib/services/logger"
+      ],
+      "heavyDependencies": [],
+      "lineCount": 39,
+      "complexity": 13,
+      "recommendation": "none",
+      "reasons": [
+        "Component is lightweight and doesn't need code splitting"
+      ]
+    },
+    {
+      "filePath": "app\\login\\page.tsx",
+      "fileName": "page.tsx",
+      "size": 273,
+      "dependencies": [
+        "@/components/login-form"
+      ],
+      "heavyDependencies": [],
+      "lineCount": 12,
+      "complexity": 13,
+      "recommendation": "none",
+      "reasons": [
+        "Component is lightweight and doesn't need code splitting"
+      ]
+    },
+    {
+      "filePath": "components\\main-layout\\menu-items.tsx",
+      "fileName": "menu-items.tsx",
+      "size": 1564,
+      "dependencies": [],
+      "heavyDependencies": [],
+      "lineCount": 76,
+      "complexity": 9,
+      "recommendation": "none",
+      "reasons": [
+        "Component is lightweight and doesn't need code splitting"
+      ]
+    },
+    {
+      "filePath": "app\\auth\\page.tsx",
+      "fileName": "page.tsx",
+      "size": 375,
+      "dependencies": [
+        "react",
+        "next/navigation"
+      ],
+      "heavyDependencies": [],
+      "lineCount": 17,
+      "complexity": 9,
+      "recommendation": "none",
+      "reasons": [
+        "Component is lightweight and doesn't need code splitting"
+      ]
+    },
+    {
+      "filePath": "app\\(main)\\users\\page.tsx",
+      "fileName": "page.tsx",
+      "size": 489,
+      "dependencies": [
+        "@/components/(main)/user",
+        "@/components/error-boundary",
+        "@/hooks/use-role-access"
+      ],
+      "heavyDependencies": [],
+      "lineCount": 21,
+      "complexity": 9,
+      "recommendation": "none",
+      "reasons": [
+        "Component is lightweight and doesn't need code splitting"
+      ]
+    },
+    {
+      "filePath": "app\\(main)\\page.tsx",
+      "fileName": "page.tsx",
+      "size": 1230,
+      "dependencies": [
+        "@/components/auth/user-context"
+      ],
+      "heavyDependencies": [],
+      "lineCount": 51,
+      "complexity": 8,
+      "recommendation": "none",
+      "reasons": [
+        "Component is lightweight and doesn't need code splitting"
+      ]
+    },
+    {
+      "filePath": "components\\loader.tsx",
+      "fileName": "loader.tsx",
+      "size": 586,
+      "dependencies": [
+        "@/lib/utils",
+        "react"
+      ],
+      "heavyDependencies": [],
+      "lineCount": 21,
+      "complexity": 7,
+      "recommendation": "none",
+      "reasons": [
+        "Component is lightweight and doesn't need code splitting"
+      ]
+    },
+    {
+      "filePath": "components\\ui\\textarea.tsx",
+      "fileName": "textarea.tsx",
+      "size": 854,
+      "dependencies": [
+        "react",
+        "@/lib/utils"
+      ],
+      "heavyDependencies": [],
+      "lineCount": 20,
+      "complexity": 7,
+      "recommendation": "none",
+      "reasons": [
+        "Component is lightweight and doesn't need code splitting"
+      ]
+    },
+    {
+      "filePath": "components\\ui\\input.tsx",
+      "fileName": "input.tsx",
+      "size": 1018,
+      "dependencies": [
+        "react",
+        "@/lib/utils"
+      ],
+      "heavyDependencies": [],
+      "lineCount": 22,
+      "complexity": 7,
+      "recommendation": "none",
+      "reasons": [
+        "Component is lightweight and doesn't need code splitting"
+      ]
+    },
+    {
+      "filePath": "components\\providers\\client-providers.tsx",
+      "fileName": "client-providers.tsx",
+      "size": 407,
+      "dependencies": [
+        "@/components/auth/user-context",
+        "@/components/auth/session-timeout"
+      ],
+      "heavyDependencies": [],
+      "lineCount": 15,
+      "complexity": 6,
+      "recommendation": "none",
+      "reasons": [
+        "Component is lightweight and doesn't need code splitting"
+      ]
+    },
+    {
+      "filePath": "components\\ui\\spinner.tsx",
+      "fileName": "spinner.tsx",
+      "size": 603,
+      "dependencies": [
+        "@/lib/utils"
+      ],
+      "heavyDependencies": [],
+      "lineCount": 24,
+      "complexity": 5,
+      "recommendation": "none",
+      "reasons": [
+        "Component is lightweight and doesn't need code splitting"
+      ]
+    },
+    {
+      "filePath": "components\\ui\\skeleton.tsx",
+      "fileName": "skeleton.tsx",
+      "size": 276,
+      "dependencies": [
+        "@/lib/utils"
+      ],
+      "heavyDependencies": [],
+      "lineCount": 14,
+      "complexity": 4,
+      "recommendation": "none",
+      "reasons": [
+        "Component is lightweight and doesn't need code splitting"
+      ]
+    },
+    {
+      "filePath": "app\\auth\\layout.tsx",
+      "fileName": "layout.tsx",
+      "size": 109,
+      "dependencies": [],
+      "heavyDependencies": [],
+      "lineCount": 8,
+      "complexity": 1,
+      "recommendation": "none",
+      "reasons": [
+        "Component is lightweight and doesn't need code splitting"
+      ]
+    }
+  ]
+}

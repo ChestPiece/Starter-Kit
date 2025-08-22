@@ -1,4 +1,5 @@
-import { errorLogger } from '@/lib/services/error-logger';
+import { errorLogger } from '@/lib/services/logger';
+import { logger } from '@/lib/services/logger';
 
 export interface AuthError {
   code: string;
@@ -318,7 +319,7 @@ class AuthErrorHandler {
 
     // Additional logging for critical errors
     if (error.severity === 'critical') {
-      console.error('CRITICAL AUTH ERROR:', logData);
+      logger.error('CRITICAL AUTH ERROR:', { logData });
       // Here you could integrate with alerting systems
       // this.sendAlert(error, context);
     }

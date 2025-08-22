@@ -2,6 +2,7 @@
 // Use this module only from Server Components, Route Handlers, or middleware.
 
 import { createClient } from '@/lib/supabase/server';
+import { logger } from '@/lib/services/logger';
 
 export interface Settings {
   id?: number;
@@ -49,12 +50,12 @@ const settingsServiceServer = {
             appearance_theme: 'light',
           };
         }
-        console.error('Error fetching settings (server):', error);
+        logger.error('Error fetching settings (server):', error);
         throw error;
       }
       return data;
     } catch (error) {
-      console.error('Error in getSettingsById (server):', error);
+      logger.error('Error in getSettingsById (server):', error);
       return {
         site_name: 'Starter Kit',
         site_description: 'A modern application starter kit',

@@ -11,7 +11,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { errorLogger } from "@/lib/services/error-logger";
+import { errorLogger } from "@/lib/services/logger";
 
 interface ErrorBoundaryState {
   hasError: boolean;

@@ -1,20 +1,19 @@
 "use client";
 
-import type React from "react";
-import { useState } from "react";
+import { ArrowLeft, Mail, Send } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { ArrowLeft, Mail, Send, AlertCircle, CheckCircle } from "lucide-react";
+import { toast } from "sonner";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import * as z from "zod";
+import { SharedForm } from "@/components/ui/shared-form";
+import { useFormState, commonValidations } from "@/hooks/use-form-state";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { logger } from "@/lib/services/logger";
+
+const formSchema = z.object({
+  email: z.string().min(1, "Email is required").email("Please enter a valid email address"),
+});
 
 interface ForgotPasswordProps {
   onBack: () => void;
@@ -22,31 +21,19 @@ interface ForgotPasswordProps {
 }
 
 export function ForgotPassword({ onBack, onEmailSent }: ForgotPasswordProps) {
-  const [email, setEmail] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [touched, setTouched] = useState(false);
   const supabase = createClient();
+  
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      email: "",
+    },
+  });
 
-  const validateEmail = (email: string): string | undefined => {
-    if (!email) return "Email is required";
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) return "Please enter a valid email address";
-    return undefined;
-  };
+  const { loading, setLoading } = useFormState();
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setTouched(true);
-
-    const emailError = validateEmail(email);
-    if (emailError) {
-      setError(emailError);
-      return;
-    }
-
-    setIsLoading(true);
-    setError("");
+  const onSubmit = async (values: z.infer<typeof formSchema>) => {
+    setLoading(true);
 
     try {
       // Check if Supabase is configured
@@ -59,25 +46,25 @@ export function ForgotPassword({ onBack, onEmailSent }: ForgotPasswordProps) {
         supabaseUrl.includes("your-supabase-url") ||
         supabaseKey.includes("your-supabase-anon-key")
       ) {
-        setError(
-          "Email service not configured. Please contact support or set up your environment variables."
-        );
-        console.error("Supabase environment variables not configured properly");
+        form.setError("email", {
+          message: "Email service not configured. Please contact support or set up your environment variables."
+        });
+        logger.error("Supabase environment variables not configured properly");
         return;
       }
 
       // Get the current origin for proper redirect URL
       const origin = window.location.origin;
 
-      console.log("Attempting to send password reset email to:", email);
-      console.log("Redirect URL:", `${origin}/auth/reset-password`);
+      logger.info("Attempting to send password reset email", { email: values.email });
+      logger.info('Redirect URL configured', { redirectUrl: `${origin}/auth/reset-password` });
 
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      const { error } = await supabase.auth.resetPasswordForEmail(values.email, {
         redirectTo: `${origin}/auth/reset-password`,
       });
 
       if (error) {
-        console.error("Password reset error:", error);
+        logger.error("Password reset error", { error: error instanceof Error ? error : String(error) });
 
         // Handle specific error types
         if (
@@ -90,71 +77,56 @@ export function ForgotPassword({ onBack, onEmailSent }: ForgotPasswordProps) {
           const waitSeconds = waitTimeMatch ? parseInt(waitTimeMatch[1]) : 60;
 
           if (waitSeconds < 60) {
-            setError(
-              `Too many reset requests. Please wait ${waitSeconds} seconds before trying again.`
-            );
+            form.setError("email", {
+              message: `Too many reset requests. Please wait ${waitSeconds} seconds before trying again.`
+            });
           } else {
             const waitMinutes = Math.ceil(waitSeconds / 60);
-            setError(
-              `Too many reset requests. Please wait ${waitMinutes} minute${waitMinutes > 1 ? "s" : ""} before trying again.`
-            );
+            form.setError("email", {
+              message: `Too many reset requests. Please wait ${waitMinutes} minute${waitMinutes > 1 ? "s" : ""} before trying again.`
+            });
           }
         } else if (
           error.message?.includes("User not found") ||
           error.message?.includes("email not found")
         ) {
           // Generic message to avoid email enumeration attacks
-          setError(
-            "If an account with that email exists, you will receive a password reset link."
-          );
+          form.setError("email", {
+            message: "If an account with that email exists, you will receive a password reset link."
+          });
           // Still call onEmailSent to show success UI (security practice)
           setTimeout(() => onEmailSent(), 1000);
         } else if (error.message?.includes("Invalid email")) {
-          setError("Please enter a valid email address.");
+          form.setError("email", {
+            message: "Please enter a valid email address."
+          });
         } else {
           // Generic error message for other failures
-          setError(
-            "Unable to send reset email at this time. Please try again later."
-          );
-          console.error("Unexpected password reset error:", error);
+          form.setError("email", {
+            message: "Unable to send reset email at this time. Please try again later."
+          });
+          logger.error("Unexpected password reset error:", { error: error instanceof Error ? error.message : String(error) });
         }
       } else {
         // Success - always show success message
-        console.log(`✅ Password reset email sent to ${email}`);
-        console.log(
+        logger.info('✅ Password reset email sent successfully', { emailDomain: values.email.split('@')[1] });
+        logger.info(
           "Email should arrive within a few minutes. Check your spam folder if you don't see it."
         );
-        setError("");
+        form.clearErrors();
 
         // Show success message and call onEmailSent
         onEmailSent();
       }
     } catch (err) {
-      console.error("Password reset request failed:", err);
-      setError(
-        "Connection failed. Please check your internet connection and try again."
-      );
+      logger.error("Password reset request failed:", { error: err instanceof Error ? err.message : String(err) });
+      form.setError("email", {
+        message: "Connection failed. Please check your internet connection and try again."
+      });
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
-
-  const handleEmailChange = (value: string) => {
-    setEmail(value);
-    if (error) {
-      setError("");
-    }
-  };
-
-  const handleBlur = () => {
-    setTouched(true);
-    const emailError = validateEmail(email);
-    if (emailError) {
-      setError(emailError);
-    }
-  };
-
-  const isValid = !validateEmail(email);
 
   return (
     <Card className="w-full max-w-md">
@@ -167,57 +139,27 @@ export function ForgotPassword({ onBack, onEmailSent }: ForgotPasswordProps) {
       </CardHeader>
 
       <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="reset-email" className="text-gray-700 font-medium">
-              Email Address
-            </Label>
-            <div className="relative">
-              <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-              <Input
-                id="reset-email"
-                type="email"
-                placeholder="john@example.com"
-                value={email}
-                onChange={(e) => handleEmailChange(e.target.value)}
-                onBlur={handleBlur}
-                className={`pl-10 ${
-                  error && touched
-                    ? "border-red-300 focus:border-red-400 focus:ring-red-400"
-                    : "border-gray-200 focus:border-pink-700 focus:ring-1 focus:ring-pink-700/20"
-                }`}
-                required
-              />
-              {!error && touched && email && isValid && (
-                <CheckCircle className="absolute right-3 top-3 h-4 w-4 text-green-500" />
-              )}
-            </div>
-            {error && touched && (
-              <p className="text-sm text-red-600 flex items-center space-x-1">
-                <AlertCircle className="h-3 w-3" />
-                <span>{error}</span>
-              </p>
-            )}
-          </div>
-
-          <Button
-            type="submit"
-            disabled={isLoading || !isValid}
-            className="w-full bg-pink-700 text-white hover:bg-pink-800 font-medium border-none shadow-sm disabled:opacity-50"
-          >
-            {isLoading ? (
-              <div className="flex items-center">
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                Sending...
-              </div>
-            ) : (
-              <div className="flex items-center">
-                <Send className="mr-2 h-4 w-4" />
-                Send Reset Link
-              </div>
-            )}
-          </Button>
-        </form>
+        <SharedForm
+          title="Reset Password"
+          submitText="Send Reset Link"
+          form={form}
+          onSubmit={onSubmit}
+          fields={[
+            {
+              name: "email",
+              type: "email",
+              label: "Email Address",
+              placeholder: "john@example.com",
+            },
+          ]}
+          submitButton={{
+            text: "Send Reset Link",
+            loadingText: "Sending...",
+            icon: Send,
+            className: "w-full bg-pink-700 text-white hover:bg-pink-800 font-medium border-none shadow-sm",
+          }}
+          isLoading={loading}
+        />
       </CardContent>
 
       <CardFooter className="flex justify-center">
@@ -232,3 +174,6 @@ export function ForgotPassword({ onBack, onEmailSent }: ForgotPasswordProps) {
     </Card>
   );
 }
+
+// Export as default for dynamic imports
+export default ForgotPassword;

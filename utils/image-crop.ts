@@ -1,3 +1,5 @@
+import { logger } from '@/lib/services/logger';
+
 // Define type for pixel crop area
 export type Area = { x: number; y: number; width: number; height: number }
 
@@ -59,7 +61,7 @@ export async function getCroppedImg(
       }, 'image/png', 1.0)
     })
   } catch (error) {
-    console.error("Error in getCroppedImg:", error)
+    logger.error("Error in getCroppedImg:", { error })
     return null
   }
-} 
+}

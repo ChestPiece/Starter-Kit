@@ -1,9 +1,13 @@
 /**
  * Enhanced User Service using Base Service
- * Demonstrates how to extend the base service for specific entities
+ * Consolidated user service with all functionality from legacy user-service.ts
+ * Provides comprehensive user management with roles, caching, and optimizations
  */
 
 import { BaseService, ServiceResponse, QueryOptions } from './base-service';
+import { User as SupabaseUser } from '@supabase/supabase-js';
+import { User as CustomUser } from '@/types/types';
+import { mapSupabaseUserToCustomUser } from '@/types/auth';
 
 export interface UserProfile {
   id: string;
@@ -15,6 +19,7 @@ export interface UserProfile {
   is_active: boolean;
   created_at: string;
   updated_at: string;
+  profile?: string | null;
   roles?: {
     name: string;
   };
@@ -236,6 +241,170 @@ class EnhancedUserService extends BaseService {
     roleId: string
   ): Promise<ServiceResponse<UserProfile>> {
     return this.updateUser(id, { role_id: roleId });
+  }
+
+  /**
+   * Create enhanced user from Supabase auth user
+   * Provides fallback handling for missing profiles
+   */
+  public async createEnhancedUser(supaUser: SupabaseUser): Promise<CustomUser> {
+    // Try to get existing profile
+    const existingProfile = await this.getUserProfile(supaUser.id, { useCache: false });
+    
+    if (existingProfile) {
+      return existingProfile;
+    }
+
+    // Create fallback user with auth metadata
+    const fallbackUser = mapSupabaseUserToCustomUser(supaUser);
+    if (fallbackUser) {
+      fallbackUser.roles = { name: 'user' };
+      
+      // Try to create profile in background
+      this.createUserProfileInBackground(supaUser);
+      
+      return fallbackUser;
+    }
+
+    // Ultimate fallback
+    return {
+      id: supaUser.id,
+      email: supaUser.email || '',
+      first_name: supaUser.user_metadata?.first_name || '',
+      last_name: supaUser.user_metadata?.last_name || '',
+      role_id: 'default-user-role',
+      is_active: true,
+      profile: supaUser.user_metadata?.avatar_url || null,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      roles: { name: 'user' }
+    };
+  }
+
+  /**
+   * Get user profile with legacy compatibility
+   */
+  public async getUserProfile(userId: string, options: { useCache?: boolean } = {}): Promise<CustomUser | null> {
+    const result = await this.getUserWithRole(userId, options);
+    if (result.success && result.data) {
+      // Convert UserProfile to CustomUser format for compatibility
+      return {
+        id: result.data.id,
+        email: result.data.email,
+        first_name: result.data.first_name,
+        last_name: result.data.last_name,
+        role_id: result.data.role_id,
+        is_active: result.data.is_active,
+        profile: result.data.avatar_url || result.data.profile || null,
+        created_at: result.data.created_at,
+        updated_at: result.data.updated_at,
+        roles: result.data.roles
+      };
+    }
+    return null;
+  }
+
+  /**
+   * Get users with pagination (optimized for data tables)
+   */
+  public async getUsersPagination(
+    searchTerm: string = '',
+    pageSize: number = 10,
+    currentPage: number = 0
+  ) {
+    try {
+      // First try using the optimized database function
+      const { data: funcData, error: funcError } = await this.supabase
+        .rpc('get_users_with_roles_pagination', {
+          search_term: searchTerm || '',
+          page_size: pageSize,
+          page_number: currentPage
+        });
+
+      if (!funcError && funcData) {
+        const transformedUsers = funcData.map((user: any) => ({
+          id: user.id,
+          email: user.email || '',
+          first_name: user.first_name || '',
+          last_name: user.last_name || '',
+          role_id: user.role_id,
+          is_active: user.is_active,
+          profile: user.profile,
+          created_at: user.created_at,
+          updated_at: user.updated_at,
+          roles: {
+            name: user.role_name || 'user'
+          }
+        }));
+
+        return {
+          users: transformedUsers,
+          totalCount: funcData[0]?.total_count || transformedUsers.length
+        };
+      }
+
+      // Fallback to base service pagination
+      const result = await this.getUsersWithRoles({
+        page: currentPage + 1,
+        limit: pageSize,
+        filters: searchTerm ? {
+          or: `first_name.ilike.%${searchTerm}%,last_name.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%`
+        } : {}
+      });
+
+      if (result.success) {
+        return {
+          users: result.data,
+          totalCount: result.total
+        };
+      }
+
+      return {
+        users: [],
+        totalCount: 0
+      };
+    } catch (error) {
+      console.error('Error in getUsersPagination:', error);
+      return {
+        users: [],
+        totalCount: 0
+      };
+    }
+  }
+
+  /**
+   * Update user profile with legacy compatibility
+   */
+  public async updateUserProfile(userId: string, updates: Partial<CustomUser>): Promise<CustomUser | null> {
+    const result = await this.updateUser(userId, {
+      first_name: updates.first_name,
+      last_name: updates.last_name,
+      email: updates.email,
+      avatar_url: updates.profile,
+      role_id: updates.role_id,
+      is_active: updates.is_active
+    });
+
+    if (result.success && result.data) {
+      return this.getUserProfile(userId, { useCache: false });
+    }
+    return null;
+  }
+
+  /**
+   * Create user profile in background
+   */
+  private async createUserProfileInBackground(supaUser: SupabaseUser): Promise<void> {
+    try {
+      await this.createUser({
+        first_name: supaUser.user_metadata?.first_name || '',
+        last_name: supaUser.user_metadata?.last_name || '',
+        email: supaUser.email || '',
+        avatar_url: supaUser.user_metadata?.avatar_url
+      });
+    } catch (error) {
+      console.error('Error creating user profile in background:', error);
+    }
   }
 
   /**

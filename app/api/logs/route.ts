@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { rateLimiter, rateLimitConfigs, getClientIP } from '@/lib/utils/rate-limiter';
-import { errorLogger } from '@/lib/services/error-logger';
+import { errorLogger } from '@/lib/services/logger';
+import { logger } from '@/lib/services/logger';
 
 export async function POST(request: NextRequest) {
   try {
@@ -37,7 +38,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Always log client errors (consistent behavior across environments)
-    console.log('Client Error Log:', logData);
+    logger.info('Client Error Log:', logData);
     
     // Always try to send to external logging service if configured
     // This works in both development and production
@@ -51,7 +52,7 @@ export async function POST(request: NextRequest) {
       // For now, we just acknowledge - you can add your preferred service here
     } catch (externalError) {
       // Don't fail the request if external logging fails
-      console.error('Failed to send to external logging service:', externalError);
+      logger.error('Failed to send to external logging service:', { error: externalError instanceof Error ? externalError.message : String(externalError) });
     }
     
     return NextResponse.json({ success: true });

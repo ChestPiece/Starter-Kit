@@ -1,5 +1,6 @@
 // Real users service fetching from Supabase database
 import { getSupabaseClient } from '@/lib/supabase/singleton-client';
+import { logger } from '@/lib/services/logger';
 
 export const usersService = {
   /**
@@ -37,7 +38,7 @@ export const usersService = {
       }
       return newUser;
     } catch (error) {
-      console.error("Error inserting user:", error);
+      logger.error("Error inserting user:", { error: error instanceof Error ? error.message : String(error) });
       throw error;
     }
   },
@@ -75,11 +76,11 @@ export const usersService = {
       const { data: users, error } = await Promise.race([queryPromise, timeoutPromise]) as any;
 
       if (error) {
-        console.error("Error fetching users:", error);
+        logger.error("Error fetching users:", { error: error instanceof Error ? error.message : String(error) });
         
         // Try fallback query without role join if join fails
         if (error.message?.includes('roles') || error.message?.includes('relation')) {
-          console.log("Retrying query without role join...");
+          logger.info("Retrying query without role join...");
           const { data: basicUsers, error: basicError } = await supabase
             .from('user_profiles')
             .select('*')
@@ -104,7 +105,7 @@ export const usersService = {
 
       return transformedUsers;
     } catch (error) {
-      console.error("Error fetching users:", error);
+      logger.error("Error fetching users:", { error: error instanceof Error ? error.message : String(error) });
       return [];
     }
   },
@@ -144,12 +145,12 @@ export const usersService = {
       const { data: users, error, count } = await query;
 
       if (error) {
-        console.error("Supabase error in getUsersPagination:", error);
-        console.error("Query details:", { search, limit, offset });
+        logger.error("Supabase error in getUsersPagination:", { error: error instanceof Error ? error.message : String(error) });
+        logger.error("Query details:", { search, limit, offset });
         throw error;
       }
 
-      console.log("Users fetched successfully:", users?.length || 0, "total:", count);
+      logger.info("Users fetched successfully:", users?.length || 0, "total:", count);
 
       // Transform the data to match expected format
       const transformedUsers = users?.map((user: any) => ({
@@ -162,7 +163,7 @@ export const usersService = {
         totalCount: count || 0
       };
     } catch (error) {
-      console.error("Error fetching users with pagination:", error);
+      logger.error("Error fetching users with pagination:", { error: error instanceof Error ? error.message : String(error) });
       // Return empty result instead of throwing to prevent UI crashes
       return {
         users: [],
@@ -212,7 +213,7 @@ export const usersService = {
         throw error;
       }
     } catch (error) {
-      console.error("Error updating user:", error);
+      logger.error("Error updating user:", { error: error instanceof Error ? error.message : String(error) });
       throw error;
     }
   },
@@ -231,7 +232,7 @@ export const usersService = {
 
       if (error) throw error;
     } catch (error) {
-      console.error("Error deleting user:", error);
+      logger.error("Error deleting user:", { error: error instanceof Error ? error.message : String(error) });
       throw error;
     }
   },
@@ -256,7 +257,7 @@ export const usersService = {
         .single();
 
       if (error) {
-        console.error("Error fetching user by ID:", error);
+        logger.error("Error fetching user by ID:", { error: error instanceof Error ? error.message : String(error) });
         throw error;
       }
 
@@ -270,8 +271,8 @@ export const usersService = {
 
       return user;
     } catch (error) {
-      console.error("Error fetching user by ID:", error);
+      logger.error("Error fetching user by ID:", { error: error instanceof Error ? error.message : String(error) });
       return null;
     }
   }
-}; 
+};

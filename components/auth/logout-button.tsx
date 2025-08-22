@@ -3,6 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { logout } from "@/lib/actions/auth-actions";
 import { useTransition } from "react";
+import { logger } from '@/lib/services/logger';
 
 interface LogoutButtonProps {
   children?: React.ReactNode;
@@ -17,7 +18,7 @@ export function LogoutButton({ children, className }: LogoutButtonProps) {
       try {
         await logout();
       } catch (error) {
-        console.error("Logout failed:", error);
+        logger.error("Logout failed:", { error: error instanceof Error ? error.message : String(error) });
         // Fallback: redirect to login even if logout fails
         window.location.href = "/auth/login";
       }

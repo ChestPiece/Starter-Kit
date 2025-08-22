@@ -45,11 +45,11 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.your-actual-k
 ## Step 3: Configure Supabase for Emails
 
 1. In your Supabase Dashboard, go to **Authentication** → **Settings**
-2. **Site URL**: Set to `http://localhost:3000` (development) or your domain (production)
-3. **Redirect URLs**: Add these URLs:
-   - `http://localhost:3000/auth/reset-password`
-   - `http://localhost:3000/auth/login`
-   - `http://localhost:3000/api/auth/confirm`
+2. **Site URL**: Set to your `NEXT_PUBLIC_SITE_URL` value (`http://localhost:3000` for development) or your domain (production)
+3. **Redirect URLs**: Add these URLs (replace with your actual domain in production):
+   - `${NEXT_PUBLIC_SITE_URL}/auth/reset-password`
+   - `${NEXT_PUBLIC_SITE_URL}/auth/login`
+   - `${NEXT_PUBLIC_SITE_URL}/api/auth/confirm`
 4. **Email Templates**: (Optional) Customize under **Authentication** → **Email Templates**
 
 ## Step 4: Test It
@@ -62,7 +62,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.your-actual-k
    ```
 
 2. **Test the flow**:
-   - Go to `http://localhost:3000/auth/login`
+   - Go to your application URL (check `NEXT_PUBLIC_SITE_URL` in your `.env.local`)
    - Click **"Forgot Password"**
    - Enter your **real email address**
    - Click **"Send Reset Link"**
